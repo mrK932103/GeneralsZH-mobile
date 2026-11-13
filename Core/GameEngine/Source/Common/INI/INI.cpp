@@ -188,6 +188,7 @@ INI::INI()
 	m_readBufferNext = 0;
 	m_readBufferUsed = 0;
 	m_filename					= "None";
+	m_sourceId.clear();
 	m_loadType					= INI_LOAD_INVALID;
 	m_lineNum						= 0;
 	m_buffer[0]					= 0;
@@ -420,6 +421,7 @@ void INI::unPrepFile()
 	m_readBufferUsed = 0;
 
 	m_filename = "None";
+	m_sourceId.clear();
 	m_loadType = INI_LOAD_INVALID;
 	m_lineNum = 0;
 	m_endOfFile = FALSE;
@@ -468,6 +470,28 @@ static INIFieldParseProc findFieldParse(const FieldParse* parseTable, const char
 
 //-------------------------------------------------------------------------------------------------
 /** Load and parse an INI file */
+//-------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
+// Load one INI file while tagging every parsed definition with its selected Fusion source.
+// The tag is visible only during this load and is cleared by unPrepFile() on success or failure.
+//-------------------------------------------------------------------------------------------------
+UnsignedInt INI::loadFromFusionSource( AsciiString filename, INILoadType loadType, Xfer *pXfer, AsciiString sourceId )
+{
+	if (sourceId.isEmpty())
+		throw INIException("Fusion source identity must not be empty");
+
+	m_sourceId = sourceId;
+	try
+	{
+		return load(filename, loadType, pXfer);
+	}
+	catch (...)
+	{
+		m_sourceId.clear();
+		throw;
+	}
+}
+
 //-------------------------------------------------------------------------------------------------
 UnsignedInt INI::load( AsciiString filename, INILoadType loadType, Xfer *pXfer )
 {
