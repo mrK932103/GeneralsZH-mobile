@@ -88,6 +88,22 @@ public class FusionMergePlanTest {
         assertEquals("command", item.commandButtonAssessment.conflicts.get(0).field);
     }
 
+    @Test
+    public void validatesCommandButtonReferencesEvenWithoutDuplicateCommandSet() {
+        FusionIniBlockParser.Block set = block(
+            "CommandSet UniqueSet\n 1 = MissingButton\nEnd", "A.big!ui.ini");
+        FusionPreflight.Result inventory = new FusionPreflight.Result(1, 1,
+            Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
+            Collections.emptyMap(), Collections.emptyList(),
+            Arrays.asList(set), new ArrayList<FusionPreflight.Issue()));
+
+        FusionMergePlan.Result plan = inventory.assessMergePlan();
+        assertEquals(1, plan.commandSetAssessments.size());
+        assertFalse(plan.commandSetAssessments.get(0).isFullyComparable());
+        assertTrue(plan.summary(10).contains("MissingButton"));
+        assertFalse(plan.canProducePlayablePackage());
+    }
+
     private static FusionPreflight.Result preflight(
             List<FusionIniConflictAnalyzer.Conflict> conflicts,
             Map<String, List<String>> paths) {
