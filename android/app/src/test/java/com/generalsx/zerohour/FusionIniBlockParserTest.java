@@ -150,6 +150,35 @@ public class FusionIniBlockParserTest {
     }
 
     @Test
+    public void returnedExactBytesAreDefensiveCopies() {
+        FusionIniBlockParser.Block block = FusionIniBlockParser.parse(bytes(
+            "Object TankA\n  BuildCost = 100\nEnd"), "A.big!a.ini").blocks.get(0);
+        byte[] exposed = block.copyExactBytes();
+        exposed[0] = 'X';
+
+        assertEquals("Object TankA\n  BuildCost = 100\nEnd",
+            new String(block.copyExactBytes(), INI));
+    }
+
+    @Test
+    public void conflictParticipantsCannotBeModified() {
+        List<FusionIniBlockParser.Block> blocks = new ArrayList<>();
+        blocks.add(FusionIniBlockParser.parse(bytes(
+            "Object TankA\nEnd"), "A.big!a.ini").blocks.get(0));
+        blocks.add(FusionIniBlockParser.parse(bytes(
+            "Object TankA\nEnd"), "B.big!b.ini").blocks.get(0));
+        FusionIniConflictAnalyzer.Conflict conflict =
+            FusionIniConflictAnalyzer.analyze(blocks).get(0);
+
+        try {
+            conflict.participants.clear();
+            throw new AssertionError("participants must be immutable");
+        } catch (UnsupportedOperationException expected) {
+            assertEquals(2, conflict.participants.size());
+        }
+    }
+
+    @Test
     public void emptyAndNullConflictInputsAreSafe() {
         assertTrue(FusionIniConflictAnalyzer.analyze(null).isEmpty());
         assertTrue(FusionIniConflictAnalyzer.analyze(new ArrayList<>()).isEmpty());
