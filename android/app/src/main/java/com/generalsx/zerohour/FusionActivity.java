@@ -128,10 +128,30 @@ public final class FusionActivity extends Activity {
                     FusionFactionCatalog.discover(result.iniBlocks);
                 out.append("Найдено PlayerTemplate-фракций/кандидатов: ")
                     .append(factions.size()).append("\n");
-                for (FusionFactionCatalog.FactionSource faction : factions) {
+                List<FusionFactionDependencyPlan.FactionPlan> factionPlans =
+                    FusionFactionDependencyPlan.build(result, factions);
+                for (int i = 0; i < factions.size(); i++) {
+                    FusionFactionCatalog.FactionSource faction = factions.get(i);
+                    FusionFactionDependencyPlan.FactionPlan factionPlan = factionPlans.get(i);
                     out.append("  - ").append(faction.describe()).append("\n");
+                    out.append("      Источник фракции: ").append(factionPlan.sourceMod).append("\n");
+                    out.append("      Определений в своей цепочке: ")
+                        .append(factionPlan.definitions.size()).append("\n");
+                    out.append("      Состояние цепочки: ")
+                        .append(factionPlan.isClosed() ? "локальные зависимости найдены"
+                            : "требуется проверка").append("\n");
                     for (String unresolved : faction.unresolved) {
-                        out.append("      REVIEW: ").append(unresolved).append("\n");
+                        out.append("      ROOT REVIEW: ").append(unresolved).append("\n");
+                    }
+                    int shown = 0;
+                    for (String crossSource : factionPlan.crossSource) {
+                        if (shown++ >= 8) break;
+                        out.append("      CROSS-SOURCE BLOCKER: ").append(crossSource).append("\n");
+                    }
+                    shown = 0;
+                    for (String unresolved : factionPlan.unresolved) {
+                        if (shown++ >= 8) break;
+                        out.append("      DEPENDENCY REVIEW: ").append(unresolved).append("\n");
                     }
                 }
                 out.append("Дублирующихся путей: ").append(result.duplicatePathCount()).append("\n");
@@ -170,7 +190,7 @@ public final class FusionActivity extends Activity {
                 out.append(plan.summary(35)).append("\n");
                 out.append("\n");
                 out.append("Безопасная сборка BIG-пакета: ").append(canBuild ? "ДОСТУПНА ПОСЛЕ ПРОВЕРКИ" : "ЗАБЛОКИРОВАНА").append("\n");
-                out.append("ВАЖНО: найденные PlayerTemplate — только корни фракций. Их зависимости, ресурсы и изоляция в движке ещё не подключены. Архив-перекрытие не создаёт совместимые фракции. Исходные моды не изменяются.");
+                out.append("ВАЖНО: Fusion теперь строит предварительную цепочку зависимостей отдельно для каждой фракции и не подхватывает определения из другого выбранного мода. Неизвестные и межмодовые зависимости отмечаются. Это ещё не runtime-изоляция: игровой движок и сборка итогового пакета пока не завершены. Исходные моды не изменяются.");
                 output = out.toString();
             } catch (Throwable error) {
                 output = "Ошибка анализа: " + error.getClass().getSimpleName()
