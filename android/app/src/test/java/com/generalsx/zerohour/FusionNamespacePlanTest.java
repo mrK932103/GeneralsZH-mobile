@@ -89,4 +89,22 @@ public class FusionNamespacePlanTest {
             plan.references.get(0).runtimeName);
     }
 
+
+    @Test
+    public void globallyUniqueDefinitionUsesNormalizedSourceKey() {
+        String definitionSource = "OnlyMod.big!Data/INI/Weapon.ini";
+        FusionIniIndex.Definition definition = new FusionIniIndex.Definition(
+            "Weapon", "UniqueCannon", null, definitionSource, 3);
+        FusionIniReferences.Reference reference = new FusionIniReferences.Reference(
+            "Weapon", "UniqueCannon", "AnotherMod.big!Data/INI/Object/Unit.ini",
+            27, "object:unit");
+
+        FusionNamespacePlan.Result plan = FusionNamespacePlan.build(
+            Arrays.asList(definition), Arrays.asList(reference));
+
+        assertTrue(plan.isComplete());
+        assertEquals(plan.runtimeName(definitionSource, "Weapon", "UniqueCannon"),
+            plan.references.get(0).runtimeName);
+    }
+
 }
