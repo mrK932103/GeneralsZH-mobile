@@ -21,24 +21,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Builds a conservative typed dependency graph from the declarations and references found by
- * Fusion preflight. References are scoped to recognized INI declaration blocks; lexical parsing
- * still cannot resolve macros, dynamic names, or all engine-specific semantics.
+ * Builds a conservative typed dependency graph from indexed declarations and references.
+ * Lexical parsing cannot resolve macros, dynamic names, or every engine-specific relationship.
  */
 final class FusionDependencyGraph {
-    static final class Node {
-        final String key;
-        final List<FusionIniIndex.Definition> definitions;
-        final List<FusionIniReferences.Reference> references;
-
-        Node(String key, List<FusionIniIndex.Definition> definitions,
-             List<FusionIniReferences.Reference> references) {
-            this.key = key;
-            this.definitions = Collections.unmodifiableList(definitions);
-            this.references = Collections.unmodifiableList(references);
-        }
-    }
-
     static final class Result {
         final Set<String> visited;
         final Set<String> unresolved;
@@ -47,63 +33,74 @@ final class FusionDependencyGraph {
         Result(Set<String> visited, Set<String> unresolved, Map<String, List<String>> edges) {
             this.visited = Collections.unmodifiableSet(visited);
             this.unresolved = Collections.unmodifiableSet(unresolved);
-            this.edges = Collections.unmodifiableMap(edges);
+            Map<String, List<String>> immutableEdges = new LinkedHashMap<>();
+            for (Map.Entry<String, List<String>> entry : edges.entrySet()) {
+                immutableEdges.put(entry.getKey(), Collections.unmodifiableList(entry.getValue()));
+            }
+            this.edges = Collections.unmodifiableMap(immutableEdges);
         }
     }
 
     private FusionDependencyGraph() {}
 
     /**
-     * GeneralsX @feature author 13/11/2026 Build block-scoped candidate dependency closure.
+     * GeneralsX @bugfix author 13/11/2026 Index references by owner once before graph traversal.
      */
     static Result trace(FusionPreflight.Result preflight, List<String> roots) {
         Map<String, List<FusionIniIndex.Definition>> definitions = preflight.definitions;
-        Map<String, List<FusionIniReferences.Reference>> references = preflight.references;
+        Map<String, List<FusionIniReferences.Reference>> byOwner = new LinkedHashMap<>();
+        for (List<FusionIniReferences.Reference> group : preflight.references.values()) {
+            for (FusionIniReferences.Reference reference : group) {
+                if (reference.ownerKey == null) continue;
+                List<FusionIniReferences.Reference> owned = byOwner.get(reference.ownerKey);
+                if (owned == null) {
+                    owned = new ArrayList<>();
+                    byOwner.put(reference.ownerKey, owned);
+                }
+                owned.add(reference);
+            }
+        }
+
         Set<String> visited = new LinkedHashSet<>();
         Set<String> unresolved = new LinkedHashSet<>();
         Map<String, List<String>> edges = new LinkedHashMap<>();
         Deque<String> pending = new ArrayDeque<>();
-
         if (roots != null) {
             for (String root : roots) {
-                if (root != null && !root.trim().isEmpty()) {
-                    String key = normalizeRoot(root);
-                    if (!pending.contains(key)) pending.addLast(key);
-                }
+                if (root == null || root.trim().isEmpty()) continue;
+                String key = normalizeRoot(root);
+                if (!pending.contains(key)) pending.addLast(key);
             }
         }
 
         while (!pending.isEmpty()) {
             String current = pending.removeFirst();
             if (!visited.add(current)) continue;
-            if (!definitions.containsKey(current)) {
+            List<FusionIniIndex.Definition> owners = definitions.get(current);
+            if (owners == null || owners.isEmpty()) {
                 unresolved.add(current);
                 continue;
             }
 
-            List<String> outgoing = new ArrayList<>();
-            for (FusionIniIndex.Definition definition : definitions.get(current)) {
+            Set<String> outgoing = new LinkedHashSet<>();
+            for (FusionIniIndex.Definition definition : owners) {
                 if (definition.parent != null && !definition.parent.trim().isEmpty()) {
                     String parentKind = "ChildObject".equalsIgnoreCase(definition.type)
                         ? "object" : definition.type.toLowerCase(java.util.Locale.ROOT);
-                    String parentKey = parentKind + ":"
-                        + definition.parent.toLowerCase(java.util.Locale.ROOT);
-                    outgoing.add(parentKey);
-                    if (!visited.contains(parentKey)) pending.addLast(parentKey);
+                    outgoing.add(parentKind + ":" + definition.parent.toLowerCase(java.util.Locale.ROOT));
                 }
-            }
-            for (FusionIniIndex.Definition definition : definitions.get(current)) {
-                for (List<FusionIniReferences.Reference> values : references.values()) {
-                    for (FusionIniReferences.Reference reference : values) {
-                        if (reference.ownerKey == null
-                                || !reference.ownerKey.equals(definition.key())) continue;
-                        String target = reference.key();
-                        if (!outgoing.contains(target)) outgoing.add(target);
-                        if (!visited.contains(target)) pending.addLast(target);
+                List<FusionIniReferences.Reference> refs = byOwner.get(definition.key());
+                if (refs != null) {
+                    for (FusionIniReferences.Reference reference : refs) {
+                        outgoing.add(reference.key());
                     }
                 }
             }
-            edges.put(current, outgoing);
+            List<String> targets = new ArrayList<>(outgoing);
+            edges.put(current, targets);
+            for (String target : targets) {
+                if (!visited.contains(target)) pending.addLast(target);
+            }
         }
         return new Result(visited, unresolved, edges);
     }
