@@ -1,0 +1,74 @@
+package com.generalsx.zerohour;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import org.junit.Test;
+
+public class FusionNamespacePlanTest {
+    @Test
+    public void sameNamedDefinitionsReceiveStableDistinctRuntimeNames() {
+        List<FusionIniIndex.Definition> definitions = Arrays.asList(
+            new FusionIniIndex.Definition("Weapon", "SharedCannon", null, "Hypersonic.big!weapon.ini", 4),
+            new FusionIniIndex.Definition("Weapon", "SharedCannon", null, "TEOD.big!weapon.ini", 9));
+
+        FusionNamespacePlan.Result first = FusionNamespacePlan.build(definitions,
+            Collections.<FusionIniReferences.Reference>emptyList());
+        FusionNamespacePlan.Result second = FusionNamespacePlan.build(definitions,
+            Collections.<FusionIniReferences.Reference>emptyList());
+
+        String hypersonic = first.runtimeName("Hypersonic.big!weapon.ini", "Weapon", "SharedCannon");
+        String teod = first.runtimeName("TEOD.big!weapon.ini", "Weapon", "SharedCannon");
+        assertNotEquals(hypersonic, teod);
+        assertEquals(hypersonic, second.runtimeName("Hypersonic.big!weapon.ini", "Weapon", "SharedCannon"));
+        assertEquals(teod, second.runtimeName("TEOD.big!weapon.ini", "Weapon", "SharedCannon"));
+        assertTrue(first.isComplete());
+    }
+
+    @Test
+    public void sameSourceReferenceResolvesToItsOwnDefinition() {
+        String a = "Hypersonic.big!Data/INI/Weapon.ini";
+        String b = "TEOD.big!Data/INI/Weapon.ini";
+        List<FusionIniIndex.Definition> definitions = Arrays.asList(
+            new FusionIniIndex.Definition("Weapon", "SharedCannon", null, a, 2),
+            new FusionIniIndex.Definition("Weapon", "SharedCannon", null, b, 2));
+        FusionIniReferences.Reference ref = new FusionIniReferences.Reference(
+            "Weapon", "SharedCannon", a, 18, "object:iran_tank");
+
+        FusionNamespacePlan.Result plan = FusionNamespacePlan.build(definitions, Arrays.asList(ref));
+        assertTrue(plan.isComplete());
+        assertEquals(plan.runtimeName(a, "Weapon", "SharedCannon"),
+            plan.references.get(0).runtimeName);
+        assertNotEquals(plan.runtimeName(a, "Weapon", "SharedCannon"),
+            plan.runtimeName(b, "Weapon", "SharedCannon"));
+    }
+
+    @Test
+    public void ambiguousCrossSourceReferenceIsRejected() {
+        List<FusionIniIndex.Definition> definitions = Arrays.asList(
+            new FusionIniIndex.Definition("Weapon", "SharedCannon", null, "A.big!weapon.ini", 2),
+            new FusionIniIndex.Definition("Weapon", "SharedCannon", null, "B.big!weapon.ini", 2));
+        FusionIniReferences.Reference ref = new FusionIniReferences.Reference(
+            "Weapon", "SharedCannon", "C.big!object.ini", 30, "object:third_faction");
+
+        FusionNamespacePlan.Result plan = FusionNamespacePlan.build(definitions, Arrays.asList(ref));
+        assertFalse(plan.isComplete());
+        assertTrue(plan.unresolved.toString().contains("ambiguous reference"));
+    }
+
+    @Test
+    public void missingReferenceIsRejectedRatherThanGuessed() {
+        FusionIniReferences.Reference ref = new FusionIniReferences.Reference(
+            "Weapon", "MissingWeapon", "A.big!object.ini", 12, "object:test");
+        FusionNamespacePlan.Result plan = FusionNamespacePlan.build(
+            Collections.<FusionIniIndex.Definition>emptyList(), Arrays.asList(ref));
+        assertFalse(plan.isComplete());
+        assertTrue(plan.unresolved.toString().contains("missing reference"));
+    }
+}
