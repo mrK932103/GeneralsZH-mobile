@@ -119,15 +119,15 @@ public final class FusionActivity extends Activity {
                 out.append("BIG-архивов: ").append(result.archiveCount).append("\n");
                 out.append("Записей в архивах: ").append(result.entryCount).append("\n");
                 out.append("INI-определений: ").append(result.definitionCount()).append("\n");
-                out.append("INI-ссылок: ").append(result.referenceCount()).append("\\n");
+                out.append("INI-ссылок: ").append(result.referenceCount()).append("\n");
                 List<FusionFactionCatalog.FactionSource> factions =
                     FusionFactionCatalog.discover(result.iniBlocks);
                 out.append("Найдено PlayerTemplate-фракций/кандидатов: ")
-                    .append(factions.size()).append("\\n");
+                    .append(factions.size()).append("\n");
                 for (FusionFactionCatalog.FactionSource faction : factions) {
-                    out.append("  - ").append(faction.describe()).append("\\n");
+                    out.append("  - ").append(faction.describe()).append("\n");
                     for (String unresolved : faction.unresolved) {
-                        out.append("      REVIEW: ").append(unresolved).append("\\n");
+                        out.append("      REVIEW: ").append(unresolved).append("\n");
                     }
                 }
                 out.append("Дублирующихся путей: ").append(result.duplicatePathCount()).append("\n");
