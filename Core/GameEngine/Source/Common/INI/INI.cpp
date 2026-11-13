@@ -1503,7 +1503,10 @@ void INI::parseFXList( INI* ini, void * /*instance*/, void *store, const void* /
 	typedef const FXList *ConstFXListPtr;
 	ConstFXListPtr* theFXList = (ConstFXListPtr*)store;
 
-	const FXList *fxl = TheFXListStore->findFXList(token);	// could be null!
+	const AsciiString sourceId = ini->getSourceId();
+	const FXList *fxl = sourceId.isNotEmpty()
+		? TheFXListStore->findFXList(token, sourceId)
+		: TheFXListStore->findFXList(token); // could be null!
 	DEBUG_ASSERTCRASH(fxl != nullptr || stricmp(token, "None") == 0, ("FXList %s not found!",token));
 	// assign it, even if null!
 	*theFXList = fxl;
