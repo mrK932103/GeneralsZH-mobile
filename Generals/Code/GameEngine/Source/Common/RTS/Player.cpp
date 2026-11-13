@@ -743,7 +743,9 @@ void Player::deletePlayerAI()
 //
 void Player::initFromDict(const Dict* d)
 {
-	initFromDict(d, AsciiString::TheEmptyString);
+	// The key is optional and absent from all legacy maps and side dictionaries.
+	// Fusion-created Skirmish sides carry it to select the correct faction source.
+	initFromDict(d, d->getAsciiString(NAMEKEY("playerFusionSource")));
 }
 
 //=============================================================================
