@@ -131,6 +131,10 @@ final class FusionPreflight {
                 issues.add(new Issue(true, "A selected mod folder is missing or unsafe."));
                 continue;
             }
+            if (containsUnsupportedGib(mod.dir, 0)) {
+                issues.add(new Issue(true, "Unsupported .gib archive found in " + mod.name
+                    + "; Fusion currently supports validated BIGF (.big) archives only."));
+            }
             if (hasLooseGameFiles(mod.dir, 0)) {
                 issues.add(new Issue(true, "Loose game files are present in " + mod.name
                     + "; Fusion currently accepts BIGF archives only and will not omit loose assets."));
@@ -239,8 +243,25 @@ final class FusionPreflight {
             if (child.isDirectory()) {
                 if (containsLooseFile(child, depth + 1)) return true;
             } else if (child.isFile()
-                    && !child.getName().toLowerCase(Locale.ROOT).endsWith(".big")
-                    && !child.getName().toLowerCase(Locale.ROOT).endsWith(".gib")) {
+                    && !child.getName().toLowerCase(Locale.ROOT).endsWith(".big")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Reject archive variants that are not parsed or copied by the current BIGF-only builder. */
+    private static boolean containsUnsupportedGib(File directory, int depth) {
+        if (directory == null || depth > 8 || !directory.isDirectory()
+                || Files.isSymbolicLink(directory.toPath())) return false;
+        File[] children = directory.listFiles();
+        if (children == null) return false;
+        for (File child : children) {
+            if (Files.isSymbolicLink(child.toPath())) continue;
+            if (child.isDirectory()) {
+                if (containsUnsupportedGib(child, depth + 1)) return true;
+            } else if (child.isFile()
+                    && child.getName().toLowerCase(Locale.ROOT).endsWith(".gib")) {
                 return true;
             }
         }
