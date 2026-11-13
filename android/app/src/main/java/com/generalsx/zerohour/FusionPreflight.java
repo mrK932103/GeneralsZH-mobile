@@ -44,19 +44,21 @@ final class FusionPreflight {
         final Map<String, List<FusionIniIndex.Definition>> definitions;
         final Map<String, List<FusionIniReferences.Reference>> references;
         final Map<String, List<FusionIniReferences.Reference>> referencesOutsideSelection;
+        final List<FusionIniConflictAnalyzer.Conflict> iniConflicts;
         final List<Issue> issues;
 
         Result(int archiveCount, int entryCount, Map<String, List<String>> pathSources,
                Map<String, List<FusionIniIndex.Definition>> definitions,
                Map<String, List<FusionIniReferences.Reference>> references,
                Map<String, List<FusionIniReferences.Reference>> referencesOutsideSelection,
-               List<Issue> issues) {
+               List<FusionIniConflictAnalyzer.Conflict> iniConflicts, List<Issue> issues) {
             this.archiveCount = archiveCount;
             this.entryCount = entryCount;
             this.pathSources = Collections.unmodifiableMap(pathSources);
             this.definitions = Collections.unmodifiableMap(definitions);
             this.references = Collections.unmodifiableMap(references);
             this.referencesOutsideSelection = Collections.unmodifiableMap(referencesOutsideSelection);
+            this.iniConflicts = Collections.unmodifiableList(new ArrayList<>(iniConflicts));
             this.issues = Collections.unmodifiableList(issues);
         }
 
@@ -78,6 +80,34 @@ final class FusionPreflight {
             int count = 0;
             for (List<FusionIniReferences.Reference> values : referencesOutsideSelection.values()) count += values.size();
             return count;
+        }
+
+        int iniConflictCount(FusionIniConflictAnalyzer.Status status) {
+            int count = 0;
+            for (FusionIniConflictAnalyzer.Conflict conflict : iniConflicts) {
+                if (conflict.status == status) count++;
+            }
+            return count;
+        }
+
+        String iniConflictSummary(FusionIniConflictAnalyzer.Status status, int limit) {
+            StringBuilder summary = new StringBuilder();
+            int shown = 0;
+            int remaining = 0;
+            for (FusionIniConflictAnalyzer.Conflict conflict : iniConflicts) {
+                if (conflict.status != status) continue;
+                if (shown >= limit) {
+                    remaining++;
+                    continue;
+                }
+                if (summary.length() > 0) summary.append("\\n");
+                summary.append(conflict.describe());
+                shown++;
+            }
+            if (remaining > 0) {
+                summary.append("\\n... and ").append(remaining).append(" more conflict(s)");
+            }
+            return summary.toString();
         }
 
         FusionDependencyGraph.Result traceDependencies(List<String> roots) {
@@ -189,7 +219,8 @@ final class FusionPreflight {
 
         if (selectedMods == null || selectedMods.isEmpty()) {
             issues.add(new Issue(true, "Select at least one mod."));
-            return new Result(0, 0, sources, definitions, references, outside, issues);
+            return new Result(0, 0, sources, definitions, references, outside,
+                new ArrayList<FusionIniConflictAnalyzer.Conflict>(), issues);
         }
 
         for (ModManager.Mod mod : selectedMods) {
@@ -292,8 +323,9 @@ final class FusionPreflight {
             }
         }
 
-        for (FusionIniConflictAnalyzer.Conflict conflict :
-                FusionIniConflictAnalyzer.analyze(iniBlocks)) {
+        List<FusionIniConflictAnalyzer.Conflict> iniConflicts =
+            FusionIniConflictAnalyzer.analyze(iniBlocks);
+        for (FusionIniConflictAnalyzer.Conflict conflict : iniConflicts) {
             issues.add(new Issue(false, "N-way INI duplicate classification: "
                 + conflict.describe()));
         }
@@ -323,7 +355,8 @@ final class FusionPreflight {
             issues.add(new Issue(false, outside.size()
                 + " typed reference(s) are not defined in the selected mods; they may be supplied by the base game or other INI files."));
         }
-        return new Result(archives, entries, sources, definitions, references, outside, issues);
+        return new Result(archives, entries, sources, definitions, references, outside,
+            iniConflicts, issues);
     }
 
 
