@@ -121,9 +121,11 @@ final class FusionBigArchiveWriter {
         }
         totalSize = offset;
 
+        if (java.nio.file.Files.isSymbolicLink(destination.toPath())) {
+            throw new IOException("Fusion output cannot be a symbolic link");
+        }
         File canonicalDestination = destination.getCanonicalFile();
-        if (destination.exists() && (!destination.isFile()
-                || java.nio.file.Files.isSymbolicLink(destination.toPath()))) {
+        if (canonicalDestination.exists() && !canonicalDestination.isFile()) {
             throw new IOException("Fusion output must be a regular file, not a directory or symbolic link");
         }
         File parent = canonicalDestination.getParentFile();
@@ -133,15 +135,10 @@ final class FusionBigArchiveWriter {
         String tempPrefix = canonicalDestination.getName() + ".";
         while (tempPrefix.length() < 3) tempPrefix += "_";
         File temp = File.createTempFile(tempPrefix, ".fusion-tmp", parent);
-        File backup = new File(parent, canonicalDestination.getName() + ".fusion-backup");
-        if (backup.exists() && (!backup.isFile()
-                || java.nio.file.Files.isSymbolicLink(backup.toPath()))) {
+        File backup = File.createTempFile(tempPrefix, ".fusion-backup", parent);
+        if (!backup.delete()) {
             temp.delete();
-            throw new IOException("Fusion backup path is not a regular file");
-        }
-        if (backup.exists() && !backup.delete()) {
-            temp.delete();
-            throw new IOException("Cannot clear stale Fusion backup");
+            throw new IOException("Cannot prepare a unique Fusion backup path");
         }
 
         try {
