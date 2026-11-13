@@ -32,7 +32,7 @@ Legacy lookup, count and index enumeration intentionally ignore source-tagged Fu
 
 Added `Player::initFromDict(dict, fusionSourceId)`. It resolves the faction within the supplied source namespace. The old one-argument overload delegates with an empty ID and keeps the old behavior.
 
-The caller that builds the Fusion Skirmish slot must pass the selected source ID. That Skirmish/UI/PlayerList handoff is not yet implemented.
+The caller that builds the Fusion Skirmish slot must pass the selected source ID. That Skirmish/UI/PlayerList handoff is not yet implemented. Player state CRC now includes the source ID only for Fusion-owned PlayerTemplates, keeping legacy CRC streams unchanged.
 
 ### Weapon registration and lookup
 
@@ -47,6 +47,7 @@ Weapon snapshot transfer version is now 4 and stores the source ID for Fusion-ow
 
 - Existing untagged INI loads use the original PlayerTemplate and Weapon lookup behavior.
 - Source-tagged PlayerTemplates are hidden from the ordinary Skirmish enumeration until the Fusion menu can pass source identity.
+- Legacy PlayerTemplate lookup also ignores source-tagged entries, so a Fusion definition loaded before a base-game definition cannot hijack ordinary faction lookup.
 - Source-tagged weapons do not replace entries in the legacy global WeaponStore NameKey map.
 - The source identity is explicitly supplied by the Fusion loader; this code does not guess it from a filename.
 
