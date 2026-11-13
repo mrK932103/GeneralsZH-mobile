@@ -372,7 +372,9 @@ UnsignedInt INI::loadDirectory( AsciiString dirName, INILoadType loadType, Xfer 
 		tempname = (*it).str() + dirName.getLength();
 
 		if ((tempname.find('\\') != nullptr) || (tempname.find('/') != nullptr)) {
-			filesRead += load( *it, loadType, pXfer );
+			filesRead += sourceId.isNotEmpty()
+				? loadFromFusionSource(*it, loadType, pXfer, sourceId)
+				: load(*it, loadType, pXfer);
 		}
 		++it;
 	}
