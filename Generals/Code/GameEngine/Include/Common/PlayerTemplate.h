@@ -209,7 +209,10 @@ public:
 	const PlayerTemplate* findPlayerTemplate(NameKeyType namekey) const;
 	const PlayerTemplate* findPlayerTemplate(NameKeyType namekey, const AsciiString& sourceId) const;
 
-	Int getPlayerTemplateCount() const { return m_playerTemplates.size(); }
+	// Legacy Skirmish APIs expose only untagged templates; Fusion has a separate source-aware list.
+	Int getPlayerTemplateCount() const;
+	const PlayerTemplate* getNthFusionPlayerTemplate(Int i) const;
+	Int getFusionPlayerTemplateCount() const;
 
 
 	// This function will fill outStringList with all the sides found in all the templates
