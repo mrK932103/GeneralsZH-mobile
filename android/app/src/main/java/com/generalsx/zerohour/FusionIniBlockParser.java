@@ -34,7 +34,7 @@ final class FusionIniBlockParser {
         + "MappedImage|PlayerTemplate|ObjectCreationList|OCL)\\s+([^\\s;]+)(?:\\s+([^\\s;]+))?\\s*$",
         Pattern.CASE_INSENSITIVE);
     private static final Pattern FIELD = Pattern.compile(
-        "^([A-Za-z][A-Za-z0-9_]*)\\s*=\\s*(.*?)\\s*$");
+        "^([A-Za-z][A-Za-z0-9_]*|[1-9]|1[0-8])\\s*=\\s*(.*?)\\s*$");
     private static final String[] FIELD_BLOCKS = {
         "behavior", "draw", "body", "clientupdate", "geometry",
         "conditionstate", "transitionstate"
