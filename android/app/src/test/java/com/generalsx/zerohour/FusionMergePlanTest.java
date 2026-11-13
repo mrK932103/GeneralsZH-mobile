@@ -100,7 +100,10 @@ public class FusionMergePlanTest {
         FusionMergePlan.Result plan = inventory.assessMergePlan();
         assertEquals(1, plan.commandSetAssessments.size());
         assertFalse(plan.commandSetAssessments.get(0).isFullyComparable());
-        assertTrue(plan.summary(10).contains("MissingButton"));
+        String summary = plan.summary(10);
+        assertTrue(summary.contains("MissingButton"));
+        assertTrue(summary.contains("\n  "));
+        assertFalse(summary.contains("\\n  "));
         assertFalse(plan.canProducePlayablePackage());
     }
 
