@@ -32,7 +32,7 @@ public class FusionIniBlockParserTest {
         assertEquals(7, block.endLine);
         assertEquals(source.substring(source.indexOf("Object TankA"),
             source.lastIndexOf("End\r\n") + "End\r".length()),
-            new String(block.exactBytes, INI));
+            new String(block.copyExactBytes(), INI));
     }
 
     @Test
@@ -134,7 +134,7 @@ public class FusionIniBlockParserTest {
         assertTrue(result.problems.toString(), result.problems.isEmpty());
         assertEquals(1, result.blocks.size());
         assertEquals("Object TankA\\n  BuildCost = 100\\nEnd",
-            new String(result.blocks.get(0).exactBytes, INI));
+            new String(result.blocks.get(0).copyExactBytes(), INI));
         assertTrue(result.blocks.get(0).safeForComparison);
     }
 
