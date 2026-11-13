@@ -163,3 +163,11 @@ Complete a source-of-truth audit of the managed-mod engine mount path and the la
 - A premature named declaration now reports the exact previous declaration and opening line before recovery; EOF diagnostics identify the innermost unclosed block and its containing declaration.
 - This improves diagnostic specificity and avoids losing the identity of the declaration when nested blocks remain open.
 - The scanner remains a bounded lexical heuristic. It does not validate unknown block forms or make automatic merge decisions. No compile, fixture run, or device test has been performed.
+
+
+### Conflict diagnostics refinement (13 November 2026)
+
+- Added bounded, source-located summaries for duplicate INI declaration keys and duplicate virtual archive paths in preflight results.
+- The strict archive builder now includes up to 20 duplicate declaration keys and their archive/file/line locations in its blocking error, including parent names where present.
+- This is diagnostics only: duplicate definitions remain blocked; no conflicting declaration is selected or silently overwritten.
+- No Android compile, automated fixture test, or device validation has been performed.
