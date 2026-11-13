@@ -202,11 +202,12 @@ final class FusionNamespacePlan {
     private static String sourceId(String source) {
         String value = safe(source).replace('\\', '/');
         int member = value.indexOf('!');
-        if (member >= 0) return value.substring(0, member).toLowerCase(Locale.ROOT);
-        String lower = value.toLowerCase(Locale.ROOT);
-        int iniRoot = lower.indexOf("/data/ini/");
-        if (iniRoot >= 0) return value.substring(0, iniRoot).toLowerCase(Locale.ROOT);
-        return lower;
+        if (member >= 0) value = value.substring(0, member);
+        // Preflight source is ModName/Archive.big. All BIG archives under one selected
+        // mod folder must share the same faction namespace.
+        int archiveSeparator = value.lastIndexOf('/');
+        if (archiveSeparator > 0) value = value.substring(0, archiveSeparator);
+        return value.toLowerCase(Locale.ROOT);
     }
 
     private static String normalize(String value) {
