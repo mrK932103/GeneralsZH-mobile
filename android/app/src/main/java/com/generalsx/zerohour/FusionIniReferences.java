@@ -159,7 +159,8 @@ final class FusionIniReferences {
             if ("transport".equals(key) || "putincontainer".equals(key)
                     || "payload".equals(key) || "objectnames".equals(key)) return "Object";
             if ("particlesystem".equals(key)) return "ParticleSystem";
-            if ("fadesound".equals(key)) return "AudioEvent";
+            if ("fxfinal".equals(key)) return "FXList";
+            if ("fadesound".equals(key) || "bouncesound".equals(key)) return "AudioEvent";
         }
         if ("weapon".equals(key) || "primaryweapon".equals(key) || "secondaryweapon".equals(key)
                 || "historicbonusweapon".equals(key)) return "Weapon";
