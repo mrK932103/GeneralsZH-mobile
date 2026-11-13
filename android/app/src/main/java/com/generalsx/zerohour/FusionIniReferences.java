@@ -111,8 +111,15 @@ final class FusionIniReferences {
             if (kind != null) {
                 String[] tokens = field.group(2).trim().split("\\s+");
                 int first = 0;
-                if (("Weapon".equals(kind) || "Locomotor".equals(kind))
-                        && tokens.length > 1 && isSlot(tokens[0])) first = 1;
+                String fieldKey = fieldName.toLowerCase(Locale.ROOT);
+                if (fieldKey.startsWith("veterancy") && tokens.length > 1) {
+                    // Native parsePerVetLevel* handlers consume the first token as a
+                    // VeterancyLevel and the second token as the referenced resource name.
+                    first = 1;
+                } else if (("Weapon".equals(kind) || "Locomotor".equals(kind))
+                        && tokens.length > 1 && isSlot(tokens[0])) {
+                    first = 1;
+                }
                 for (int token = first; token < tokens.length; token++) {
                     String value = cleanToken(tokens[token]);
                     if (isIdentifier(value)) {
@@ -155,8 +162,10 @@ final class FusionIniReferences {
                 || "veterancyprojectiledetonationocl".equals(key)) return "ObjectCreationList";
         if ("projectileexhaust".equals(key)
                 || "veterancyprojectileexhaust".equals(key)) return "ParticleSystem";
-        if ("projectiledetonationfx".equals(key)
+        if ("firefx".equals(key) || "veterancyfirefx".equals(key)
+                || "projectiledetonationfx".equals(key)
                 || "veterancyprojectiledetonationfx".equals(key)) return "FXList";
+        if ("firesound".equals(key)) return "AudioEvent";
         if ("locomotor".equals(key)) return "Locomotor";
         if ("armor".equals(key)) return "Armor";
         if ("commandset".equals(key)) return "CommandSet";
