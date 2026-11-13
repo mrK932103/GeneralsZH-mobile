@@ -229,3 +229,18 @@ Implementation consequence: build a reusable parser/model/merge-rule registry an
 - Added JUnit tests for exact CRLF block preservation and line locations, unknown bare syntax being marked unsafe, three-way exact duplicates, three-way divergent duplicates, and unsafe participants.
 - Added JUnit 4 as an Android app test dependency.
 - These tests are committed but not yet executed. They are not evidence of a successful Gradle build; the Android native toolchain and mod archives are not available in this editing session.
+
+
+### Engine-level faction and Skirmish findings (13 November 2026)
+
+The native Zero Hour engine source was inspected before designing faction reconciliation:
+
+- `PlayerTemplateStore::parsePlayerTemplateDefinition` looks up an existing template by `NameKey`. If found, it calls `INI::initFromINI` on that existing object; otherwise it constructs and appends a new template. Therefore repeated declarations with the same template name are field updates applied in INI load order, not an unconditional whole-template replacement. This is not a safe generic merge rule: later fields can override earlier values, omitted fields remain from the earlier template, and load order matters.
+- The parsed template contains gameplay and UI-facing fields, including `Side`, `BaseSide`, `PlayableSide`, `StartingBuilding`, up to ten `StartingUnitN` entries, science command sets, special-power shortcut UI, score/load-screen images and music, side icons, beacon template, and display/tooltip text. A faction is not just a single name in a registry.
+- `SidesList::prepareForMP_or_Skirmish` copies the current map sides into its Skirmish-side list, then removes non-civilian sides from the map-side list; it loads default AI scripts from `Data\\Scripts\\SkirmishScripts.scb` when the sides do not already carry scripts. This means map-side records and Skirmish faction templates/scripts are distinct systems and must not be conflated.
+- `SidesList::addPlayerByTemplate` derives the player name from the faction template name and creates a default team. Thus template-name collisions and faction naming conventions can affect player/team identity.
+- The Skirmish preferences code stores the selected faction by numeric template index and validates the index against the current template store; persisted indices can become stale when the template registry changes order.
+
+**Fusion implications:** never concatenate all `PlayerTemplate` blocks blindly and never assume that adding template definitions alone makes every faction playable. The merge plan must preserve stable template identities, identify field-level collisions, validate required faction fields (at minimum playable-side intent and starting building), account for faction-specific starting units and UI assets/command sets, and verify Skirmish script coverage. Any automatic merge must be deterministic and explicit about precedence; unresolved field conflicts must block output. Reordering or expanding the registry also requires invalidating/remapping persisted numeric faction selections rather than trusting old indices.
+
+These are source-inspection findings only. No engine code was changed, and no native/Android compilation or in-game test has been performed.
