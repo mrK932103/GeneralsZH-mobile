@@ -88,12 +88,12 @@ final class FusionBigArchiveWriter {
                 throw new IOException("Duplicate or empty virtual path; refusing ambiguous merge: "
                     + entry.path);
             }
-            byte[] encoded = entry.path.replace('/', '\\\\').getBytes(StandardCharsets.ISO_8859_1);
+            byte[] encoded = entry.path.replace('/', '\\').getBytes(StandardCharsets.ISO_8859_1);
             if (encoded.length == 0 || encoded.length > 4096) {
                 throw new IOException("Invalid BIGF path length: " + entry.path);
             }
             for (byte b : encoded) {
-                if (b == 0 || (b & 0xff) > 0xff) {
+                if (b == 0) {
                     throw new IOException("Path cannot be represented in BIGF: " + entry.path);
                 }
             }
