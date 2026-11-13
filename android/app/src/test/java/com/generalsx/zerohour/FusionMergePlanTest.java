@@ -37,6 +37,10 @@ public class FusionMergePlanTest {
         assertEquals(FusionMergePlan.Domain.FACTION_REGISTRY, item.domain);
         assertEquals(FusionMergePlan.Resolution.FIELD_LEVEL_MERGE_REQUIRED, item.resolution);
         assertEquals(3, item.participants.size());
+        assertTrue(item.factionAssessment != null);
+        assertEquals(1, item.factionAssessment.conflicts.size());
+        assertEquals("side", item.factionAssessment.conflicts.get(0).field);
+        assertTrue(item.factionAssessment.isFullyComparable());
         assertFalse(plan.canProducePlayablePackage());
     }
 
