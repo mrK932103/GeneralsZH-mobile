@@ -51,7 +51,7 @@ final class FusionBigArchive {
         Archive(File file, long archiveSize, List<Entry> entries) {
             this.file = file;
             this.archiveSize = archiveSize;
-            this.entries = Collections.unmodifiableList(entries);
+            this.entries = Collections.unmodifiableList(new ArrayList<>(entries));
         }
     }
 
