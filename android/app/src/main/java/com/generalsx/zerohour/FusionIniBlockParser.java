@@ -12,6 +12,7 @@ package com.generalsx.zerohour;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -53,7 +54,7 @@ final class FusionIniBlockParser {
         final String source;
         final int startLine;
         final int endLine;
-        final byte[] exactBytes;
+        private final byte[] exactBytes;
         final boolean safeForComparison;
         final List<String> uncertainties;
 
@@ -71,6 +72,14 @@ final class FusionIniBlockParser {
             this.safeForComparison = safeForComparison;
             this.uncertainties = Collections.unmodifiableList(
                 new ArrayList<>(uncertainties));
+        }
+
+        byte[] copyExactBytes() {
+            return exactBytes.clone();
+        }
+
+        boolean hasSameExactBytes(Block other) {
+            return other != null && Arrays.equals(exactBytes, other.exactBytes);
         }
     }
 
