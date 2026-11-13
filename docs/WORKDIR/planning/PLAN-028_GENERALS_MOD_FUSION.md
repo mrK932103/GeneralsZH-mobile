@@ -352,3 +352,12 @@ A follow-up read of the current native engine sources found that the branch alre
 This is meaningful faction-selection groundwork, but it does **not** establish complete faction isolation. The audit still needs to trace where the Skirmish UI writes `playerFusionSource` into every selected side dictionary, how AI/player creation preserves it through all paths, and whether every faction-owned reference (starting units/buildings, intrinsic sciences, command sets, special-power shortcuts, icons/load screens/audio) resolves against the same source. The wider runtime registries (ThingTemplate, Weapon, Armor, Locomotor, FX/OCL/ParticleSystem, command UI, upgrades/sciences/special powers, audio and asset paths) remain separate isolation work.
 
 No native compile, Android build, automated test, or device test was run as part of this source audit. Do not treat the existing PlayerTemplate source tag as proof that mixed-mod Skirmish is playable.
+
+
+### Skirmish selector hand-off audit (14 November 2026)
+
+The Skirmish options menu enumerates source-tagged templates through `getSelectablePlayerTemplateCount()` / `getNthSelectablePlayerTemplate()`, and its saved preference stores a stable faction-name plus source-ID pair. However, the actual slot-selection handler still reads the combo-box item data as a single integer and calls `GameSlot::setPlayerTemplate(index)`. The slot model therefore remains index-based at this point in the inspected path.
+
+The inspected `SkirmishGameOptionsMenu.cpp` does not itself attach a `playerFusionSource` value to the selected slot dictionary. Meanwhile, `Player::initFromDict` depends on that key to select the source-qualified template. This creates a critical hand-off that must be traced through combo population, GameInfo serialization/slot-to-Dict conversion, and multiplayer/skirmish player creation before claiming faction source identity reaches runtime. Do not patch only the menu handler: the stable source/name pair must survive slot storage, save/network serialization where applicable, and Dict creation for every AI and human player.
+
+Next implementation target: replace or augment the bare template index in the Skirmish slot pipeline with a stable faction identity (template name + source ID), while preserving old numeric preference/map compatibility. Add tests for two templates with the same faction name from different sources, slot save/load, and AI/human player initialization.
