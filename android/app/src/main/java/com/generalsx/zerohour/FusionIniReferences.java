@@ -91,8 +91,10 @@ final class FusionIniReferences {
 
             Matcher declaration = DECLARATION.matcher(clean);
             if (declaration.matches()) {
-                ownerKey = declaration.group(1).toLowerCase(Locale.ROOT) + ":"
-                    + declaration.group(2).toLowerCase(Locale.ROOT);
+                String ownerType = declaration.group(1).toLowerCase(Locale.ROOT);
+                if ("childobject".equals(ownerType)) ownerType = "object";
+                if ("ocl".equals(ownerType)) ownerType = "objectcreationlist";
+                ownerKey = ownerType + ":" + declaration.group(2).toLowerCase(Locale.ROOT);
                 blockDepth = 1;
                 blockStack.clear();
                 continue;
