@@ -71,4 +71,22 @@ public class FusionNamespacePlanTest {
         assertFalse(plan.isComplete());
         assertTrue(plan.unresolved.toString().contains("missing reference"));
     }
+
+    @Test
+    public void allBigArchivesInOneSelectedModShareOneNamespace() {
+        String definitionSource = "Hypersonic/Units.big!Data/INI/Weapon.ini";
+        String referenceSource = "Hypersonic/Gameplay.big!Data/INI/Object/Units.ini";
+        FusionIniIndex.Definition definition = new FusionIniIndex.Definition(
+            "Weapon", "IranTankCannon", null, definitionSource, 5);
+        FusionIniReferences.Reference reference = new FusionIniReferences.Reference(
+            "Weapon", "IranTankCannon", referenceSource, 44, "object:iran_tank");
+
+        FusionNamespacePlan.Result plan = FusionNamespacePlan.build(
+            Arrays.asList(definition), Arrays.asList(reference));
+
+        assertTrue(plan.isComplete());
+        assertEquals(plan.runtimeName(definitionSource, "Weapon", "IranTankCannon"),
+            plan.references.get(0).runtimeName);
+    }
+
 }
