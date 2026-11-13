@@ -126,7 +126,7 @@ final class FusionPreflight {
                             sources.put(key, owners);
                         }
                         owners.add(source);
-                        if (key.startsWith("data\\\\ini\\\\") && key.endsWith(".ini")) {
+                        if (key.startsWith("data\\ini\\") && key.endsWith(".ini")) {
                             byte[] bytes = FusionBigArchive.readEntry(archive, entry, 16 * 1024 * 1024);
                             for (FusionIniIndex.Definition definition : FusionIniIndex.scan(bytes,
                                     source + "!" + entry.path)) {
