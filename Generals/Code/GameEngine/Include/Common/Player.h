@@ -217,6 +217,8 @@ public:
 
 	void init(const PlayerTemplate* pt);
 	void initFromDict(const Dict* d);
+	// Fusion entry point: resolve the faction name inside its selected source namespace.
+	void initFromDict(const Dict* d, const AsciiString& fusionSourceId);
 	void setDefaultTeam();
 
 	void deletePlayerAI();
