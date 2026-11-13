@@ -31,7 +31,7 @@ public class FusionMergePlanTest {
             FusionIniConflictAnalyzer.analyze(blocks);
         FusionPreflight.Result preflight = preflight(conflicts, Collections.emptyMap());
 
-        FusionMergePlan.Result plan = FusionMergePlan.assess(preflight);
+        FusionMergePlan.Result plan = preflight.assessMergePlan();
         assertEquals(1, plan.items.size());
         FusionMergePlan.Item item = plan.items.get(0);
         assertEquals(FusionMergePlan.Domain.FACTION_REGISTRY, item.domain);
@@ -46,8 +46,8 @@ public class FusionMergePlanTest {
         paths.put("data\\ini\\object.ini",
             Arrays.asList("A/object.big", "B/object.big", "C/object.big"));
 
-        FusionMergePlan.Result plan = FusionMergePlan.assess(preflight(
-            Collections.emptyList(), paths));
+        FusionMergePlan.Result plan = preflight(
+            Collections.emptyList(), paths).assessMergePlan();
         assertEquals(1, plan.items.size());
         assertEquals(FusionMergePlan.Domain.ARCHIVE_FILE, plan.items.get(0).domain);
         assertEquals(FusionMergePlan.Resolution.FILE_CONTENT_VERIFICATION_REQUIRED,
@@ -57,8 +57,8 @@ public class FusionMergePlanTest {
 
     @Test
     public void assessmentDoesNotClaimPlayableOutputForCleanInventory() {
-        FusionMergePlan.Result plan = FusionMergePlan.assess(preflight(
-            Collections.emptyList(), Collections.emptyMap()));
+        FusionMergePlan.Result plan = preflight(
+            Collections.emptyList(), Collections.emptyMap()).assessMergePlan();
         assertTrue(plan.items.isEmpty());
         assertTrue(plan.blockingReasons.isEmpty());
         assertFalse(plan.canProducePlayablePackage());
