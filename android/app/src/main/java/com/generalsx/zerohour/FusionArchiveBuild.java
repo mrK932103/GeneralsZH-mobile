@@ -65,7 +65,8 @@ final class FusionArchiveBuild {
             if (issue.blocking) throw new IOException(issue.message);
         }
         if (preflight.duplicateDefinitionCount() != 0) {
-            throw new IOException("Fusion build blocked: duplicate named INI definitions require semantic conflict resolution.");
+            throw new IOException("Fusion build blocked: duplicate named INI definitions require semantic conflict resolution.\\n"
+                + preflight.duplicateDefinitionSummary(20));
         }
         File output = destination.getCanonicalFile();
         for (ModManager.Mod mod : selectedMods) {
