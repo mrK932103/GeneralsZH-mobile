@@ -106,7 +106,7 @@ final class FusionPreflight {
                     remaining++;
                     continue;
                 }
-                if (summary.length() > 0) summary.append("\\n");
+                if (summary.length() > 0) summary.append("\n");
                 summary.append(entry.getKey()).append(": ");
                 for (int i = 0; i < values.size(); i++) {
                     if (i > 0) summary.append("; ");
@@ -119,7 +119,7 @@ final class FusionPreflight {
                 shown++;
             }
             if (remaining > 0) {
-                summary.append("\\n... and ").append(remaining)
+                summary.append("\n... and ").append(remaining)
                     .append(" more duplicate definition key(s)");
             }
             return summary.toString();
@@ -136,13 +136,13 @@ final class FusionPreflight {
                     remaining++;
                     continue;
                 }
-                if (summary.length() > 0) summary.append("\\n");
+                if (summary.length() > 0) summary.append("\n");
                 summary.append(entry.getKey()).append(": ")
                     .append(String.join("; ", entry.getValue()));
                 shown++;
             }
             if (remaining > 0) {
-                summary.append("\\n... and ").append(remaining)
+                summary.append("\n... and ").append(remaining)
                     .append(" more duplicate path(s)");
             }
             return summary.toString();
