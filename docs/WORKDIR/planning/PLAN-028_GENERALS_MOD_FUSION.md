@@ -146,3 +146,12 @@ Complete a source-of-truth audit of the managed-mod engine mount path and the la
 - Source archive traversal is sorted case-insensitively by file name so the generated BIGF entry order is deterministic for a fixed selected-mod order and file tree.
 - Removed a no-op duplicate-path branch; byte-level duplicate handling remains in the actual entry collection path.
 - Source-only change. It has not been compiled or run through Android Gradle; semantic INI/faction merging and launcher integration remain unfinished.
+
+
+### INI scope diagnostics follow-up (13 November 2026)
+
+- Added `FusionIniStructure.java`, a read-only structural diagnostic pass for recognized End-terminated declaration scopes and common nested block headers.
+- Preflight now reports unmatched recognized `End` tokens, declarations that begin before a recognized scope closes, and recognized declarations/nested blocks that reach EOF without a matching `End`.
+- These findings are warnings, not proof that a file is invalid: the scanner intentionally recognizes only a bounded subset of Generals INI syntax. Unknown syntax is not rewritten, and these diagnostics do not authorize automatic INI merging.
+- The new pass runs only for distinct INI byte variants already admitted by the existing bounded 16 MiB entry read. It does not add archive writes or extract files.
+- No Android compilation, fixture tests, APK build, or device validation has been performed yet.
