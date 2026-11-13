@@ -12,10 +12,14 @@ package com.generalsx.zerohour;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
 
 /**
  * Strict orchestration for the first safe Fusion archive build milestone.
@@ -60,7 +64,8 @@ final class FusionArchiveBuild {
             if (issue.blocking) throw new IOException(issue.message);
         }
         if (preflight.duplicatePathCount() != 0) {
-            throw new IOException("Fusion build blocked: duplicate virtual file paths must be merged explicitly.");
+            // Repeated asset paths are safe only when their bytes are exactly identical.
+            // Different contents still require an explicit semantic/load-order decision.
         }
         if (preflight.duplicateDefinitionCount() != 0) {
             throw new IOException("Fusion build blocked: duplicate named INI definitions require semantic conflict resolution.");
@@ -76,7 +81,8 @@ final class FusionArchiveBuild {
             }
         }
 
-        List<FusionBigArchiveWriter.SourceEntry> entries = new ArrayList<>();
+        Map<String, FusionBigArchiveWriter.SourceEntry> uniqueEntries = new LinkedHashMap<>();
+        Map<String, byte[]> contentDigests = new LinkedHashMap<>();
         int archiveCount = 0;
         for (ModManager.Mod mod : selectedMods) {
             List<File> archives = new ArrayList<>();
@@ -85,13 +91,52 @@ final class FusionArchiveBuild {
                 FusionBigArchive.Archive archive = FusionBigArchive.read(file);
                 archiveCount++;
                 for (FusionBigArchive.Entry entry : archive.entries) {
-                    entries.add(new FusionBigArchiveWriter.SourceEntry(archive, entry));
+                    FusionBigArchiveWriter.SourceEntry candidate =
+                        new FusionBigArchiveWriter.SourceEntry(archive, entry);
+                    String key = entry.normalizedPath;
+                    byte[] digest = digestEntry(candidate);
+                    byte[] previous = contentDigests.get(key);
+                    if (previous == null) {
+                        contentDigests.put(key, digest);
+                        uniqueEntries.put(key, candidate);
+                    } else if (!MessageDigest.isEqual(previous, digest)) {
+                        throw new IOException("Fusion build blocked: conflicting file contents for "
+                            + entry.path + ". Explicit file-level merge is required.");
+                    }
                 }
             }
         }
+        List<FusionBigArchiveWriter.SourceEntry> entries = new ArrayList<>(uniqueEntries.values());
         if (entries.isEmpty()) throw new IOException("No BIGF entries found in selected mods.");
         FusionBigArchiveWriter.write(output, entries);
         return new Result(output, selectedMods.size(), archiveCount, entries.size(), preflight);
+    }
+
+
+    /** Hash one validated entry without loading large model/texture files into heap memory. */
+    private static byte[] digestEntry(FusionBigArchiveWriter.SourceEntry source) throws IOException {
+        final MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException("SHA-256 is unavailable", e);
+        }
+        byte[] buffer = new byte[64 * 1024];
+        try (RandomAccessFile input = new RandomAccessFile(source.archive.file, "r")) {
+            if (input.length() != source.archive.archiveSize) {
+                throw new IOException("Source archive changed during Fusion inspection: "
+                    + source.archive.file.getName());
+            }
+            input.seek(source.entry.offset);
+            long remaining = source.entry.size;
+            while (remaining > 0) {
+                int count = input.read(buffer, 0, (int) Math.min(buffer.length, remaining));
+                if (count < 0) throw new IOException("Unexpected end of source archive entry");
+                digest.update(buffer, 0, count);
+                remaining -= count;
+            }
+        }
+        return digest.digest();
     }
 
     private static boolean isWithin(File candidate, File directory) throws IOException {
