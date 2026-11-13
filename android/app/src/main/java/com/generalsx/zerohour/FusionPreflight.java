@@ -267,6 +267,19 @@ final class FusionPreflight {
                                     issues.add(new Issue(false, "INI structure warning: "
                                         + problem.describe()));
                                 }
+                                FusionIniBlockParser.Result parsedBlocks =
+                                    FusionIniBlockParser.parse(bytes, iniSource);
+                                for (String problem : parsedBlocks.problems) {
+                                    issues.add(new Issue(false, "INI block parser warning: " + problem));
+                                }
+                                for (FusionIniBlockParser.Block block : parsedBlocks.blocks) {
+                                    if (!block.safeForComparison) {
+                                        issues.add(new Issue(false, "INI block is not eligible for "
+                                            + "automatic comparison: " + block.source + ":"
+                                            + block.startLine + " (" + block.key + "); "
+                                            + String.join(", ", block.uncertainties)));
+                                    }
+                                }
                             }
                         }
                     }
