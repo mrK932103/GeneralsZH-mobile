@@ -139,6 +139,17 @@ public class FusionIniBlockParserTest {
     }
 
     @Test
+    public void returnedExactBytesAreDefensiveCopies() {
+        FusionIniBlockParser.Block block = FusionIniBlockParser.parse(bytes(
+            "Object TankA\n  BuildCost = 100\nEnd"), "A.big!a.ini").blocks.get(0);
+        byte[] exposed = block.copyExactBytes();
+        exposed[0] = 'X';
+
+        assertEquals("Object TankA\n  BuildCost = 100\nEnd",
+            new String(block.copyExactBytes(), INI));
+    }
+
+    @Test
     public void emptyAndNullConflictInputsAreSafe() {
         assertTrue(FusionIniConflictAnalyzer.analyze(null).isEmpty());
         assertTrue(FusionIniConflictAnalyzer.analyze(new ArrayList<>()).isEmpty());
