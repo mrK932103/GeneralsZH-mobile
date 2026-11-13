@@ -256,16 +256,26 @@ public class FusionNamespacePlanTest {
             + "  FXListAtBonePos\n"
             + "    FX = FUSION_SECONDARY_FX\n"
             + "  End\n"
+            + "  RayEffect\n"
+            + "    Name = FUSION_RAY_OBJECT\n"
+            + "  End\n"
+            + "  Tracer\n"
+            + "    TracerName = FUSION_TRACER_OBJECT\n"
+            + "  End\n"
             + "End\n";
         List<FusionIniReferences.Reference> references = FusionIniReferences.scan(
             ini.getBytes(java.nio.charset.Charset.forName("ISO-8859-1")), source);
 
-        assertEquals(3, references.size());
+        assertEquals(5, references.size());
         assertEquals("AudioEvent", references.get(0).kind);
         assertEquals("FUSION_IMPACT_SOUND", references.get(0).name);
         assertEquals("ParticleSystem", references.get(1).kind);
         assertEquals("FUSION_IMPACT_SMOKE", references.get(1).name);
         assertEquals("FXList", references.get(2).kind);
         assertEquals("FUSION_SECONDARY_FX", references.get(2).name);
+        assertEquals("Object", references.get(3).kind);
+        assertEquals("FUSION_RAY_OBJECT", references.get(3).name);
+        assertEquals("Object", references.get(4).kind);
+        assertEquals("FUSION_TRACER_OBJECT", references.get(4).name);
     }
 }
