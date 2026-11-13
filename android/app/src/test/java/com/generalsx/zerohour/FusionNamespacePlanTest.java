@@ -316,4 +316,58 @@ public class FusionNamespacePlanTest {
         assertEquals(plan.runtimeName("TEOD/Audio.big!Data/INI/AudioEvent.ini",
             "AudioEvent", "FUSION_IMPACT_SOUND"), plan.references.get(2).runtimeName);
     }
+    @Test
+    public void childObjectDefinitionsResolveAsObjectReferences() {
+        String source = "Hypersonic/Objects.big!Data/INI/Objects.ini";
+        FusionIniIndex.Definition child = new FusionIniIndex.Definition(
+            "ChildObject", "IranTankTurret", "DefaultTankTurret", source, 12);
+        FusionIniReferences.Reference reference = new FusionIniReferences.Reference(
+            "Object", "IranTankTurret", source, 30, "object:iran_tank");
+
+        FusionNamespacePlan.Result plan = FusionNamespacePlan.build(
+            Arrays.asList(child), Arrays.asList(reference));
+
+        assertTrue(plan.unresolved.toString(), plan.isComplete());
+        assertEquals(plan.runtimeName(source, "ChildObject", "IranTankTurret"),
+            plan.references.get(0).runtimeName);
+        assertEquals(plan.runtimeName(source, "Object", "IranTankTurret"),
+            plan.references.get(0).runtimeName);
+    }
+
+    @Test
+    public void thirdDuplicateDeclarationInOneSourceRemainsRejected() {
+        String source = "Hypersonic/Objects.big!Data/INI/Weapon.ini";
+        List<FusionIniIndex.Definition> definitions = Arrays.asList(
+            new FusionIniIndex.Definition("Weapon", "RepeatedWeapon", null, source, 1),
+            new FusionIniIndex.Definition("Weapon", "RepeatedWeapon", null, source, 8),
+            new FusionIniIndex.Definition("Weapon", "RepeatedWeapon", null, source, 15));
+
+        FusionNamespacePlan.Result plan = FusionNamespacePlan.build(
+            definitions, Collections.<FusionIniReferences.Reference>emptyList());
+
+        assertFalse(plan.isComplete());
+        assertTrue(plan.unresolved.toString().contains("Duplicate declaration in source"));
+        assertEquals(null, plan.runtimeName(source, "Weapon", "RepeatedWeapon"));
+    }
+
+    @Test
+    public void oclAliasKeepsOclSpecificNestedDependencies() {
+        String source = "TEOD/Gameplay.big!Data/INI/ObjectCreationList.ini";
+        String ini = "OCL CREATE_TEOD_TRANSPORT\\n"
+            + "  Transport = TEOD_TransportObject\\n"
+            + "End\\n";
+        List<FusionIniReferences.Reference> references = FusionIniReferences.scan(
+            ini.getBytes(java.nio.charset.Charset.forName("ISO-8859-1")), source);
+        assertEquals(1, references.size());
+        assertEquals("Object", references.get(0).kind);
+        assertEquals("TEOD_TransportObject", references.get(0).name);
+
+        FusionIniIndex.Definition alias = new FusionIniIndex.Definition(
+            "OCL", "CREATE_TEOD_TRANSPORT", null, source, 1);
+        FusionNamespacePlan.Result plan = FusionNamespacePlan.build(
+            Arrays.asList(alias), Collections.<FusionIniReferences.Reference>emptyList());
+        assertEquals(plan.runtimeName(source, "ObjectCreationList", "CREATE_TEOD_TRANSPORT"),
+            plan.runtimeName(source, "OCL", "CREATE_TEOD_TRANSPORT"));
+    }
+
 }
