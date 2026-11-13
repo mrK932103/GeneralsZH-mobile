@@ -353,9 +353,9 @@ public class FusionNamespacePlanTest {
     @Test
     public void oclAliasKeepsOclSpecificNestedDependencies() {
         String source = "TEOD/Gameplay.big!Data/INI/ObjectCreationList.ini";
-        String ini = "OCL CREATE_TEOD_TRANSPORT\\n"
-            + "  Transport = TEOD_TransportObject\\n"
-            + "End\\n";
+        String ini = "OCL CREATE_TEOD_TRANSPORT\n"
+            + "  Transport = TEOD_TransportObject\n"
+            + "End\n";
         List<FusionIniReferences.Reference> references = FusionIniReferences.scan(
             ini.getBytes(java.nio.charset.Charset.forName("ISO-8859-1")), source);
         assertEquals(1, references.size());
