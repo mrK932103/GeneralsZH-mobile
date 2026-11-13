@@ -277,3 +277,15 @@ These are source-inspection findings only. No engine code was changed, and no na
 - Fixed a malformed static import in the CommandSet analyzer test and corrected the preflight result constructor so the parsed INI block inventory is retained for cross-reference checks. Added a backward-compatible constructor for tests that do not provide block inventory.
 - Native CommandSet loading rejects duplicate same-name definitions in ordinary load mode and supports explicit override objects in override mode. This reinforces that concatenating same-name command sets is not a valid merge strategy.
 - Test sources are committed but have not been executed. No Gradle build or device test has been run.
+
+
+### CommandSet and CommandButton conflict analysis (13 November 2026)
+
+- Added a read-only N-way CommandSet analyzer. The accepted slot names 1 through 18 are grounded in the native CommandSet field-parse table; every other directive is unresolved rather than silently ignored.
+- It records each slot assignment with source and line, reports disagreements for the same slot across all participants, and checks referenced CommandButton names against the selected INI declaration inventory when that inventory contains button definitions.
+- Added a read-only CommandButton analyzer grounded in the native CommandButton field-parse table. It reports per-field disagreements across all versions of a named button, retains each source location, and flags unknown syntax, unknown fields, unsafe blocks, and repeated assignments within one declaration.
+- Integrated both assessments into FusionMergePlan so CommandSet slot conflicts and CommandButton field conflicts appear in the same provenance-aware N-way report.
+- Confirmed from the native engine source that CommandSet slots are 1..18 and each slot resolves a named CommandButton; an unknown button causes INI_INVALID_DATA. Also confirmed that duplicate CommandButton declarations are rejected in ordinary loading unless the engine is explicitly in override mode. Fusion must not silently turn a duplicate into an override.
+- These analyzers do not merge command sets, rename button IDs, rewrite references, validate every transitive gameplay/UI dependency, or prove that a faction's selected command set is usable. They are diagnostics only; all collisions remain blocked.
+- Added tests for three-way slot conflicts, non-overlapping slots, missing button references, unsupported directives, slot 18/19 bounds, duplicate assignments, three-way CommandButton field conflicts, unknown fields, and repeated field assignments.
+- Source and test changes have not been compiled or executed. No Android build or device test has been performed.
