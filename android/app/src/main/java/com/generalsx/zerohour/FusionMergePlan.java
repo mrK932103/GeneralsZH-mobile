@@ -122,31 +122,31 @@ final class FusionMergePlan {
                 if (item.commandUiAssessment != null) {
                     for (FusionCommandUiAnalyzer.SlotConflict slot
                             : item.commandUiAssessment.conflicts) {
-                        out.append("\\n  CommandSet slot ").append(slot.slot)
+                        out.append("\n  CommandSet slot ").append(slot.slot)
                             .append(" conflict (").append(slot.values.size()).append(" source(s))");
                     }
                     for (String unresolved : item.commandUiAssessment.unresolved) {
-                        out.append("\\n  command UI review: ").append(unresolved);
+                        out.append("\n  command UI review: ").append(unresolved);
                     }
                 }
                 if (item.commandButtonAssessment != null) {
                     for (FusionCommandButtonAnalyzer.FieldConflict field
                             : item.commandButtonAssessment.conflicts) {
-                        out.append("\\n  CommandButton field conflict: ").append(field.field)
+                        out.append("\n  CommandButton field conflict: ").append(field.field)
                             .append(" (").append(field.participants.size()).append(" source(s))");
                     }
                     for (String unresolved : item.commandButtonAssessment.unresolved) {
-                        out.append("\\n  CommandButton review: ").append(unresolved);
+                        out.append("\n  CommandButton review: ").append(unresolved);
                     }
                 }
                 if (item.factionAssessment != null) {
                     for (FusionPlayerTemplateAnalyzer.FieldConflict field
                             : item.factionAssessment.conflicts) {
-                        out.append("\\n  field conflict: ").append(field.field)
+                        out.append("\n  field conflict: ").append(field.field)
                             .append(" (").append(field.participants.size()).append(" value(s))");
                     }
                     for (String unresolved : item.factionAssessment.unresolved) {
-                        out.append("\\n  faction review: ").append(unresolved);
+                        out.append("\n  faction review: ").append(unresolved);
                     }
                 }
                 shown++;
