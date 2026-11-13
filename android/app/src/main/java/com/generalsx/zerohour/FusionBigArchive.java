@@ -162,7 +162,7 @@ final class FusionBigArchive {
         if (path == null) {
             return "";
         }
-        String value = path.replace('/', '\\\\').trim();
+        String value = path.replace('/', '\\').trim();
         if (value.startsWith("\\") || value.matches("^[A-Za-z]:.*")) {
             throw new IllegalArgumentException("Absolute archive path: " + path);
         }
@@ -177,7 +177,7 @@ final class FusionBigArchive {
             }
             safe.add(part);
         }
-        return String.join("\\\\", safe).toLowerCase(Locale.ROOT);
+        return String.join("\\", safe).toLowerCase(Locale.ROOT);
     }
 
     private static long readLittleEndianInt(RandomAccessFile in) throws IOException {
