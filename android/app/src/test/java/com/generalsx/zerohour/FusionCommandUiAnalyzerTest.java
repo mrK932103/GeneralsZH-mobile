@@ -76,9 +76,9 @@ public class FusionCommandUiAnalyzerTest {
     @Test
     public void engineSlotRangeIncludesEighteenButRejectsNineteen() {
         FusionIniBlockParser.Block valid = block(
-            "CommandSet SharedSet\\n 18 = CommandA\\nEnd", "A.big!ui.ini");
+            "CommandSet SharedSet\n 18 = CommandA\nEnd", "A.big!ui.ini");
         FusionIniBlockParser.Block invalid = block(
-            "CommandSet SharedSet\\n 19 = CommandB\\nEnd", "B.big!ui.ini");
+            "CommandSet SharedSet\n 19 = CommandB\nEnd", "B.big!ui.ini");
 
         FusionCommandUiAnalyzer.Assessment accepted = FusionCommandUiAnalyzer.analyze(
             Arrays.asList(valid), Arrays.asList(valid));
@@ -93,11 +93,11 @@ public class FusionCommandUiAnalyzerTest {
     @Test
     public void duplicateAssignmentToSameSlotIsReportedAsConflict() {
         FusionIniBlockParser.Block duplicate = block(
-            "CommandSet SharedSet\\n 1 = CommandA\\n 1 = CommandB\\nEnd",
+            "CommandSet SharedSet\n 1 = CommandA\n 1 = CommandB\nEnd",
             "A.big!ui.ini");
         FusionIniBlockParser.Block buttons = block(
-            "CommandButton CommandA\\n Command = DOZER_CONSTRUCT\\nEnd\\n"
-            + "CommandButton CommandB\\n Command = DOZER_CONSTRUCT\\nEnd",
+            "CommandButton CommandA\n Command = DOZER_CONSTRUCT\nEnd\n"
+            + "CommandButton CommandB\n Command = DOZER_CONSTRUCT\nEnd",
             "buttons.big!ui.ini");
 
         FusionCommandUiAnalyzer.Assessment result = FusionCommandUiAnalyzer.analyze(
