@@ -91,19 +91,36 @@ public class FusionNamespacePlanTest {
 
 
     @Test
-    public void globallyUniqueDefinitionUsesNormalizedSourceKey() {
+    public void globallyUniqueDefinitionFromAnotherModIsNotAnImplicitFallback() {
         String definitionSource = "OnlyMod.big!Data/INI/Weapon.ini";
         FusionIniIndex.Definition definition = new FusionIniIndex.Definition(
             "Weapon", "UniqueCannon", null, definitionSource, 3);
         FusionIniReferences.Reference reference = new FusionIniReferences.Reference(
-            "Weapon", "UniqueCannon", "AnotherMod.big!Data/INI/Object/Unit.ini",
+            "AnotherMod/Gameplay.big!Data/INI/Object/Unit.ini", "Weapon", "UniqueCannon",
             27, "object:unit");
 
         FusionNamespacePlan.Result plan = FusionNamespacePlan.build(
             Arrays.asList(definition), Arrays.asList(reference));
 
+        assertFalse(plan.isComplete());
+        assertTrue(plan.unresolved.toString().contains("cross-mod reference rejected"));
+    }
+
+    @Test
+    public void explicitlyDeclaredBaseGameDefinitionCanBeUsedAsFallback() {
+        String baseSource = "BaseGame/INIZH.big!Data/INI/Weapon.ini";
+        FusionIniIndex.Definition definition = new FusionIniIndex.Definition(
+            "Weapon", "BaseCannon", null, baseSource, 3);
+        FusionIniReferences.Reference reference = new FusionIniReferences.Reference(
+            "Hypersonic/Units.big!Data/INI/Object/Unit.ini", "Weapon", "BaseCannon",
+            27, "object:unit");
+
+        FusionNamespacePlan.Result plan = FusionNamespacePlan.build(
+            Arrays.asList(definition), Arrays.asList(reference),
+            Collections.singleton("BaseGame/INIZH.big"));
+
         assertTrue(plan.isComplete());
-        assertEquals(plan.runtimeName(definitionSource, "Weapon", "UniqueCannon"),
+        assertEquals(plan.runtimeName(baseSource, "Weapon", "BaseCannon"),
             plan.references.get(0).runtimeName);
     }
 
