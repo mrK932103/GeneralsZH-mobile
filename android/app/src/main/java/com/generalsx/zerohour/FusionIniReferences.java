@@ -43,7 +43,13 @@ final class FusionIniReferences {
         "defaultconditionstate", "modelconditionstate", "transitionstate",
         "conditionstate", "idleState", "movingstate", "weaponset",
         "weaponSlot", "turret", "barrel", "passenger", "dock",
-        "animationstate", "attackstate", "deathstate"
+        "animationstate", "attackstate", "deathstate",
+        // Nested nugget blocks in ObjectCreationList declarations.
+        "createobject", "createdebris", "applyrandomforce", "deliverpayload",
+        "fireweapon", "attack",
+        // Nested nugget blocks in FXList declarations.
+        "sound", "rayeffect", "tracer", "particlesystem", "fxlistatbonepos",
+        "lightpulse", "viewshake", "terrainscorch"
     };
 
     static final class Reference {
