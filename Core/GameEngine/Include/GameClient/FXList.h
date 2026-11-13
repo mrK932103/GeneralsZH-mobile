@@ -38,6 +38,7 @@
 class FXNugget;
 class FXList;
 class FXListStore;
+class AsciiString;
 class INI;
 class Object;
 class Matrix3D;
