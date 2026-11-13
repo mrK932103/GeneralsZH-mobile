@@ -62,7 +62,7 @@ The feature is not the same as enabling several managed mods. The current manage
 1. Resolve source files by normalized virtual path and explicit priority.
 2. Merge only INI files with a validated semantic merge rule.
 3. For models, textures, icons, audio, maps, and other binary assets, use deterministic source selection and report every collision.
-4. Write a new BIG archive using a tested writer, validate offsets/sizes/table entries, and reopen it with the project's archive reader.
+4. Write a new BIG archive using `FusionBigArchiveWriter`; reject duplicate normalized virtual paths, enforce format bounds, validate offsets/sizes/table entries, and reopen it with `FusionBigArchive`. The writer is an archive primitive only; semantic INI merging remains a separate prerequisite.
 5. Build in a temporary directory and atomically publish only after all checks pass.
 
 ### Phase 4 — launcher and engine integration
@@ -94,4 +94,4 @@ Complete a source-of-truth audit of the managed-mod engine mount path and the la
 - Updated `FusionDependencyGraph.java` to index references by owner once before traversal, follow only references owned by the current definition, and resolve `ChildObject` parents against `Object` definitions.
 - Remaining parser limitations: this is still a lexical heuristic, not a complete Generals INI parser. Nested block openers are not yet exhaustively modeled; macros, dynamic references, inherited fields, and unrecognized assignment types can be missed. Results remain advisory and must not drive automatic merge/extraction yet.
 - Confirmed the existing `ModPacker` documents the BIGF header layout used by the reader: little-endian archive size and big-endian entry count/header size.
-- No Fusion UI, semantic INI merger, archive builder, or engine launch integration has been implemented yet. The existing engine managed-mod list still mounts separate mod folders in priority order; Fusion output must be a single generated package and must not be represented as an ordinary multi-mod overlay. No APK build or device test has been run.
+- Added `FusionBigArchiveWriter.java` as a collision-rejecting, streaming BIGF archive assembly primitive with post-write reopen/table validation. It is not yet integrated into a semantic merger or launcher action. The existing engine managed-mod list still mounts separate mod folders in priority order; Fusion output must be a single generated package and must not be represented as an ordinary multi-mod overlay. No APK build or device test has been run.
