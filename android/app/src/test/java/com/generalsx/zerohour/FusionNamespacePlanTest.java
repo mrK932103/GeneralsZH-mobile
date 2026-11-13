@@ -278,4 +278,42 @@ public class FusionNamespacePlanTest {
         assertEquals("Object", references.get(4).kind);
         assertEquals("FUSION_TRACER_OBJECT", references.get(4).name);
     }
+
+    @Test
+    public void sameNamedFxNuggetDependenciesRemainSourceLocal() {
+        String hypersonic = "Hypersonic/Effects.big!Data/INI/FXList.ini";
+        String teod = "TEOD/Effects.big!Data/INI/FXList.ini";
+        String fxIni = "FXList FUSION_IMPACT\n"
+            + "  Sound\n"
+            + "    Name = FUSION_IMPACT_SOUND\n"
+            + "  End\n"
+            + "  ParticleSystem\n"
+            + "    Name = FUSION_IMPACT_SMOKE\n"
+            + "  End\n"
+            + "End\n";
+        List<FusionIniReferences.Reference> references = new java.util.ArrayList<>();
+        references.addAll(FusionIniReferences.scan(
+            fxIni.getBytes(java.nio.charset.Charset.forName("ISO-8859-1")), hypersonic));
+        references.addAll(FusionIniReferences.scan(
+            fxIni.getBytes(java.nio.charset.Charset.forName("ISO-8859-1")), teod));
+        List<FusionIniIndex.Definition> definitions = Arrays.asList(
+            new FusionIniIndex.Definition("AudioEvent", "FUSION_IMPACT_SOUND", null,
+                "Hypersonic/Audio.big!Data/INI/AudioEvent.ini", 5),
+            new FusionIniIndex.Definition("AudioEvent", "FUSION_IMPACT_SOUND", null,
+                "TEOD/Audio.big!Data/INI/AudioEvent.ini", 5),
+            new FusionIniIndex.Definition("ParticleSystem", "FUSION_IMPACT_SMOKE", null,
+                "Hypersonic/Particles.big!Data/INI/ParticleSystem.ini", 7),
+            new FusionIniIndex.Definition("ParticleSystem", "FUSION_IMPACT_SMOKE", null,
+                "TEOD/Particles.big!Data/INI/ParticleSystem.ini", 7));
+
+        FusionNamespacePlan.Result plan = FusionNamespacePlan.build(definitions, references);
+        assertTrue(plan.unresolved.toString(), plan.isComplete());
+        assertEquals(4, plan.references.size());
+        assertNotEquals(plan.references.get(0).runtimeName, plan.references.get(2).runtimeName);
+        assertNotEquals(plan.references.get(1).runtimeName, plan.references.get(3).runtimeName);
+        assertEquals(plan.runtimeName("Hypersonic/Audio.big!Data/INI/AudioEvent.ini",
+            "AudioEvent", "FUSION_IMPACT_SOUND"), plan.references.get(0).runtimeName);
+        assertEquals(plan.runtimeName("TEOD/Audio.big!Data/INI/AudioEvent.ini",
+            "AudioEvent", "FUSION_IMPACT_SOUND"), plan.references.get(2).runtimeName);
+    }
 }
