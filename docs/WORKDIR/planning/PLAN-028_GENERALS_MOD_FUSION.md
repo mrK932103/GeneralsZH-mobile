@@ -266,3 +266,14 @@ These are source-inspection findings only. No engine code was changed, and no na
 - Added tests for three-way CommandButton conflicts, unknown/repeated fields, and merge-plan integration.
 - This is still diagnostic only. It does not rewrite CommandSet/CommandButton data, reconcile button IDs or command semantics, prove all referenced assets/text/audio exist, or validate per-unit command-set compatibility. No playable package is authorized.
 - Tests have not been executed; no Android/Gradle build or device validation has been performed.
+
+
+### Command UI field and slot analysis (13 November 2026)
+
+- Added read-only N-way analysis for CommandSet numeric slot assignments and CommandButton fields.
+- Cross-checked CommandButton's supported field allowlist against the native CommandButton field-parse table in ControlBar.cpp. Unknown fields and repeated assignments inside one declaration are reported for manual review.
+- CommandSet analysis records slot-to-button references across all participants, reports different buttons assigned to the same slot, and checks referenced CommandButton names against the parsed INI inventory.
+- Integrated both assessments into FusionMergePlan. The plan retains source participants and emits field/slot conflict details; it still does not rewrite command sets, resolve duplicate button names, validate every referenced asset/text/command semantic, or produce a playable package.
+- Fixed a malformed static import in the CommandSet analyzer test and corrected the preflight result constructor so the parsed INI block inventory is retained for cross-reference checks. Added a backward-compatible constructor for tests that do not provide block inventory.
+- Native CommandSet loading rejects duplicate same-name definitions in ordinary load mode and supports explicit override objects in override mode. This reinforces that concatenating same-name command sets is not a valid merge strategy.
+- Test sources are committed but have not been executed. No Gradle build or device test has been run.
