@@ -215,11 +215,14 @@ public class FusionNamespacePlanTest {
             + "  FadeSound = FusionFadeSound\n"
             + "  FXFinal = FusionFinalFX\n"
             + "  BounceSound = FusionBounceSound\n"
+            + "  FireWeapon\n"
+            + "    Weapon = FusionOCLWeapon\n"
+            + "  End\n"
             + "End\n";
         List<FusionIniReferences.Reference> references = FusionIniReferences.scan(
             ini.getBytes(java.nio.charset.Charset.forName("ISO-8859-1")), source);
 
-        assertEquals(9, references.size());
+        assertEquals(10, references.size());
         assertEquals("Object", references.get(0).kind);
         assertEquals("FusionTransport", references.get(0).name);
         assertEquals("Object", references.get(1).kind);
@@ -236,5 +239,7 @@ public class FusionNamespacePlanTest {
         assertEquals("FusionFinalFX", references.get(7).name);
         assertEquals("AudioEvent", references.get(8).kind);
         assertEquals("FusionBounceSound", references.get(8).name);
+        assertEquals("Weapon", references.get(9).kind);
+        assertEquals("FusionOCLWeapon", references.get(9).name);
     }
 }
