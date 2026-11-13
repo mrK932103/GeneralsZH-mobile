@@ -31,8 +31,11 @@ The feature is not the same as enabling several managed mods. The current manage
 
 - Added `FusionBigArchive.java`: read-only BIGF parser with header/table bounds checks, entry-count and path-length limits, archive-size validation, and rejection of absolute/traversal paths. BIG4 is deliberately rejected until its layout is verified.
 - Added `FusionPreflight.java`: inventories BIGF archives from selected managed-mod folders, records normalized virtual paths and their source archives, and reports invalid archives and duplicate paths. It does not modify source files.
+- Added bounded entry reads to `FusionBigArchive`, allowing selected INI entries to be inspected without extracting arbitrary archive contents to disk.
+- Added `FusionIniIndex.java`: a conservative line-level index for common named Generals definitions (Object, ChildObject, CommandSet, CommandButton, Weapon, Armor, Locomotor, FXList, ParticleSystem, Upgrade, Science, SpecialPower, AudioEvent, CrateData, MappedImage, PlayerTemplate).
+- Extended preflight to count these declarations and report duplicate definition names with their source archive and line. A duplicate is a review warning, not an automatic merge or proof of semantic incompatibility.
 - Added this plan and the November 2026 development diary entry.
-- These classes are not yet connected to the launcher UI or the game launch path. No claim is made that Fusion currently builds a playable merged mod.
+- These classes are not yet connected to the launcher UI or the game launch path. The scanner does not parse nested block semantics, resolve transitive dependencies, or generate a playable merged mod.
 
 ## Planned architecture
 
