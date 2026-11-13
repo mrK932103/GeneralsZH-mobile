@@ -115,6 +115,27 @@ final class FusionBigArchive {
         }
     }
 
+    /**
+     * Reads one validated entry into memory. The caller supplies a strict size ceiling so a
+     * malformed or unexpectedly huge INI cannot exhaust the launcher's heap.
+     */
+    static byte[] readEntry(Archive archive, Entry entry, int maxBytes) throws IOException {
+        if (archive == null || entry == null || maxBytes < 0 || entry.size > maxBytes
+                || entry.size > Integer.MAX_VALUE) {
+            throw new IOException("Entry exceeds the permitted read size");
+        }
+        if (entry.offset < 0 || entry.offset > archive.archiveSize
+                || entry.size > archive.archiveSize - entry.offset) {
+            throw new IOException("Entry is outside archive bounds");
+        }
+        byte[] data = new byte[(int) entry.size];
+        try (RandomAccessFile in = new RandomAccessFile(archive.file, "r")) {
+            in.seek(entry.offset);
+            in.readFully(data);
+        }
+        return data;
+    }
+
     private static String readPath(RandomAccessFile in, long headerSize) throws IOException {
         StringBuilder value = new StringBuilder();
         for (int i = 0; i < MAX_PATH_BYTES; i++) {
