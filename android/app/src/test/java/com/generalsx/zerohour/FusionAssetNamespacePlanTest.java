@@ -64,4 +64,17 @@ public class FusionAssetNamespacePlanTest {
         assertFalse(plan.isComplete());
         assertTrue(plan.unresolved.toString().contains("Invalid virtual asset path"));
     }
+
+    @Test
+    public void duplicatePathAcrossArchivesOfSameModIsRejected() {
+        Map<String, java.util.List<String>> paths = new LinkedHashMap<>();
+        paths.put("Art\\Textures\\shared.tga",
+            Arrays.asList("Hypersonic/Art.big", "Hypersonic/Units.big"));
+
+        FusionAssetNamespacePlan.Result plan = FusionAssetNamespacePlan.build(paths);
+
+        assertFalse(plan.isComplete());
+        assertTrue(plan.unresolved.toString().contains("Duplicate asset entry"));
+    }
+
 }
