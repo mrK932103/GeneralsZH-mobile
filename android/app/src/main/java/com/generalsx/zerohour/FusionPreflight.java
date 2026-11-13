@@ -114,6 +114,10 @@ final class FusionPreflight {
             return FusionDependencyGraph.trace(this, roots);
         }
 
+        FusionMergePlan.Result assessMergePlan() {
+            return FusionMergePlan.assess(this);
+        }
+
         int duplicateDefinitionCount() {
             int count = 0;
             for (List<FusionIniIndex.Definition> values : definitions.values()) {
