@@ -255,3 +255,14 @@ These are source-inspection findings only. No engine code was changed, and no na
 - FusionMergePlan now includes this field-level assessment for PlayerTemplate collisions and surfaces it in its summary.
 - This is analysis only. It does not combine faction templates, choose precedence, validate referenced objects/assets, allocate stable faction identities, or guarantee Skirmish/AI support. The allowlist is specific to the inspected engine source and may need version-aware adapters for modded engine forks.
 - Added tests for three-way Side conflicts, equal/omitted fields, custom directives, and unknown fields. Tests are committed but have not been executed; no Gradle build or device test has been run.
+
+
+### CommandButton field-level conflict assessment (13 November 2026)
+
+- Inspected the native CommandButton field-parse table in Core/GameEngine/Source/GameClient/GUI/ControlBar/ControlBar.cpp and used its supported field names as the analyzer allowlist: Command, Options, Object, Upgrade, WeaponSlot, MaxShotsToFire, Science, SpecialPower, TextLabel, DescriptLabel, PurchasedLabel, ConflictingLabel, ButtonImage, CursorName, InvalidCursorName, ButtonBorderType, RadiusCursorType, and UnitSpecificSound.
+- Added FusionCommandButtonAnalyzer to compare same-name CommandButton definitions across all selected mods, retaining each differing field value with source and line.
+- Unknown fields, unsupported syntax, unsafe blocks, and repeated assignment of a field within one declaration are unresolved; the analyzer does not assume custom mod fields or parser semantics.
+- Integrated the field report into FusionMergePlan. CommandSet slot analysis remains a separate pass and checks slot numbers 1 through 18 against the native engine table, as well as whether referenced CommandButton names occur in the scanned declaration inventory.
+- Added tests for three-way CommandButton conflicts, unknown/repeated fields, and merge-plan integration.
+- This is still diagnostic only. It does not rewrite CommandSet/CommandButton data, reconcile button IDs or command semantics, prove all referenced assets/text/audio exist, or validate per-unit command-set compatibility. No playable package is authorized.
+- Tests have not been executed; no Android/Gradle build or device validation has been performed.
