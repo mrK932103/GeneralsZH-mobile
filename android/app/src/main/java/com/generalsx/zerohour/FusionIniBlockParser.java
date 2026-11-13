@@ -92,6 +92,12 @@ final class FusionIniBlockParser {
     static Result parse(byte[] bytes, String source) {
         String text = new String(bytes, CHARSET);
         String[] lines = text.split("\\n", -1);
+        int[] lineStarts = new int[lines.length];
+        int cursor = 0;
+        for (int i = 0; i < lines.length; i++) {
+            lineStarts[i] = cursor;
+            cursor += lines[i].length() + 1;
+        }
         List<Block> blocks = new ArrayList<>();
         List<String> problems = new ArrayList<>();
         List<Frame> stack = new ArrayList<>();
@@ -109,7 +115,7 @@ final class FusionIniBlockParser {
                     problems.add(source + ":" + (i + 1)
                         + ": new declaration begins before " + type + " " + name + " closes");
                     blocks.add(makeBlock(type, name, parent, source, start, i - 1,
-                        lines, false, uncertainty));
+                        text, lineStarts, false, uncertainty));
                 }
                 type = declaration.group(1);
                 name = declaration.group(2);
@@ -132,7 +138,7 @@ final class FusionIniBlockParser {
                 if (stack.isEmpty()) {
                     blockEnd = i;
                     blocks.add(makeBlock(type, name, parent, source, start, blockEnd,
-                        lines, uncertainty.isEmpty(), uncertainty));
+                        text, lineStarts, uncertainty.isEmpty(), uncertainty));
                     start = -1;
                     type = name = parent = null;
                 }
@@ -153,23 +159,24 @@ final class FusionIniBlockParser {
             problems.add(source + ":" + (start + 1) + ": unclosed declaration "
                 + type + " " + name);
             blocks.add(makeBlock(type, name, parent, source, start, lines.length - 1,
-                lines, false, uncertainty));
+                text, lineStarts, false, uncertainty));
         }
         return new Result(blocks, problems);
     }
 
     private static Block makeBlock(String type, String name, String parent, String source,
-                                   int start, int end, String[] lines, boolean safe,
-                                   List<String> uncertainty) {
-        StringBuilder raw = new StringBuilder();
-        for (int i = start; i <= end && i < lines.length; i++) {
-            raw.append(lines[i]);
-            if (i < end) raw.append('\\n');
+                                   int start, int end, String originalText, int[] lineStarts,
+                                   boolean safe, List<String> uncertainty) {
+        int from = lineStarts[start];
+        int to = from + originalText.substring(from).split("\\n", -1)[0].length();
+        if (end > start) {
+            int endStart = lineStarts[end];
+            to = endStart + originalText.substring(endStart).split("\\n", -1)[0].length();
         }
         String key = type.toLowerCase(Locale.ROOT) + ":" + name.toLowerCase(Locale.ROOT);
+        String raw = originalText.substring(from, to);
         return new Block(key, type, name, parent, source, start + 1, end + 1,
-            raw.toString().getBytes(CHARSET), safe,
-            new ArrayList<>(uncertainty));
+            raw.getBytes(CHARSET), safe, new ArrayList<>(uncertainty));
     }
 
     private static boolean isFieldBlock(String field) {
