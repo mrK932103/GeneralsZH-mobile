@@ -3078,6 +3078,11 @@ void Weapon::crc( Xfer *xfer )
 
 	AsciiString tmplName = m_template->getName();
 	xfer->xferAsciiString(&tmplName);
+	// Include the source only for Fusion-owned templates so legacy match CRCs keep
+	// their previous byte stream while cross-mod weapons remain distinguishable.
+	AsciiString fusionSourceId = m_template->getFusionSourceId();
+	if (fusionSourceId.isNotEmpty())
+		xfer->xferAsciiString(&fusionSourceId);
 
 	// slot
 	xfer->xferUser( &m_wslot, sizeof( WeaponSlotType ) );
