@@ -183,6 +183,7 @@ final class FusionPreflight {
         Map<String, List<FusionIniReferences.Reference>> outside = new LinkedHashMap<>();
         List<Issue> issues = new ArrayList<>();
         Map<String, List<byte[]>> indexedIniDigests = new LinkedHashMap<>();
+        List<FusionIniBlockParser.Block> iniBlocks = new ArrayList<>();
         int archives = 0;
         int entries = 0;
 
@@ -280,6 +281,7 @@ final class FusionPreflight {
                                             + String.join(", ", block.uncertainties)));
                                     }
                                 }
+                                iniBlocks.addAll(parsedBlocks.blocks);
                             }
                         }
                     }
@@ -288,6 +290,12 @@ final class FusionPreflight {
                         + " from " + mod.name + ": " + e.getMessage()));
                 }
             }
+        }
+
+        for (FusionIniConflictAnalyzer.Conflict conflict :
+                FusionIniConflictAnalyzer.analyze(iniBlocks)) {
+            issues.add(new Issue(false, "N-way INI duplicate classification: "
+                + conflict.describe()));
         }
 
         for (Map.Entry<String, List<String>> path : sources.entrySet()) {
