@@ -160,7 +160,7 @@ final class FusionNamespacePlan {
                     List<FusionIniIndex.Definition> candidates = byTypedName.get(typed);
                     if (candidates != null && candidates.size() == 1) {
                         FusionIniIndex.Definition only = candidates.get(0);
-                        target = names.get(safe(only.source) + "::" + typed);
+                        target = names.get(sourceId(only.source) + "::" + typed);
                     } else if (candidates != null && candidates.size() > 1) {
                         unresolved.add(source + ":" + ref.line + " ambiguous reference "
                             + typed + " (no definition in the same source)");
@@ -200,7 +200,7 @@ final class FusionNamespacePlan {
      * namespace. Keeping the archive/member suffix here would incorrectly split one mod.
      */
     private static String sourceId(String source) {
-        String value = safe(source).replace('\\\\', '/');
+        String value = safe(source).replace('\\', '/');
         int member = value.indexOf('!');
         if (member >= 0) return value.substring(0, member).toLowerCase(Locale.ROOT);
         String lower = value.toLowerCase(Locale.ROOT);
