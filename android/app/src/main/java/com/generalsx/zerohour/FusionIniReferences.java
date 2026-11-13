@@ -83,7 +83,7 @@ final class FusionIniReferences {
         if ("commandset".equals(key)) return "CommandSet";
         if ("commandbutton".equals(key)) return "CommandButton";
         if ("fx".equals(key) || "fxlist".equals(key)) return "FXList";
-        if ("ocl".equals(key) || "objectcreationlist".equals(key)) return "OCL";
+        if ("ocl".equals(key) || "objectcreationlist".equals(key)) return "ObjectCreationList";
         if ("particle".equals(key) || "particlesystem".equals(key)) return "ParticleSystem";
         if ("sound".equals(key) || "soundevent".equals(key)) return "AudioEvent";
         if ("upgrade".equals(key)) return "Upgrade";
