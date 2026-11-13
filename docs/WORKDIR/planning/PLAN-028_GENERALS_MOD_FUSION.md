@@ -371,3 +371,14 @@ Updated `Core/GameEngine/Source/GameNetwork/GameInfo.cpp`:
 - Both branches of the ASCII GameInfo slot parser now validate faction indices against `getSelectablePlayerTemplateCount()`, allowing indices belonging to source-tagged Fusion templates instead of rejecting them at the legacy-template boundary.
 
 This fixes a concrete mismatch introduced by the combined legacy + Fusion selector: a Fusion faction could appear in the selector but be rejected by one parser branch or displayed using the wrong legacy index. It does not add a source ID to GameSlot, change the wire format, or guarantee that player creation receives `playerFusionSource`. The source/name identity hand-off described above remains unresolved. No build or test was run.
+
+
+### Runtime slot-to-player path audit and starting-building lookup fix (14 November 2026)
+
+A deeper trace confirmed that the source identity hand-off is partly implemented already: in `GameLogic.cpp`, the selected slot index is resolved through `getNthSelectablePlayerTemplate()`, and the resulting template's name plus `getFusionSourceId()` are written into the side `Dict` as `playerFaction` and `playerFusionSource`. `PlayerList::newGame()` passes that Dict to `Player::initFromDict()`. `Player::initFromDict()` then performs the source-qualified template lookup. Thus, for the inspected local Skirmish player-creation path, source identity is already propagated; earlier notes about this being unconfirmed should be read as an audit question, not as a claim that the path is definitely missing.
+
+The audit found and fixed a concrete remaining legacy-index lookup in the post-load network-building pass: `GameLogic.cpp` previously passed the combined selectable slot index to `getNthPlayerTemplate()` (legacy-only). It now uses `getNthSelectablePlayerTemplate()` before placing each player's starting network buildings. This prevents Fusion faction slot indices from being interpreted as legacy faction indices during starting-building placement.
+
+Together with the preceding `GameInfo.cpp` changes, the inspected code now consistently uses combined selectable indexing in the slot display, both ASCII slot parser branches, random-faction selection, side Dict creation, and starting-building placement. The observer fallback intentionally remains on the legacy lookup path.
+
+Still unresolved: the selected source-qualified template's *dependent gameplay definitions* must remain isolated when templates create starting units and when those units use global registries (ThingTemplate, Weapon, FX/OCL, command UI, upgrades/sciences/special powers, audio and assets). Network/LAN serialization currently transmits a numeric template index, so all peers must load the same ordered faction catalog; this needs an explicit compatibility decision or a stable name/source serialization extension before multiplayer Fusion can be considered safe. No build or runtime test was run.
