@@ -451,3 +451,11 @@ The following source inspection was performed against the current Generals nativ
 - The Android/JUnit test suite has not been executed in this environment; these are committed tests, not a reported passing build.
 
 - Follow-up detail: the native `Veterancy* ` parser functions consume a veterancy enum token before the resource name. The scanner now skips that first token rather than misclassifying it as a resource dependency. The audit also includes `FireFX`, `VeterancyFireFX`, and `FireSound` references. Tests cover ordinary and per-veterancy forms; they remain unexecuted pending an Android/JUnit build.
+
+
+### Follow-up native parser audit — delayed weapon resources (14 November 2026)
+
+- Confirmed in `INI.cpp` that source context is currently used by `parseWeaponTemplate()` only for the WeaponStore lookup in this inspected cluster. The adjacent `parseFXList()`, `parseParticleSystemTemplate()`, and `parseObjectCreationList()` functions still call global name-only stores and do not consult `getSourceId()`.
+- `parseAudioEventRTS()` records a global audio event name and asks the global audio system to resolve it; it does not use Fusion source identity.
+- This means the scanner change now detects these cross-source dependencies, but native pointer binding remains global for FXList, ParticleSystem, OCL, and audio. A namespace rewrite would need to rename declarations and all their nested references before native load, or the corresponding native stores and parser functions must be source-aware.
+- This finding expands the native migration boundary beyond `WeaponTemplate::postProcessLoad()`: direct typed INI parsing itself binds FX/OCL/particle references globally. Do not treat a source-qualified WeaponTemplate as isolated until those parser paths are migrated too.
