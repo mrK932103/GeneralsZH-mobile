@@ -405,6 +405,28 @@ const PlayerTemplate* PlayerTemplateStore::getNthFusionPlayerTemplate(Int i) con
 	return nullptr;
 }
 
+//-----------------------------------------------------------------------------
+// Combined source-aware enumeration used by the Fusion Skirmish selector.
+// Keep legacy and Fusion ordering deterministic so existing preference indices
+// retain their meaning when Fusion mode is not enabled.
+Int PlayerTemplateStore::getSelectablePlayerTemplateCount() const
+{
+	return getPlayerTemplateCount() + getFusionPlayerTemplateCount();
+}
+
+//-----------------------------------------------------------------------------
+const PlayerTemplate* PlayerTemplateStore::getNthSelectablePlayerTemplate(Int i) const
+{
+	if (i < 0)
+		return nullptr;
+
+	const Int legacyCount = getPlayerTemplateCount();
+	if (i < legacyCount)
+		return getNthPlayerTemplate(i);
+
+	return getNthFusionPlayerTemplate(i - legacyCount);
+}
+
 //-------------------------------------------------------------------------------------------------
 // @todo: PERF_EVALUATE Get a perf timer on this.
 // If this function is called frequently, there are some relatively trivial changes we could make to
