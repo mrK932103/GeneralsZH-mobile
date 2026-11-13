@@ -16,6 +16,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -123,9 +125,11 @@ final class FusionBigArchiveWriter {
         if (parent == null || (!parent.isDirectory() && !parent.mkdirs())) {
             throw new IOException("Cannot create Fusion output directory");
         }
-        File temp = new File(parent, destination.getName() + ".fusion-tmp");
-        if (temp.exists() && !temp.delete()) {
-            throw new IOException("Cannot replace stale temporary Fusion archive");
+        File temp = File.createTempFile(destination.getName() + ".", ".fusion-tmp", parent);
+        File backup = new File(parent, destination.getName() + ".fusion-backup");
+        if (backup.exists() && !backup.delete()) {
+            temp.delete();
+            throw new IOException("Cannot clear stale Fusion backup");
         }
 
         try {
@@ -143,6 +147,10 @@ final class FusionBigArchiveWriter {
                 byte[] buffer = new byte[BUFFER_SIZE];
                 for (PlannedEntry item : positioned) {
                     try (RandomAccessFile in = new RandomAccessFile(item.source.archive.file, "r")) {
+                        if (in.length() != item.source.archive.archiveSize) {
+                            throw new IOException("Source archive changed after preflight: "
+                                + item.source.archive.file);
+                        }
                         in.seek(item.source.entry.offset);
                         long remaining = item.source.entry.size;
                         while (remaining > 0) {
@@ -167,18 +175,30 @@ final class FusionBigArchiveWriter {
                 PlannedEntry expected = positioned.get(i);
                 if (!actual.normalizedPath.equals(FusionBigArchive.normalizePath(
                         new String(expected.path, StandardCharsets.ISO_8859_1)))
+                        || actual.offset != expected.offset
                         || actual.size != expected.source.entry.size) {
                     throw new IOException("Fusion archive table verification failed at entry " + i);
                 }
             }
-            if (destination.exists() && !destination.delete()) {
-                throw new IOException("Cannot replace existing Fusion output");
+            boolean hadDestination = destination.exists();
+            if (hadDestination && !destination.renameTo(backup)) {
+                throw new IOException("Cannot preserve existing Fusion output before replacement");
             }
-            if (!temp.renameTo(destination)) {
-                throw new IOException("Cannot atomically publish Fusion archive");
+            try {
+                Files.move(temp.toPath(), destination.toPath(), StandardCopyOption.ATOMIC_MOVE);
+            } catch (IOException atomicFailure) {
+                if (!temp.renameTo(destination)) {
+                    if (hadDestination && !backup.renameTo(destination)) {
+                        throw new IOException("Publish failed and previous output could not be restored",
+                            atomicFailure);
+                    }
+                    throw new IOException("Cannot publish Fusion archive", atomicFailure);
+                }
             }
+            if (backup.exists()) backup.delete();
         } catch (IOException | RuntimeException e) {
             temp.delete();
+            if (backup.exists() && !destination.exists()) backup.renameTo(destination);
             if (e instanceof IOException) throw (IOException) e;
             throw new IOException("Fusion archive creation failed", e);
         }
