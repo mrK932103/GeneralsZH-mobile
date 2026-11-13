@@ -54,12 +54,12 @@ final class FusionPreflight {
                List<FusionIniConflictAnalyzer.Conflict> iniConflicts, List<Issue> issues) {
             this.archiveCount = archiveCount;
             this.entryCount = entryCount;
-            this.pathSources = Collections.unmodifiableMap(pathSources);
-            this.definitions = Collections.unmodifiableMap(definitions);
-            this.references = Collections.unmodifiableMap(references);
-            this.referencesOutsideSelection = Collections.unmodifiableMap(referencesOutsideSelection);
+            this.pathSources = freezeMapOfLists(pathSources);
+            this.definitions = freezeMapOfLists(definitions);
+            this.references = freezeMapOfLists(references);
+            this.referencesOutsideSelection = freezeMapOfLists(referencesOutsideSelection);
             this.iniConflicts = Collections.unmodifiableList(new ArrayList<>(iniConflicts));
-            this.issues = Collections.unmodifiableList(issues);
+            this.issues = Collections.unmodifiableList(new ArrayList<>(issues));
         }
 
         int definitionCount() {
@@ -199,6 +199,16 @@ final class FusionPreflight {
             }
             return count;
         }
+    }
+
+    private static <T> Map<String, List<T>> freezeMapOfLists(
+            Map<String, List<T>> source) {
+        Map<String, List<T>> copy = new LinkedHashMap<>();
+        for (Map.Entry<String, List<T>> entry : source.entrySet()) {
+            copy.put(entry.getKey(), Collections.unmodifiableList(
+                new ArrayList<>(entry.getValue())));
+        }
+        return Collections.unmodifiableMap(copy);
     }
 
     private FusionPreflight() {}
