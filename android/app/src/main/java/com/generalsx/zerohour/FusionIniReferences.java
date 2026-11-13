@@ -83,6 +83,7 @@ final class FusionIniReferences {
         List<Reference> result = new ArrayList<>();
         String ownerKey = null;
         int blockDepth = 0;
+        List<String> blockStack = new ArrayList<>();
 
         for (int i = 0; i < lines.length; i++) {
             String clean = stripComment(lines[i]).trim();
@@ -93,6 +94,7 @@ final class FusionIniReferences {
                 ownerKey = declaration.group(1).toLowerCase(Locale.ROOT) + ":"
                     + declaration.group(2).toLowerCase(Locale.ROOT);
                 blockDepth = 1;
+                blockStack.clear();
                 continue;
             }
 
@@ -102,18 +104,24 @@ final class FusionIniReferences {
                 if (blockDepth <= 0) {
                     ownerKey = null;
                     blockDepth = 0;
+                    blockStack.clear();
+                } else if (!blockStack.isEmpty()) {
+                    blockStack.remove(blockStack.size() - 1);
                 }
                 continue;
             }
 
             Matcher field = FIELD.matcher(clean);
             if (!field.matches()) {
-                if (opensBareBlock(clean)) blockDepth++;
+                if (opensBareBlock(clean)) {
+                    blockDepth++;
+                    blockStack.add(tokensFirst(clean).toLowerCase(Locale.ROOT));
+                }
                 continue;
             }
 
             String fieldName = field.group(1);
-            String kind = referenceKind(fieldName, ownerKey);
+            String kind = referenceKind(fieldName, ownerKey, blockStack);
             if (kind != null) {
                 String[] tokens = field.group(2).trim().split("\\s+");
                 int first = 0;
@@ -134,9 +142,17 @@ final class FusionIniReferences {
                 }
             }
 
-            if (opensNestedBlock(fieldName, field.group(2))) blockDepth++;
+            if (opensNestedBlock(fieldName, field.group(2))) {
+                blockDepth++;
+                blockStack.add(fieldName.toLowerCase(Locale.ROOT));
+            }
         }
         return result;
+    }
+
+    private static String tokensFirst(String line) {
+        int end = line.indexOf(' ');
+        return end < 0 ? line : line.substring(0, end);
     }
 
     private static boolean opensBareBlock(String line) {
@@ -156,8 +172,13 @@ final class FusionIniReferences {
         return false;
     }
 
-    private static String referenceKind(String field, String ownerKey) {
+    private static String referenceKind(String field, String ownerKey, List<String> blockStack) {
         String key = field.toLowerCase(Locale.ROOT);
+        String nestedBlock = blockStack.isEmpty() ? "" : blockStack.get(blockStack.size() - 1);
+        if (ownerKey != null && ownerKey.startsWith("fxlist:")) {
+            if ("sound".equals(nestedBlock) && "name".equals(key)) return "AudioEvent";
+            if ("particlesystem".equals(nestedBlock) && "name".equals(key)) return "ParticleSystem";
+        }
         // ObjectCreationList nuggets retain these names and resolve them later during
         // gameplay. Their meaning is specific to OCL blocks, so don't classify generic
         // fields with the same spelling in unrelated INI declarations.
