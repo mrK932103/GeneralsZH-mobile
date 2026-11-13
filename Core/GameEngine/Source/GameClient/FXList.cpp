@@ -879,7 +879,7 @@ const FXList *FXListStore::findFXList(const char* name, const AsciiString& sourc
 	if (sourceId.isNotEmpty())
 	{
 		std::string qualifiedName = sourceId.str();
-		qualifiedName.push_back('\\x1f');
+		qualifiedName.push_back('\x1f');
 		qualifiedName += name;
 		NameKeyType key = TheNameKeyGenerator->nameToKey(qualifiedName.c_str());
 		FXListMap::const_iterator it = m_fusionFxmap.find(key);
@@ -901,7 +901,7 @@ const FXList *FXListStore::findFXList(const char* name, const AsciiString& sourc
 	if (sourceId.isNotEmpty())
 	{
 		std::string qualifiedName = sourceId.str();
-		qualifiedName.push_back('\\x1f');
+		qualifiedName.push_back('\x1f');
 		qualifiedName += c;
 		key = TheNameKeyGenerator->nameToKey(qualifiedName.c_str());
 		fxl = &TheFXListStore->m_fusionFxmap[key];
