@@ -214,6 +214,11 @@ public:
 	const PlayerTemplate* getNthFusionPlayerTemplate(Int i) const;
 	Int getFusionPlayerTemplateCount() const;
 
+	// Stable combined view for the normal Skirmish selector: legacy factions first,
+	// then source-tagged Fusion factions. Existing legacy enumeration remains unchanged.
+	Int getSelectablePlayerTemplateCount() const;
+	const PlayerTemplate* getNthSelectablePlayerTemplate(Int i) const;
+
 
 	// This function will fill outStringList with all the sides found in all the templates
 	void getAllSideStrings(AsciiStringList *outStringList);
