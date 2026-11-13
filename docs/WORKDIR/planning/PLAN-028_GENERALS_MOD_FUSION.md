@@ -205,3 +205,12 @@ Implementation consequence: build a reusable parser/model/merge-rule registry an
 - Preflight now runs this extractor for each distinct INI payload and surfaces parser uncertainty as review warnings.
 - This is not yet a complete Generals INI grammar. It is not used to rewrite or concatenate files, allocate faction slots, or build a playable multi-mod package. Unknown syntax must remain a blocker for automated transformation until explicitly modeled.
 - Source changes have not been compiled or fixture-tested.
+
+
+### N-way duplicate-definition classification (13 November 2026)
+
+- Added `FusionIniConflictAnalyzer`. It groups every extracted declaration from every selected mod by case-insensitive type/name key and evaluates the entire N-way participant set in one pass.
+- Outcomes are `IDENTICAL_EXACT`, `DIFFERENT_CONTENT`, and `UNSAFE_TO_COMPARE`. Exact equality is byte-for-byte, deliberately conservative; whitespace or line-ending differences are not normalized.
+- Every outcome retains all participant source paths and line ranges. Preflight now reports this classification alongside existing duplicate declaration warnings.
+- No participant is selected as a winner. Even byte-identical duplicates remain blocked by the current archive builder until safe deduplication is integrated with same-path INI file assembly and provenance rules.
+- Not compiled or fixture-tested.
