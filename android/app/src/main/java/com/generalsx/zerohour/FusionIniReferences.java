@@ -107,7 +107,7 @@ final class FusionIniReferences {
             }
 
             String fieldName = field.group(1);
-            String kind = referenceKind(fieldName);
+            String kind = referenceKind(fieldName, ownerKey);
             if (kind != null) {
                 String[] tokens = field.group(2).trim().split("\\s+");
                 int first = 0;
@@ -150,8 +150,17 @@ final class FusionIniReferences {
         return false;
     }
 
-    private static String referenceKind(String field) {
+    private static String referenceKind(String field, String ownerKey) {
         String key = field.toLowerCase(Locale.ROOT);
+        // ObjectCreationList nuggets retain these names and resolve them later during
+        // gameplay. Their meaning is specific to OCL blocks, so don't classify generic
+        // fields with the same spelling in unrelated INI declarations.
+        if (ownerKey != null && ownerKey.startsWith("objectcreationlist:")) {
+            if ("transport".equals(key) || "putincontainer".equals(key)
+                    || "payload".equals(key) || "objectnames".equals(key)) return "Object";
+            if ("particlesystem".equals(key)) return "ParticleSystem";
+            if ("fadesound".equals(key)) return "AudioEvent";
+        }
         if ("weapon".equals(key) || "primaryweapon".equals(key) || "secondaryweapon".equals(key)
                 || "historicbonusweapon".equals(key)) return "Weapon";
         // WeaponTemplate stores these names and resolves them after INI parsing. Keep them
