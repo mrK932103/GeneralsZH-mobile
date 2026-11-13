@@ -40,14 +40,21 @@ final class FusionPreflight {
         final int entryCount;
         final Map<String, List<String>> pathSources;
         final Map<String, List<FusionIniIndex.Definition>> definitions;
+        final Map<String, List<FusionIniReferences.Reference>> references;
+        final Map<String, List<FusionIniReferences.Reference>> referencesOutsideSelection;
         final List<Issue> issues;
 
         Result(int archiveCount, int entryCount, Map<String, List<String>> pathSources,
-               Map<String, List<FusionIniIndex.Definition>> definitions, List<Issue> issues) {
+               Map<String, List<FusionIniIndex.Definition>> definitions,
+               Map<String, List<FusionIniReferences.Reference>> references,
+               Map<String, List<FusionIniReferences.Reference>> referencesOutsideSelection,
+               List<Issue> issues) {
             this.archiveCount = archiveCount;
             this.entryCount = entryCount;
             this.pathSources = Collections.unmodifiableMap(pathSources);
             this.definitions = Collections.unmodifiableMap(definitions);
+            this.references = Collections.unmodifiableMap(references);
+            this.referencesOutsideSelection = Collections.unmodifiableMap(referencesOutsideSelection);
             this.issues = Collections.unmodifiableList(issues);
         }
 
@@ -56,6 +63,18 @@ final class FusionPreflight {
             for (List<FusionIniIndex.Definition> values : definitions.values()) {
                 count += values.size();
             }
+            return count;
+        }
+
+        int referenceCount() {
+            int count = 0;
+            for (List<FusionIniReferences.Reference> values : references.values()) count += values.size();
+            return count;
+        }
+
+        int referenceOutsideSelectionCount() {
+            int count = 0;
+            for (List<FusionIniReferences.Reference> values : referencesOutsideSelection.values()) count += values.size();
             return count;
         }
 
@@ -91,13 +110,15 @@ final class FusionPreflight {
     static Result inspect(List<ModManager.Mod> selectedMods) {
         Map<String, List<String>> sources = new LinkedHashMap<>();
         Map<String, List<FusionIniIndex.Definition>> definitions = new LinkedHashMap<>();
+        Map<String, List<FusionIniReferences.Reference>> references = new LinkedHashMap<>();
+        Map<String, List<FusionIniReferences.Reference>> outside = new LinkedHashMap<>();
         List<Issue> issues = new ArrayList<>();
         int archives = 0;
         int entries = 0;
 
         if (selectedMods == null || selectedMods.isEmpty()) {
             issues.add(new Issue(true, "Select at least one mod."));
-            return new Result(0, 0, sources, definitions, issues);
+            return new Result(0, 0, sources, definitions, references, outside, issues);
         }
 
         for (ModManager.Mod mod : selectedMods) {
@@ -137,6 +158,15 @@ final class FusionPreflight {
                                 }
                                 matches.add(definition);
                             }
+                            for (FusionIniReferences.Reference reference : FusionIniReferences.scan(bytes,
+                                    source + "!" + entry.path)) {
+                                List<FusionIniReferences.Reference> refs = references.get(reference.key());
+                                if (refs == null) {
+                                    refs = new ArrayList<>();
+                                    references.put(reference.key(), refs);
+                                }
+                                refs.add(reference);
+                            }
                         }
                     }
                 } catch (IOException | IllegalArgumentException e) {
@@ -162,7 +192,16 @@ final class FusionPreflight {
                     + " (" + String.join(", ", locations) + ")"));
             }
         }
-        return new Result(archives, entries, sources, definitions, issues);
+        for (Map.Entry<String, List<FusionIniReferences.Reference>> reference : references.entrySet()) {
+            if (!definitions.containsKey(reference.getKey())) {
+                outside.put(reference.getKey(), reference.getValue());
+            }
+        }
+        if (!outside.isEmpty()) {
+            issues.add(new Issue(false, outside.size()
+                + " typed reference(s) are not defined in the selected mods; they may be supplied by the base game or other INI files."));
+        }
+        return new Result(archives, entries, sources, definitions, references, outside, issues);
     }
 
     private static void collectArchives(File directory, List<File> output, int depth) {
