@@ -290,7 +290,12 @@ void PopulatePlayerTemplateComboBox(Int comboBox, GameWindow *comboArray[], Game
 
 		if (isFusionFaction)
 		{
-			playerTemplateName.format(L"%ls [%hs]", TheGameText->fetch(side).str(), fac->getFusionSourceId().str());
+			playerTemplateName = TheGameText->fetch(side);
+			playerTemplateName.concat(L" [");
+			UnicodeString sourceName;
+			sourceName.translate(fac->getFusionSourceId());
+			playerTemplateName.concat(sourceName);
+			playerTemplateName.concat(L"]");
 			newIndex = GadgetComboBoxAddEntry(comboArray[comboBox], playerTemplateName, def->getColor());
 		}
 		else
