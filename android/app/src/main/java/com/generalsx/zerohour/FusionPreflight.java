@@ -53,6 +53,17 @@ final class FusionPreflight {
                Map<String, List<FusionIniReferences.Reference>> references,
                Map<String, List<FusionIniReferences.Reference>> referencesOutsideSelection,
                List<FusionIniConflictAnalyzer.Conflict> iniConflicts, List<Issue> issues) {
+            this(archiveCount, entryCount, pathSources, definitions, references,
+                referencesOutsideSelection, iniConflicts, Collections.<FusionIniBlockParser.Block>emptyList(),
+                issues);
+        }
+
+        Result(int archiveCount, int entryCount, Map<String, List<String>> pathSources,
+               Map<String, List<FusionIniIndex.Definition>> definitions,
+               Map<String, List<FusionIniReferences.Reference>> references,
+               Map<String, List<FusionIniReferences.Reference>> referencesOutsideSelection,
+               List<FusionIniConflictAnalyzer.Conflict> iniConflicts,
+               List<FusionIniBlockParser.Block> iniBlocks, List<Issue> issues) {
             this.archiveCount = archiveCount;
             this.entryCount = entryCount;
             this.pathSources = freezeMapOfLists(pathSources);
