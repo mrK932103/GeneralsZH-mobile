@@ -130,3 +130,11 @@ Complete a source-of-truth audit of the managed-mod engine mount path and the la
 - If one virtual INI path has multiple different byte variants, each distinct variant is indexed so conflicting declarations remain visible. Repeated copies of any already-seen variant are skipped.
 - This affects diagnostics and dependency indexing only. Archive assembly still independently verifies repeated file bytes, and duplicate named definitions across different INI paths remain conflicts.
 - The INI payload is already read under the existing 16 MiB entry limit; SHA-256 is computed in memory for that bounded payload. This has not been compiled or device-tested.
+
+
+### Nested INI block scanner refinement (13 November 2026)
+
+- Extended the typed-reference scanner to recognize a conservative explicit list of common bare nested block headers (for example, `DefaultConditionState`, `ModelConditionState`, `WeaponSet`, and `Turret`) in addition to assignment-style module openers.
+- This prevents a nested `End` from prematurely closing the owning object in these recognized forms, which previously could cause later references in the same object to be missed.
+- The list is intentionally explicit. Unknown bare syntax is not guessed to be a block because some legacy INI properties may use whitespace syntax. The scanner remains heuristic and is not safe as an automatic merge parser.
+- No representative in-repository mod INI corpus or unit-test source set was found for exhaustive parser validation. No build/device test has been run.
