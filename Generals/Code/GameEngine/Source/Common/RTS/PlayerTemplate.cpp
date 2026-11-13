@@ -310,7 +310,7 @@ const PlayerTemplate* PlayerTemplateStore::findPlayerTemplate(NameKeyType nameke
 		#ifdef RTS_DEBUG
 		AsciiString n = KEYNAME((*it).getNameKey());
 		#endif
-		if ((*it).getNameKey() == namekey)
+		if ((*it).getNameKey() == namekey && (*it).getFusionSourceId().isEmpty())
 			return &(*it);
 	}
 	return nullptr;
@@ -359,11 +359,49 @@ const PlayerTemplate* PlayerTemplateStore::findPlayerTemplate(NameKeyType nameke
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+// Legacy Skirmish enumeration deliberately hides source-tagged Fusion templates.
+Int PlayerTemplateStore::getPlayerTemplateCount() const
+{
+	Int count = 0;
+	for (PlayerTemplateVector::const_iterator it = m_playerTemplates.begin(); it != m_playerTemplates.end(); ++it)
+		if ((*it).getFusionSourceId().isEmpty())
+			++count;
+	return count;
+}
+
+//-----------------------------------------------------------------------------
 const PlayerTemplate* PlayerTemplateStore::getNthPlayerTemplate(Int i) const
 {
-	if (i >= 0 && i < m_playerTemplates.size())
-		return &m_playerTemplates[i];
+	if (i < 0)
+		return nullptr;
+	for (PlayerTemplateVector::const_iterator it = m_playerTemplates.begin(); it != m_playerTemplates.end(); ++it)
+	{
+		if ((*it).getFusionSourceId().isEmpty() && i-- == 0)
+			return &(*it);
+	}
+	return nullptr;
+}
 
+//-----------------------------------------------------------------------------
+Int PlayerTemplateStore::getFusionPlayerTemplateCount() const
+{
+	Int count = 0;
+	for (PlayerTemplateVector::const_iterator it = m_playerTemplates.begin(); it != m_playerTemplates.end(); ++it)
+		if ((*it).getFusionSourceId().isNotEmpty())
+			++count;
+	return count;
+}
+
+//-----------------------------------------------------------------------------
+const PlayerTemplate* PlayerTemplateStore::getNthFusionPlayerTemplate(Int i) const
+{
+	if (i < 0)
+		return nullptr;
+	for (PlayerTemplateVector::const_iterator it = m_playerTemplates.begin(); it != m_playerTemplates.end(); ++it)
+	{
+		if ((*it).getFusionSourceId().isNotEmpty() && i-- == 0)
+			return &(*it);
+	}
 	return nullptr;
 }
 
