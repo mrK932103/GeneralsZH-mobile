@@ -140,7 +140,7 @@ final class FusionNamespacePlan {
                 continue;
             }
             String runtime = makeRuntimeName(source, def.type, def.name);
-            String unique = normalize(runtime);
+            String unique = normalize(def.type) + ":" + normalize(runtime);
             if (!allocated.add(unique)) {
                 unresolved.add("Generated runtime-name collision: " + runtime);
                 continue;
@@ -176,7 +176,7 @@ final class FusionNamespacePlan {
 
     private static String makeRuntimeName(String source, String type, String original) {
         String clean = original.replaceAll("[^A-Za-z0-9_]", "_");
-        String prefix = "FUS_" + shortHash(source) + "_";
+        String prefix = "FUS_" + shortHash(source + "|" + normalize(type) + "|" + normalize(original)) + "_";
         // Keep the final identifier conservative for legacy NameKey-based registries.
         int maxOriginal = Math.max(1, 63 - prefix.length());
         if (clean.length() > maxOriginal) clean = clean.substring(0, maxOriginal);
