@@ -90,6 +90,8 @@ Complete a source-of-truth audit of the managed-mod engine mount path and the la
 
 - Added `FusionDependencyGraph.java` to build a candidate dependency closure from indexed declarations, typed references, and declared parent/inheritance names.
 - Exposed dependency tracing through `FusionPreflight.Result.traceDependencies(...)`.
-- Important limitation: references are currently associated at INI-file granularity, not exact Object/Weapon block scope. The graph is therefore an investigative aid and can over-approximate edges. It must not drive automatic extraction or merging until the parser becomes block-aware and field semantics are validated.
+- Reworked `FusionIniReferences.java` to bind recognized typed references to the nearest recognized declaration block using brace depth, instead of assigning every reference in an INI file to every definition in that file.
+- Updated `FusionDependencyGraph.java` to follow only references whose owner key matches the current definition. Also corrected `ChildObject` parent lookup to resolve against an `Object` definition.
+- Remaining parser limitations: this is still a lexical scanner, not a complete Generals INI parser. It assumes recognized declarations open brace-delimited blocks, does not model every nested semantic construct, and cannot resolve macros, dynamic references, or fields not yet included in the typed reference map. Results remain advisory and must not drive automatic merge/extraction yet.
 - Confirmed the existing `ModPacker` documents the BIGF header layout used by the reader: little-endian archive size and big-endian entry count/header size.
 - No UI, merge writer, or engine launch integration has been implemented yet. No APK build or device test has been run.
