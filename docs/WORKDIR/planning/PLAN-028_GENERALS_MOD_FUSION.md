@@ -361,3 +361,13 @@ The Skirmish options menu enumerates source-tagged templates through `getSelecta
 The inspected `SkirmishGameOptionsMenu.cpp` does not itself attach a `playerFusionSource` value to the selected slot dictionary. Meanwhile, `Player::initFromDict` depends on that key to select the source-qualified template. This creates a critical hand-off that must be traced through combo population, GameInfo serialization/slot-to-Dict conversion, and multiplayer/skirmish player creation before claiming faction source identity reaches runtime. Do not patch only the menu handler: the stable source/name pair must survive slot storage, save/network serialization where applicable, and Dict creation for every AI and human player.
 
 Next implementation target: replace or augment the bare template index in the Skirmish slot pipeline with a stable faction identity (template name + source ID), while preserving old numeric preference/map compatibility. Add tests for two templates with the same faction name from different sources, slot save/load, and AI/human player initialization.
+
+
+### Fusion faction index handling fix (14 November 2026)
+
+Updated `Core/GameEngine/Source/GameNetwork/GameInfo.cpp`:
+
+- Slot display-name lookup now uses `getNthSelectablePlayerTemplate()` instead of the legacy-only `getNthPlayerTemplate()`, and safely returns an empty display string for an invalid index.
+- Both branches of the ASCII GameInfo slot parser now validate faction indices against `getSelectablePlayerTemplateCount()`, allowing indices belonging to source-tagged Fusion templates instead of rejecting them at the legacy-template boundary.
+
+This fixes a concrete mismatch introduced by the combined legacy + Fusion selector: a Fusion faction could appear in the selector but be rejected by one parser branch or displayed using the wrong legacy index. It does not add a source ID to GameSlot, change the wire format, or guarantee that player creation receives `playerFusionSource`. The source/name identity hand-off described above remains unresolved. No build or test was run.
