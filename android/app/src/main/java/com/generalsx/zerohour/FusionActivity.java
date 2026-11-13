@@ -15,6 +15,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -36,6 +37,8 @@ public final class FusionActivity extends Activity {
     private LinearLayout root;
     private TextView report;
     private Button analyze;
+    private Button build;
+    private List<ModManager.Mod> selectedForBuild = new ArrayList<>();
     private boolean running;
 
     @Override
@@ -81,6 +84,13 @@ public final class FusionActivity extends Activity {
         analyze.setOnClickListener(v -> runAnalysis());
         root.addView(analyze);
 
+        build = new Button(this);
+        build.setText("Создать безопасный BIG-пакет");
+        build.setAllCaps(false);
+        build.setEnabled(false);
+        build.setOnClickListener(v -> buildPackage());
+        root.addView(build);
+
         report = text("Результат проверки появится здесь.", 14, false);
         report.setTextIsSelectable(true);
         root.addView(report);
@@ -97,8 +107,11 @@ public final class FusionActivity extends Activity {
         report.setText("Проверяю архивы и INI-файлы…");
         new Thread(() -> {
             String output;
+            boolean canBuild = false;
             try {
                 FusionPreflight.Result result = FusionPreflight.inspect(selected);
+                canBuild = !selected.isEmpty() && result.canBuildArchiveOverlay()
+                    && result.duplicateDefinitionCount() == 0;
                 FusionMergePlan.Result plan = result.assessMergePlan();
                 StringBuilder out = new StringBuilder();
                 out.append("ПРОВЕРКА FUSION\n");
@@ -129,13 +142,80 @@ public final class FusionActivity extends Activity {
                     + ": " + String.valueOf(error.getMessage());
             }
             final String finalOutput = output;
+            final boolean buildAllowed = canBuild;
             runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed()) return;
                 report.setText(finalOutput);
+                selectedForBuild = new ArrayList<>(selected);
+                build.setEnabled(buildAllowed);
                 running = false;
                 analyze.setEnabled(true);
             });
         }, "GeneralsX-Fusion-Preflight").start();
+    }
+
+    /**
+     * Build only a strict archive overlay: no duplicate INI definitions, no unsupported
+     * loose assets, and no differing content for the same virtual path. This is not
+     * advertised as a playable faction merge; the game must still be tested.
+     */
+    private void buildPackage() {
+        if (running || selectedForBuild.isEmpty()) return;
+        File rootDir = ModManager.modsRoot(this);
+        if (rootDir == null || (!rootDir.isDirectory() && !rootDir.mkdirs())) {
+            report.setText("Не удалось открыть папку mods игры.");
+            return;
+        }
+        File packageDir = new File(rootDir, "GeneralsModFusion");
+        for (int suffix = 2; packageDir.exists() && suffix < 1000; suffix++) {
+            packageDir = new File(rootDir, "GeneralsModFusion-" + suffix);
+        }
+        if (packageDir.exists() || !packageDir.mkdirs()) {
+            report.setText("Не удалось создать новую папку Fusion. Исходные моды не изменены.");
+            return;
+        }
+        final File output = new File(packageDir, "GeneralsModFusion.big");
+        final List<ModManager.Mod> selection = new ArrayList<>(selectedForBuild);
+        running = true;
+        analyze.setEnabled(false);
+        build.setEnabled(false);
+        report.setText("Создаю BIG-пакет. Исходные моды не изменяются…");
+        new Thread(() -> {
+            String message;
+            boolean success = false;
+            try {
+                FusionArchiveBuild.Result result = FusionArchiveBuild.build(selection, output);
+                message = "BIG-пакет создан.\n"
+                    + "Модов-источников: " + result.sourceMods + "\n"
+                    + "Исходных архивов: " + result.sourceArchives + "\n"
+                    + "Записей в новом архиве: " + result.entries + "\n"
+                    + "Файл: " + result.archive.getAbsolutePath() + "\n\n"
+                    + "Вернись в список модов: новый пакет появится там выключенным. "
+                    + "Для проверки включи Fusion-пакет и выключи исходные моды. "
+                    + "Это безопасная сборка непересекающихся файлов, а не гарантия "
+                    + "совместной игры фракций; обязательно проверь запуск и Skirmish.";
+                success = true;
+            } catch (Throwable error) {
+                message = "Сборка остановлена: " + error.getClass().getSimpleName()
+                    + ": " + String.valueOf(error.getMessage())
+                    + "\nИсходные моды не изменялись.";
+                // Remove only the empty/new output folder created by this operation.
+                if (output.exists()) output.delete();
+                packageDir.delete();
+            }
+            final String finalMessage = message;
+            final boolean built = success;
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                report.setText(finalMessage);
+                running = false;
+                analyze.setEnabled(true);
+                build.setEnabled(false);
+                if (built) {
+                    Toast.makeText(this, "Fusion BIG-пакет создан", Toast.LENGTH_LONG).show();
+                }
+            });
+        }, "GeneralsX-Fusion-Build").start();
     }
 
     private TextView text(String value, int size, boolean bold) {
