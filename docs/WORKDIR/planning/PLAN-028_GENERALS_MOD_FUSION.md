@@ -85,3 +85,11 @@ The feature is not the same as enabling several managed mods. The current manage
 ## First implementation milestone
 
 Complete a source-of-truth audit of the managed-mod engine mount path and the launcher entry points, then implement the archive reader and preflight report as a separately testable layer. No Fusion button should be presented as functional until the build pipeline can produce and validate a real output archive.
+
+## Latest dependency-graph milestone
+
+- Added `FusionDependencyGraph.java` to build a candidate dependency closure from indexed declarations, typed references, and declared parent/inheritance names.
+- Exposed dependency tracing through `FusionPreflight.Result.traceDependencies(...)`.
+- Important limitation: references are currently associated at INI-file granularity, not exact Object/Weapon block scope. The graph is therefore an investigative aid and can over-approximate edges. It must not drive automatic extraction or merging until the parser becomes block-aware and field semantics are validated.
+- Confirmed the existing `ModPacker` documents the BIGF header layout used by the reader: little-endian archive size and big-endian entry count/header size.
+- No UI, merge writer, or engine launch integration has been implemented yet. No APK build or device test has been run.
