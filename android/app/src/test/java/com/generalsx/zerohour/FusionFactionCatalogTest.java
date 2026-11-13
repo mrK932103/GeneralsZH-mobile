@@ -50,4 +50,34 @@ public class FusionFactionCatalogTest {
             Arrays.asList(block("Weapon RifleWeapon\n PrimaryDamage = 10\nEnd", "mod.big!weapon.ini")));
         assertTrue(factions.isEmpty());
     }
+    @Test
+    public void acceptsRecognizedRootAlongsideOtherValidPlayerTemplateFields() {
+        FusionFactionCatalog.FactionSource faction = FusionFactionCatalog.discover(
+            Arrays.asList(block("PlayerTemplate FactionIran\\n"
+                + " Side = Iran\\n"
+                + " DisplayName = Iran\\n"
+                + " PlayableSide = Yes\\n"
+                + " StartingBuilding = IranCommandCenter\\n"
+                + " StartingUnit0 = IranDozer\\n"
+                + " IntrinsicSciences = SCIENCE_AMERICA\\n"
+                + " PurchaseScienceCommandSet = IranScienceCommandSet\\n"
+                + "End", "Hypersonic.big!Data/INI/PlayerTemplate.ini"))).get(0);
+
+        assertTrue(faction.isUsableRoot());
+        assertTrue(faction.unresolved.isEmpty());
+    }
+
+    @Test
+    public void stillReportsMalformedPlayerTemplateLines() {
+        FusionFactionCatalog.FactionSource faction = FusionFactionCatalog.discover(
+            Arrays.asList(block("PlayerTemplate FactionIran\\n"
+                + " Side = Iran\\n"
+                + " PlayableSide = Yes\\n"
+                + " StartingUnit0 IranDozer\\n"
+                + "End", "Hypersonic.big!Data/INI/PlayerTemplate.ini"))).get(0);
+
+        assertFalse(faction.isUsableRoot());
+        assertTrue(faction.unresolved.toString().contains("malformed PlayerTemplate line"));
+    }
+
 }
