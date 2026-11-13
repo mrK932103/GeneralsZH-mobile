@@ -10,6 +10,7 @@
 
 package com.generalsx.zerohour;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -17,24 +18,31 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Heuristic reference scanner for common Generals INI fields. It reports candidates only:
- * engine macros, inherited definitions, and references supplied by the base game are not
- * distinguishable without a complete semantic parser and base-game index.
+ * Block-scoped candidate reference scanner. References are attached to the nearest recognized
+ * top-level declaration, rather than to every definition in the same INI file. This remains a
+ * conservative lexical scanner, not a full evaluator of Generals macros or inheritance.
  */
 final class FusionIniReferences {
     private static final Pattern FIELD = Pattern.compile("^([A-Za-z][A-Za-z0-9_]*)\\s*=\\s*(.*?)\\s*$");
+    private static final Pattern DECLARATION = Pattern.compile(
+        "^(Object|ChildObject|CommandSet|CommandButton|Weapon|Armor|Locomotor|FXList|"
+        + "ParticleSystem|Upgrade|Science|SpecialPower|AudioEvent|CrateData|"
+        + "MappedImage|PlayerTemplate|ObjectCreationList|OCL)\\s+([^\\s;]+)(?:\\s+([^\\s;]+))?\\s*$",
+        Pattern.CASE_INSENSITIVE);
 
     static final class Reference {
         final String kind;
         final String name;
         final String source;
         final int line;
+        final String ownerKey;
 
-        Reference(String kind, String name, String source, int line) {
+        Reference(String kind, String name, String source, int line, String ownerKey) {
             this.kind = kind;
             this.name = name;
             this.source = source;
             this.line = line;
+            this.ownerKey = ownerKey;
         }
 
         String key() {
@@ -45,34 +53,76 @@ final class FusionIniReferences {
     private FusionIniReferences() {}
 
     /**
-     * GeneralsX @feature author 13/11/2026 Index common typed references from INI assignments.
+     * GeneralsX @feature author 13/11/2026 Bind INI references to their containing declaration.
      */
     static List<Reference> scan(byte[] bytes, String source) {
-        String text = new String(bytes, java.nio.charset.Charset.forName("ISO-8859-1"));
-        String[] lines = text.replace("\r", "").split("\n", -1);
+        String[] lines = new String(bytes, Charset.forName("ISO-8859-1"))
+            .replace("\r", "").split("\n", -1);
         List<Reference> result = new ArrayList<>();
+        String ownerKey = null;
+        String pendingKey = null;
+        int depth = 0;
         for (int i = 0; i < lines.length; i++) {
-            String line = stripComment(lines[i]).trim();
-            if (line.isEmpty() || line.startsWith("#") || line.startsWith("//")) continue;
-            Matcher matcher = FIELD.matcher(line);
-            if (!matcher.matches()) continue;
-            String kind = referenceKind(matcher.group(1));
-            if (kind == null) continue;
-            String[] tokens = matcher.group(2).trim().split("\\s+");
-            if (tokens.length == 0) continue;
-            int first = 0;
-            if (("Weapon".equals(kind) || "Locomotor".equals(kind))
-                    && tokens.length > 1 && isSlot(tokens[0])) {
-                first = 1;
+            String clean = stripComment(lines[i]).trim();
+            if (clean.isEmpty() || clean.startsWith("#") || clean.startsWith("//")) continue;
+
+            if (ownerKey == null) {
+                Matcher declaration = DECLARATION.matcher(clean);
+                if (declaration.matches()) {
+                    String type = declaration.group(1).toLowerCase(Locale.ROOT);
+                    String name = declaration.group(2).toLowerCase(Locale.ROOT);
+                    pendingKey = type + ":" + name;
+                }
+            } else {
+                Matcher field = FIELD.matcher(clean);
+                if (field.matches()) {
+                    String kind = referenceKind(field.group(1));
+                    if (kind != null) {
+                        String[] tokens = field.group(2).trim().split("\\s+");
+                        int first = 0;
+                        if (("Weapon".equals(kind) || "Locomotor".equals(kind))
+                                && tokens.length > 1 && isSlot(tokens[0])) first = 1;
+                        for (int token = first; token < tokens.length; token++) {
+                            String value = cleanToken(tokens[token]);
+                            if (isIdentifier(value)) {
+                                result.add(new Reference(kind, value, source, i + 1, ownerKey));
+                            }
+                        }
+                    }
+                }
             }
-            for (int token = first; token < tokens.length; token++) {
-                String value = cleanToken(tokens[token]);
-                if (isIdentifier(value)) {
-                    result.add(new Reference(kind, value, source, i + 1));
+
+            int[] braceChange = countBraces(clean);
+            int opens = braceChange[0];
+            int closes = braceChange[1];
+            if (ownerKey == null && pendingKey != null && opens > 0) {
+                ownerKey = pendingKey;
+                pendingKey = null;
+                depth = opens - closes;
+                if (depth <= 0) ownerKey = null;
+            } else if (ownerKey != null) {
+                depth += opens - closes;
+                if (depth <= 0) {
+                    ownerKey = null;
+                    depth = 0;
                 }
             }
         }
         return result;
+    }
+
+    private static int[] countBraces(String line) {
+        int opens = 0, closes = 0;
+        boolean quoted = false, escaped = false;
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (escaped) { escaped = false; continue; }
+            if (c == '\\\\' && quoted) { escaped = true; continue; }
+            if (c == '"') { quoted = !quoted; continue; }
+            if (!quoted && c == '{') opens++;
+            else if (!quoted && c == '}') closes++;
+        }
+        return new int[] { opens, closes };
     }
 
     private static String referenceKind(String field) {
