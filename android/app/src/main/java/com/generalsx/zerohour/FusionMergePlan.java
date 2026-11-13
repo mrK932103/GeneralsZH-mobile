@@ -82,14 +82,18 @@ final class FusionMergePlan {
         final List<String> blockingReasons;
         final int selectedArchiveCount;
         final int selectedEntryCount;
+        final List<FusionCommandUiAnalyzer.Assessment> commandSetAssessments;
 
         Result(List<Item> items, List<String> blockingReasons,
-               int selectedArchiveCount, int selectedEntryCount) {
+               int selectedArchiveCount, int selectedEntryCount,
+               List<FusionCommandUiAnalyzer.Assessment> commandSetAssessments) {
             this.items = Collections.unmodifiableList(new ArrayList<>(items));
             this.blockingReasons = Collections.unmodifiableList(
                 new ArrayList<>(blockingReasons));
             this.selectedArchiveCount = selectedArchiveCount;
             this.selectedEntryCount = selectedEntryCount;
+            this.commandSetAssessments = Collections.unmodifiableList(
+                new ArrayList<>(commandSetAssessments));
         }
 
         int count(Domain domain) {
@@ -151,6 +155,22 @@ final class FusionMergePlan {
                 }
                 shown++;
             }
+            for (FusionCommandUiAnalyzer.Assessment assessment : commandSetAssessments) {
+                if (assessment.hasSlotConflicts() || !assessment.isFullyComparable()) {
+                    if (out.length() > 0) out.append("\\n");
+                    out.append("COMMANDSET / ").append(assessment.setName)
+                        .append(": ").append(assessment.conflicts.size())
+                        .append(" slot conflict(s), ").append(assessment.unresolved.size())
+                        .append(" unresolved issue(s)");
+                    for (FusionCommandUiAnalyzer.SlotConflict slot : assessment.conflicts) {
+                        out.append("\\n  slot ").append(slot.slot)
+                            .append(" has ").append(slot.values.size()).append(" assignments");
+                    }
+                    for (String unresolved : assessment.unresolved) {
+                        out.append("\\n  command UI review: ").append(unresolved);
+                    }
+                }
+            }
             if (items.size() > shown) {
                 out.append("\n... and ").append(items.size() - shown).append(" more item(s)");
             }
@@ -171,7 +191,24 @@ final class FusionMergePlan {
         List<String> blockers = new ArrayList<>();
         if (preflight == null) {
             blockers.add("Preflight result is missing.");
-            return new Result(items, blockers, 0, 0);
+            return new Result(items, blockers, 0, 0,
+                Collections.<FusionCommandUiAnalyzer.Assessment>emptyList());
+        }
+
+        Map<String, List<FusionIniBlockParser.Block>> commandSets = new java.util.LinkedHashMap<>();
+        for (FusionIniBlockParser.Block block : preflight.iniBlocks) {
+            if (block == null || !"CommandSet".equalsIgnoreCase(block.type)) continue;
+            String key = block.name.toLowerCase(Locale.ROOT);
+            List<FusionIniBlockParser.Block> group = commandSets.get(key);
+            if (group == null) {
+                group = new ArrayList<>();
+                commandSets.put(key, group);
+            }
+            group.add(block);
+        }
+        List<FusionCommandUiAnalyzer.Assessment> commandSetAssessments = new ArrayList<>();
+        for (List<FusionIniBlockParser.Block> group : commandSets.values()) {
+            commandSetAssessments.add(FusionCommandUiAnalyzer.analyze(group, preflight.iniBlocks));
         }
 
         for (FusionIniConflictAnalyzer.Conflict conflict : preflight.iniConflicts) {
@@ -224,7 +261,8 @@ final class FusionMergePlan {
         for (FusionPreflight.Issue issue : preflight.issues) {
             if (issue.blocking) blockers.add(issue.message);
         }
-        return new Result(items, blockers, preflight.archiveCount, preflight.entryCount);
+        return new Result(items, blockers, preflight.archiveCount, preflight.entryCount,
+            commandSetAssessments);
     }
 
     private static Domain domainFor(String declarationType) {
