@@ -665,6 +665,13 @@ Bool SidesList::validateAllyEnemyList(const AsciiString& tname, AsciiString& all
 
 void SidesList::addPlayerByTemplate(AsciiString playerTemplateName)
 {
+	addPlayerByTemplate(playerTemplateName, AsciiString::TheEmptyString);
+}
+
+// Fusion overload. The source ID is persisted in the same side Dict that PlayerList
+// already passes to Player::initFromDict; legacy callers keep the old behavior.
+void SidesList::addPlayerByTemplate(AsciiString playerTemplateName, AsciiString fusionSourceId)
+{
 	AsciiString playerName;
 	UnicodeString playerDisplayName;
 	Bool isHuman = false;
@@ -687,6 +694,13 @@ void SidesList::addPlayerByTemplate(AsciiString playerTemplateName)
 			playerName.concat(playerTemplateName);
 		}
 		playerDisplayName.translate(playerName);
+		// Player names are global in the legacy side/team system. Add the stable source
+		// identity to avoid collisions when two selected mods provide the same faction.
+		if (fusionSourceId.isNotEmpty())
+		{
+			playerName.concat("_Fusion_");
+			playerName.concat(fusionSourceId);
+		}
 		isHuman = true;
 		// special-case "civilian"...
 		if (playerName == "PlyrCivilian")
@@ -700,6 +714,8 @@ void SidesList::addPlayerByTemplate(AsciiString playerTemplateName)
 	d.setBool(TheKey_playerIsHuman, isHuman);
 	d.setUnicodeString(TheKey_playerDisplayName, playerDisplayName);
 	d.setAsciiString(TheKey_playerFaction, playerTemplateName);
+	if (fusionSourceId.isNotEmpty())
+		d.setAsciiString(NAMEKEY("playerFusionSource"), fusionSourceId);
 	d.setAsciiString(TheKey_playerAllies, AsciiString::TheEmptyString);
 	d.setAsciiString(TheKey_playerEnemies, AsciiString::TheEmptyString);
 
