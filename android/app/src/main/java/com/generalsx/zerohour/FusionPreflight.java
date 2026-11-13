@@ -119,7 +119,7 @@ final class FusionPreflight {
         Map<String, List<FusionIniReferences.Reference>> references = new LinkedHashMap<>();
         Map<String, List<FusionIniReferences.Reference>> outside = new LinkedHashMap<>();
         List<Issue> issues = new ArrayList<>();
-        Map<String, byte[]> indexedIniDigests = new LinkedHashMap<>();
+        Map<String, List<byte[]>> indexedIniDigests = new LinkedHashMap<>();
         int archives = 0;
         int entries = 0;
 
@@ -165,9 +165,21 @@ final class FusionPreflight {
                         if (key.startsWith("data\\ini\\") && key.endsWith(".ini")) {
                             byte[] bytes = FusionBigArchive.readEntry(archive, entry, 16 * 1024 * 1024);
                             byte[] digest = sha256(bytes);
-                            byte[] indexedDigest = indexedIniDigests.get(key);
-                            if (indexedDigest == null || !MessageDigest.isEqual(indexedDigest, digest)) {
-                                if (indexedDigest == null) indexedIniDigests.put(key, digest);
+                            List<byte[]> knownDigests = indexedIniDigests.get(key);
+                            boolean alreadyIndexed = false;
+                            if (knownDigests != null) {
+                                for (byte[] knownDigest : knownDigests) {
+                                    if (MessageDigest.isEqual(knownDigest, digest)) {
+                                        alreadyIndexed = true;
+                                        break;
+                                    }
+                                }
+                            } else {
+                                knownDigests = new ArrayList<>();
+                                indexedIniDigests.put(key, knownDigests);
+                            }
+                            if (!alreadyIndexed) {
+                                knownDigests.add(digest);
                                 String iniSource = source + "!" + entry.path;
                                 for (FusionIniIndex.Definition definition : FusionIniIndex.scan(bytes,
                                         iniSource)) {
