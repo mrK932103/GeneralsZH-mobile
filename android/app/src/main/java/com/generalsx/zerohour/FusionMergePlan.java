@@ -59,11 +59,13 @@ final class FusionMergePlan {
         final List<Participant> participants;
         final FusionPlayerTemplateAnalyzer.Assessment factionAssessment;
         final FusionCommandUiAnalyzer.Assessment commandUiAssessment;
+        final FusionCommandButtonAnalyzer.Assessment commandButtonAssessment;
 
         Item(String key, Domain domain, Resolution resolution,
              FusionIniConflictAnalyzer.Status comparison, List<Participant> participants,
              FusionPlayerTemplateAnalyzer.Assessment factionAssessment,
-             FusionCommandUiAnalyzer.Assessment commandUiAssessment) {
+             FusionCommandUiAnalyzer.Assessment commandUiAssessment,
+             FusionCommandButtonAnalyzer.Assessment commandButtonAssessment) {
             this.key = key;
             this.domain = domain;
             this.resolution = resolution;
@@ -71,6 +73,7 @@ final class FusionMergePlan {
             this.participants = Collections.unmodifiableList(new ArrayList<>(participants));
             this.factionAssessment = factionAssessment;
             this.commandUiAssessment = commandUiAssessment;
+            this.commandButtonAssessment = commandButtonAssessment;
         }
     }
 
@@ -126,6 +129,16 @@ final class FusionMergePlan {
                         out.append("\\n  command UI review: ").append(unresolved);
                     }
                 }
+                if (item.commandButtonAssessment != null) {
+                    for (FusionCommandButtonAnalyzer.FieldConflict field
+                            : item.commandButtonAssessment.conflicts) {
+                        out.append("\\n  CommandButton field conflict: ").append(field.field)
+                            .append(" (").append(field.participants.size()).append(" source(s))");
+                    }
+                    for (String unresolved : item.commandButtonAssessment.unresolved) {
+                        out.append("\\n  CommandButton review: ").append(unresolved);
+                    }
+                }
                 if (item.factionAssessment != null) {
                     for (FusionPlayerTemplateAnalyzer.FieldConflict field
                             : item.factionAssessment.conflicts) {
@@ -170,12 +183,17 @@ final class FusionMergePlan {
                 ? "" : conflict.participants.get(0).type);
             FusionPlayerTemplateAnalyzer.Assessment factionAssessment = null;
             FusionCommandUiAnalyzer.Assessment commandUiAssessment = null;
+            FusionCommandButtonAnalyzer.Assessment commandButtonAssessment = null;
             if (domain == Domain.FACTION_REGISTRY) {
                 factionAssessment = FusionPlayerTemplateAnalyzer.analyze(conflict.participants);
-            } else if (domain == Domain.COMMAND_UI && !conflict.participants.isEmpty()
-                    && "CommandSet".equalsIgnoreCase(conflict.participants.get(0).type)) {
-                commandUiAssessment = FusionCommandUiAnalyzer.analyze(
-                    conflict.participants, preflight.iniBlocks);
+            } else if (domain == Domain.COMMAND_UI && !conflict.participants.isEmpty()) {
+                if ("CommandSet".equalsIgnoreCase(conflict.participants.get(0).type)) {
+                    commandUiAssessment = FusionCommandUiAnalyzer.analyze(
+                        conflict.participants, preflight.iniBlocks);
+                } else if ("CommandButton".equalsIgnoreCase(conflict.participants.get(0).type)) {
+                    commandButtonAssessment = FusionCommandButtonAnalyzer.analyze(
+                        conflict.participants);
+                }
             }
             Resolution resolution;
             if (conflict.status == FusionIniConflictAnalyzer.Status.UNSAFE_TO_COMPARE) {
@@ -190,7 +208,7 @@ final class FusionMergePlan {
                 resolution = Resolution.MANUAL_PARSER_OR_ADAPTER_REQUIRED;
             }
             items.add(new Item(conflict.key, domain, resolution, conflict.status, participants,
-                factionAssessment, commandUiAssessment));
+                factionAssessment, commandUiAssessment, commandButtonAssessment));
         }
 
         for (Map.Entry<String, List<String>> entry : preflight.pathSources.entrySet()) {
