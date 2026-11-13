@@ -490,3 +490,14 @@ The following source inspection was performed against the current Generals nativ
 - Scope and remaining limitations: this is the first native registry vertical slice, not complete FX isolation. FX nuggets still resolve ParticleSystem and RayEffect/Tracer ThingTemplates through global runtime managers; audio event resolution remains global. Other registries and all dependent runtime lookups still require source-aware migration. No native build or Android test run is reported yet.
 
 - Added a cross-source regression test that scans identically named FXList nuggets in Hypersonic and TEOD, then verifies their AudioEvent and ParticleSystem dependencies map to their own source definitions rather than the other mod's definitions.
+
+### Source-isolated faction dependency closure (14 November 2026)
+
+- Added `FusionFactionDependencyPlan`: each discovered `PlayerTemplate` now gets an independent dependency traversal rooted in its own source mod.
+- Source ownership is the selected mod identity, not a single BIG archive, so a faction can resolve its local dependencies across multiple BIG archives belonging to the same installed mod.
+- The traversal follows only definitions owned by that faction's source mod. A definition found only in another selected mod is reported as a cross-source blocker instead of being silently imported or rebound.
+- Missing definitions are reported separately because they may be supplied by base-game data or loose files that are not part of the selected-mod inventory.
+- Added PlayerTemplate dependency mappings for `StartingBuilding`, `StartingUnit0..n`, `IntrinsicSciences`, and `PurchaseScienceCommandSet`.
+- The Fusion preflight screen now displays each faction's source mod, local dependency count, and cross-source/unresolved dependency warnings.
+- Added unit fixtures for same-mod multi-archive resolution and cross-mod name collisions.
+- This is a source-aware analysis/manifest stage only. It does not yet rewrite INI references, build the final package, or change the native runtime lookup tables. Android/JUnit compilation and device validation remain outstanding.
