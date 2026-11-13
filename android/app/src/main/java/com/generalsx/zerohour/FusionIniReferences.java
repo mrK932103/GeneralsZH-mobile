@@ -18,9 +18,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Block-scoped candidate reference scanner. References are attached to the nearest recognized
- * top-level declaration, rather than to every definition in the same INI file. This remains a
- * conservative lexical scanner, not a full evaluator of Generals macros or inheritance.
+ * Conservative scanner for typed references inside Generals Zero Hour declaration blocks.
+ * The game format is End-terminated, not brace-delimited. Nested module-like assignments are
+ * tracked so an End closes the innermost block before it closes its owning declaration.
  */
 final class FusionIniReferences {
     private static final Pattern FIELD = Pattern.compile("^([A-Za-z][A-Za-z0-9_]*)\\s*=\\s*(.*?)\\s*$");
@@ -29,6 +29,12 @@ final class FusionIniReferences {
         + "ParticleSystem|Upgrade|Science|SpecialPower|AudioEvent|CrateData|"
         + "MappedImage|PlayerTemplate|ObjectCreationList|OCL)\\s+([^\\s;]+)(?:\\s+([^\\s;]+))?\\s*$",
         Pattern.CASE_INSENSITIVE);
+
+    // These assignments introduce nested End-terminated blocks in common ZH INI domains.
+    private static final String[] BLOCK_FIELDS = {
+        "behavior", "draw", "body", "clientupdate", "geometry", "module",
+        "module_tag", "conditionstate", "transitionstate", " locomotor"
+    };
 
     static final class Reference {
         final String kind;
@@ -53,76 +59,67 @@ final class FusionIniReferences {
     private FusionIniReferences() {}
 
     /**
-     * GeneralsX @feature author 13/11/2026 Bind INI references to their containing declaration.
+     * GeneralsX @bugfix author 13/11/2026 Track End-terminated INI blocks instead of braces.
      */
     static List<Reference> scan(byte[] bytes, String source) {
         String[] lines = new String(bytes, Charset.forName("ISO-8859-1"))
             .replace("\r", "").split("\n", -1);
         List<Reference> result = new ArrayList<>();
         String ownerKey = null;
-        String pendingKey = null;
-        int depth = 0;
+        int blockDepth = 0;
+
         for (int i = 0; i < lines.length; i++) {
             String clean = stripComment(lines[i]).trim();
             if (clean.isEmpty() || clean.startsWith("#") || clean.startsWith("//")) continue;
 
-            if (ownerKey == null) {
-                Matcher declaration = DECLARATION.matcher(clean);
-                if (declaration.matches()) {
-                    String type = declaration.group(1).toLowerCase(Locale.ROOT);
-                    String name = declaration.group(2).toLowerCase(Locale.ROOT);
-                    pendingKey = type + ":" + name;
+            Matcher declaration = DECLARATION.matcher(clean);
+            if (declaration.matches()) {
+                ownerKey = declaration.group(1).toLowerCase(Locale.ROOT) + ":"
+                    + declaration.group(2).toLowerCase(Locale.ROOT);
+                blockDepth = 1;
+                continue;
+            }
+
+            if (ownerKey == null) continue;
+            if ("End".equalsIgnoreCase(clean)) {
+                blockDepth--;
+                if (blockDepth <= 0) {
+                    ownerKey = null;
+                    blockDepth = 0;
                 }
-            } else {
-                Matcher field = FIELD.matcher(clean);
-                if (field.matches()) {
-                    String kind = referenceKind(field.group(1));
-                    if (kind != null) {
-                        String[] tokens = field.group(2).trim().split("\\s+");
-                        int first = 0;
-                        if (("Weapon".equals(kind) || "Locomotor".equals(kind))
-                                && tokens.length > 1 && isSlot(tokens[0])) first = 1;
-                        for (int token = first; token < tokens.length; token++) {
-                            String value = cleanToken(tokens[token]);
-                            if (isIdentifier(value)) {
-                                result.add(new Reference(kind, value, source, i + 1, ownerKey));
-                            }
-                        }
+                continue;
+            }
+
+            Matcher field = FIELD.matcher(clean);
+            if (!field.matches()) continue;
+
+            String fieldName = field.group(1);
+            String kind = referenceKind(fieldName);
+            if (kind != null) {
+                String[] tokens = field.group(2).trim().split("\\s+");
+                int first = 0;
+                if (("Weapon".equals(kind) || "Locomotor".equals(kind))
+                        && tokens.length > 1 && isSlot(tokens[0])) first = 1;
+                for (int token = first; token < tokens.length; token++) {
+                    String value = cleanToken(tokens[token]);
+                    if (isIdentifier(value)) {
+                        result.add(new Reference(kind, value, source, i + 1, ownerKey));
                     }
                 }
             }
 
-            int[] braceChange = countBraces(clean);
-            int opens = braceChange[0];
-            int closes = braceChange[1];
-            if (ownerKey == null && pendingKey != null && opens > 0) {
-                ownerKey = pendingKey;
-                pendingKey = null;
-                depth = opens - closes;
-                if (depth <= 0) ownerKey = null;
-            } else if (ownerKey != null) {
-                depth += opens - closes;
-                if (depth <= 0) {
-                    ownerKey = null;
-                    depth = 0;
-                }
-            }
+            if (opensNestedBlock(fieldName, field.group(2))) blockDepth++;
         }
         return result;
     }
 
-    private static int[] countBraces(String line) {
-        int opens = 0, closes = 0;
-        boolean quoted = false, escaped = false;
-        for (int i = 0; i < line.length(); i++) {
-            char c = line.charAt(i);
-            if (escaped) { escaped = false; continue; }
-            if (c == '\\\\' && quoted) { escaped = true; continue; }
-            if (c == '"') { quoted = !quoted; continue; }
-            if (!quoted && c == '{') opens++;
-            else if (!quoted && c == '}') closes++;
+    private static boolean opensNestedBlock(String field, String value) {
+        String key = field.toLowerCase(Locale.ROOT);
+        for (String candidate : BLOCK_FIELDS) {
+            if (candidate.trim().equals(key)) return true;
         }
-        return new int[] { opens, closes };
+        // ModuleTag is often written as a field name; also accept namespaced module fields.
+        return key.startsWith("module_") && !value.trim().isEmpty();
     }
 
     private static String referenceKind(String field) {
