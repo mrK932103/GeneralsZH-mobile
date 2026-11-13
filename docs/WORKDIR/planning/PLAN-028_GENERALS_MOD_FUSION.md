@@ -449,3 +449,5 @@ The following source inspection was performed against the current Generals nativ
 - Added namespace-plan tests for all seven dependency categories and for same-named projectile objects referenced by Hypersonic and TEOD. The tests assert that each mod's reference maps to its own source namespace.
 - This closes a concrete blind spot in the static INI dependency inventory. It does not change native pointer resolution, rewrite INI/archive contents, or make these runtime registries source-aware. The mixed-mod launcher must remain blocked until native lookup paths and the full dependency graph are migrated.
 - The Android/JUnit test suite has not been executed in this environment; these are committed tests, not a reported passing build.
+
+- Follow-up detail: the native `Veterancy* ` parser functions consume a veterancy enum token before the resource name. The scanner now skips that first token rather than misclassifying it as a resource dependency. The audit also includes `FireFX`, `VeterancyFireFX`, and `FireSound` references. Tests cover ordinary and per-veterancy forms; they remain unexecuted pending an Android/JUnit build.
