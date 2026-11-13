@@ -96,6 +96,20 @@ final class FusionNamespacePlan {
 
     static Result build(List<FusionIniIndex.Definition> definitions,
                         List<FusionIniReferences.Reference> references) {
+        return build(definitions, references, Collections.<String>emptySet());
+    }
+
+    /**
+     * Builds an isolated plan. Cross-source fallback is permitted only to sources explicitly
+     * designated as base-game sources by the caller; another selected mod is never a fallback.
+     */
+    static Result build(List<FusionIniIndex.Definition> definitions,
+                        List<FusionIniReferences.Reference> references,
+                        Set<String> baseSources) {
+        Set<String> normalizedBaseSources = new LinkedHashSet<>();
+        if (baseSources != null) {
+            for (String source : baseSources) normalizedBaseSources.add(sourceId(source));
+        }
         List<FusionIniIndex.Definition> ordered = new ArrayList<>();
         if (definitions != null) ordered.addAll(definitions);
         Collections.sort(ordered, new Comparator<FusionIniIndex.Definition>() {
@@ -158,12 +172,23 @@ final class FusionNamespacePlan {
                 String target = names.get(localKey);
                 if (target == null) {
                     List<FusionIniIndex.Definition> candidates = byTypedName.get(typed);
-                    if (candidates != null && candidates.size() == 1) {
-                        FusionIniIndex.Definition only = candidates.get(0);
+                    List<FusionIniIndex.Definition> baseCandidates = new ArrayList<>();
+                    if (candidates != null) {
+                        for (FusionIniIndex.Definition candidate : candidates) {
+                            if (normalizedBaseSources.contains(sourceId(candidate.source))) {
+                                baseCandidates.add(candidate);
+                            }
+                        }
+                    }
+                    if (baseCandidates.size() == 1) {
+                        FusionIniIndex.Definition only = baseCandidates.get(0);
                         target = names.get(sourceId(only.source) + "::" + typed);
-                    } else if (candidates != null && candidates.size() > 1) {
-                        unresolved.add(source + ":" + ref.line + " ambiguous reference "
-                            + typed + " (no definition in the same source)");
+                    } else if (baseCandidates.size() > 1) {
+                        unresolved.add(source + ":" + ref.line + " ambiguous base-game fallback "
+                            + typed);
+                    } else if (candidates != null && !candidates.isEmpty()) {
+                        unresolved.add(source + ":" + ref.line + " cross-mod reference rejected "
+                            + typed + " (no same-source or declared base-game definition)");
                     } else {
                         unresolved.add(source + ":" + ref.line + " missing reference " + typed);
                     }
