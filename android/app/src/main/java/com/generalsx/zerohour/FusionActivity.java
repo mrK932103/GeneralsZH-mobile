@@ -113,6 +113,10 @@ public final class FusionActivity extends Activity {
                 canBuild = !selected.isEmpty() && result.canBuildArchiveOverlay()
                     && result.duplicateDefinitionCount() == 0;
                 FusionMergePlan.Result plan = result.assessMergePlan();
+                FusionNamespacePlan.Result definitionNamespaces =
+                    result.assessDefinitionNamespaces();
+                FusionAssetNamespacePlan.Result assetNamespaces =
+                    result.assessAssetNamespaces();
                 StringBuilder out = new StringBuilder();
                 out.append("ПРОВЕРКА FUSION\n");
                 out.append("Выбрано модов: ").append(selected.size()).append("\n");
@@ -131,7 +135,28 @@ public final class FusionActivity extends Activity {
                     }
                 }
                 out.append("Дублирующихся путей: ").append(result.duplicatePathCount()).append("\n");
-                out.append("Конфликтов определений: ").append(result.duplicateDefinitionCount()).append("\n\n");
+                out.append("Конфликтов определений: ").append(result.duplicateDefinitionCount()).append("\n");
+                out.append("План уникальных имён INI: ").append(definitionNamespaces.entries.size()).append("\n");
+                out.append("Не разрешено INI-ссылок: ").append(definitionNamespaces.unresolved.size()).append("\n");
+                out.append("План переименования путей ресурсов: ").append(assetNamespaces.remappedCount()).append("\n");
+                out.append("Проблем изоляции путей ресурсов: ").append(assetNamespaces.unresolved.size()).append("\n\n");
+                if (!definitionNamespaces.unresolved.isEmpty()) {
+                    out.append("ПРОВЕРИТЬ INI-ССЫЛКИ (первые 10)\n");
+                    int shown = 0;
+                    for (String unresolved : definitionNamespaces.unresolved) {
+                        if (shown++ >= 10) break;
+                        out.append("  - ").append(unresolved).append("\n");
+                    }
+                }
+                if (!assetNamespaces.unresolved.isEmpty()) {
+                    out.append("ПРОВЕРИТЬ ПУТИ РЕСУРСОВ (первые 10)\n");
+                    int shown = 0;
+                    for (String unresolved : assetNamespaces.unresolved) {
+                        if (shown++ >= 10) break;
+                        out.append("  - ").append(unresolved).append("\n");
+                    }
+                }
+                out.append("\n");
                 out.append("ПРОБЛЕМЫ ПРЕДВАРИТЕЛЬНОЙ ПРОВЕРКИ\n");
                 if (result.issues.isEmpty()) {
                     out.append("Критических проблем инвентаризации не найдено.\n");
