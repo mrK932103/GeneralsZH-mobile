@@ -302,3 +302,39 @@ These are source-inspection findings only. No engine code was changed, and no na
 - Corrected test fixtures that accidentally encoded literal backslash-n sequences instead of actual line breaks, and added plan-level coverage for missing button references in a unique CommandSet.
 - These analyzers are diagnostics only. They do not merge command slots, resolve button-name collisions, validate all referenced objects/upgrades/sciences/special powers/assets/text labels, or guarantee a working control bar. No package is authorized by this phase.
 - Tests are committed but not executed; no Android build or device test has been performed.
+
+
+
+### Source-qualified faction discovery and isolation design (13 November 2026)
+
+The product requirement is source isolation, not archive overlay:
+
+- Each discovered faction must retain an immutable origin identity (source mod folder, source archive, INI path, declaration and line range). Two factions with the same template name from different mods must remain separate catalog entries.
+- Original mod folders and BIG archives are read-only inputs. Fusion may create app-managed metadata and generated runtime data, but must never patch source archives in place.
+- The target is N-way: the implementation must not contain a two-mod or named-mod special case. A selected faction's unit, weapon, building, upgrade, science, special-power, command/UI, AI and asset dependencies must resolve against its own source provenance.
+- A simple multi-folder mount is not sufficient. The existing managed-mod mechanism mounts folders into one shared archive directory tree with priority/overwrite behavior. The INI loader then registers named definitions in engine-global stores. This cannot provide per-faction isolation by itself.
+- The engine path already resolves a player's faction through `ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(...))` in `Player::initFromDict`. PlayerTemplate fields include side, starting building/units, intrinsic sciences and command-set names. Skirmish player creation also consults the shared template store when matching a player's side to a skirmish side. A source-qualified faction identity therefore has to survive from the Skirmish selection record through Player initialization; a launcher-only list is not enough.
+- The Skirmish options UI uses fixed slot arrays (`MAX_SLOTS`) and the engine player list uses `MAX_PLAYER_COUNT`. These are separate limits and must be audited before claiming arbitrary faction counts. Do not raise either limit without checking save/network/snapshot and UI assumptions.
+- The current engine's global definition stores (ThingTemplate, Weapon, Armor, Locomotor, CommandSet, CommandButton, Science, Upgrade, SpecialPower, FX/OCL and related registries) are not partitioned by mod. The feasible first implementation path is a source-aware runtime resolver plus deterministic symbol qualification/remapping for definitions and typed references, while preserving source archive provenance. This still needs an engine-side lookup context or a generated isolated runtime namespace; simply retaining the source archive path in a catalog does not prevent global-name collisions.
+- Binary asset paths also need source-aware lookup or deterministic remapping. Identical virtual paths with different bytes cannot be treated as safe just because the owning faction differs.
+
+#### Implemented in this step
+
+- Added `FusionFactionCatalog.java`, a read-only catalog that extracts PlayerTemplate faction roots from the already parsed INI block inventory and preserves source archive, declaration name, line range, Side, DisplayName and PlayableSide.
+- Duplicate PlayerTemplate names from different source archives remain distinct candidates using a source-qualified stable key; no winner is selected by load order.
+- Missing Side, missing explicit PlayableSide, unsafe block structure and unrecognized directives are marked for review. The catalog does not infer a playable faction from a name alone.
+- Added `FusionFactionCatalogTest.java` for duplicate faction names from two sources, incomplete faction roots and filtering of non-faction definitions.
+- Integrated the source-qualified faction catalog into the Fusion preflight report. The UI now labels the existing archive-overlay operation as an archive overlay, not a faction merger, and reports that catalogued PlayerTemplate entries are only roots whose dependency closure and runtime isolation remain incomplete.
+- Source mods remain read-only. The new catalog only reads parser output; it does not edit INI or BIG files.
+
+#### Still required before playable cross-mod Skirmish
+
+1. Map every relevant engine-global registry and its lookup path; identify which definitions can be namespaced and which use enums, fixed arrays, numeric IDs or non-string references.
+2. Carry a stable source/faction owner ID from the selected Skirmish faction through Player creation and all gameplay lookups that need isolation.
+3. Build a typed dependency closure from each faction root, including inherited Object/ChildObject chains, command/UI references, AI scripts, science/upgrade/special-power links, OCL/FX/particle/audio references and binary assets.
+4. Implement a semantic reference rewriter or runtime source-aware resolver for every supported reference domain. Unknown syntax and unresolved dependencies must block that faction combination, not silently fall back to another mod.
+5. Add faction-aware Skirmish registry entries and verify player-template indices, save/replay compatibility, AI scripts, command-bar setup and map-side matching.
+6. Add three-or-more-source integration fixtures with deliberately colliding object, weapon, command and asset names. Verify both factions keep their own behavior in the same match.
+7. Run local unit tests and Android/native builds, then install and test on device. No source build or device test has been run for the source-qualified catalog at this point.
+
+No playable faction merge is claimed by this milestone. The current BIG overlay builder remains a separate, conservative archive utility and must not be presented as the requested source-isolated faction runtime.
