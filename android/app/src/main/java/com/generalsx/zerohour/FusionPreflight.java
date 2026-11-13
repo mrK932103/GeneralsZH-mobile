@@ -125,6 +125,13 @@ final class FusionPreflight {
             return summary.toString();
         }
 
+        /** Return every source archive for one normalized virtual path. */
+        String pathSourceSummary(String normalizedPath) {
+            List<String> owners = pathSources.get(normalizedPath);
+            return owners == null || owners.isEmpty()
+                ? "source archives unavailable" : String.join("; ", owners);
+        }
+
         /** Describe duplicate virtual paths, retaining every archive source. */
         String duplicatePathSummary(int limit) {
             StringBuilder summary = new StringBuilder();
