@@ -459,3 +459,15 @@ The following source inspection was performed against the current Generals nativ
 - `parseAudioEventRTS()` records a global audio event name and asks the global audio system to resolve it; it does not use Fusion source identity.
 - This means the scanner change now detects these cross-source dependencies, but native pointer binding remains global for FXList, ParticleSystem, OCL, and audio. A namespace rewrite would need to rename declarations and all their nested references before native load, or the corresponding native stores and parser functions must be source-aware.
 - This finding expands the native migration boundary beyond `WeaponTemplate::postProcessLoad()`: direct typed INI parsing itself binds FX/OCL/particle references globally. Do not treat a source-qualified WeaponTemplate as isolated until those parser paths are migrated too.
+
+
+### ObjectCreationList nested dependency coverage (14 November 2026)
+
+- Extended the static reference scanner with OCL-owner-specific mappings based on the native nugget parsers:
+  - `Transport`, `PutInContainer`, `Payload`, and `ObjectNames` → `Object`.
+  - `ParticleSystem` → `ParticleSystem`.
+  - `FXFinal` → `FXList`.
+  - `FadeSound` and `BounceSound` → `AudioEvent`.
+- This follows native runtime lookups observed in `ObjectCreationList.cpp`: delivery transport/container/payload names and debris object names are resolved through `ThingFactory::findTemplate`; particle-system names through `ParticleSystemManager::findTemplate`; final FX is parsed as an FXList pointer; fade/bounce sounds are audio event references.
+- Added a scanner test covering the OCL field set, including multi-name debris payloads. The mapping is restricted to ObjectCreationList declaration owners to avoid misclassifying similarly named fields elsewhere.
+- Native OCL nuggets still store some references as strings and perform global runtime lookups. This scanner change inventories those dependencies; it does not yet provide source-qualified runtime resolution.
