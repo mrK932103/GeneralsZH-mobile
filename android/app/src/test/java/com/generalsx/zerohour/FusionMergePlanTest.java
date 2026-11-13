@@ -73,9 +73,9 @@ public class FusionMergePlanTest {
     @Test
     public void assessesCommandButtonFieldConflictsFromAllSelectedMods() {
         List<FusionIniBlockParser.Block> blocks = Arrays.asList(
-            block("CommandButton ButtonA\\n Command = COMMAND_ATTACK\\nEnd", "A.big!a.ini"),
-            block("CommandButton ButtonA\\n Command = COMMAND_STOP\\nEnd", "B.big!b.ini"),
-            block("CommandButton ButtonA\\n Command = COMMAND_GUARD\\nEnd", "C.big!c.ini"));
+            block("CommandButton ButtonA\n Command = COMMAND_ATTACK\nEnd", "A.big!a.ini"),
+            block("CommandButton ButtonA\n Command = COMMAND_STOP\nEnd", "B.big!b.ini"),
+            block("CommandButton ButtonA\n Command = COMMAND_GUARD\nEnd", "C.big!c.ini"));
         // Supply the full parsed block inventory used by the command-button reference checker.
         FusionPreflight.Result withBlocks = new FusionPreflight.Result(0, 0,
             Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
