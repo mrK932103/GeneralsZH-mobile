@@ -113,3 +113,11 @@ Complete a source-of-truth audit of the managed-mod engine mount path and the la
 - Moved the empty-selection check ahead of preflight work.
 - Added a preflight blocker for .gib files because the current reader and builder support validated .big/BIGF archives only; unsupported archives are no longer silently omitted.
 - These are source-level hardening changes only; they have not been compiled or device-tested.
+
+
+### Byte-identical path handling (13 November 2026)
+
+- The archive build now permits a repeated virtual path only when the entry bytes are exactly identical. It hashes colliding entries with SHA-256 using a bounded streaming buffer, keeps one copy, and rejects any content mismatch. Unique entries are not pre-hashed.
+- This is file-level deduplication only. It does not merge INI definitions or decide mod load order. Duplicate named INI definitions remain blocked, including identical definitions until the INI-level merger can prove a safe combination.
+- Hashing is an additional full read for colliding files; source archive length is checked before reading. The writer still performs its own source consistency checks when publishing.
+- Not compiled or device-tested.
