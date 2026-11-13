@@ -14,7 +14,6 @@ import android.app.Activity;
 import java.io.File;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 import android.widget.CheckBox;
@@ -135,7 +134,7 @@ public final class FusionActivity extends Activity {
                 out.append("\nПЛАН ОБЪЕДИНЕНИЯ\n");
                 out.append(plan.summary(35)).append("\n");
                 out.append("\n");
-                out.append("Безопасная сборка BIG-пакета: ").append(canBuild ? "ДОСТУПНА ПОСЛЕ ПРОВЕРКИ" : "ЗАБЛОКИРОВАНА").append("\\n");
+                out.append("Безопасная сборка BIG-пакета: ").append(canBuild ? "ДОСТУПНА ПОСЛЕ ПРОВЕРКИ" : "ЗАБЛОКИРОВАНА").append("\n");
                 out.append("Полноценное объединение фракций и семантическое слияние INI пока не реализованы. Проверка сама по себе не меняет исходные моды.");
                 output = out.toString();
             } catch (Throwable error) {
