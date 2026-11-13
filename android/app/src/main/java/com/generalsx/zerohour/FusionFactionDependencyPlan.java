@@ -59,7 +59,12 @@ final class FusionFactionDependencyPlan {
         Map<String, List<FusionIniIndex.Definition>> byKey = new LinkedHashMap<>();
         for (List<FusionIniIndex.Definition> group : preflight.definitions.values()) {
             for (FusionIniIndex.Definition definition : group) {
-                byKey.computeIfAbsent(definition.key(), ignored -> new ArrayList<>()).add(definition);
+                List<FusionIniIndex.Definition> sameName = byKey.get(definition.key());
+                if (sameName == null) {
+                    sameName = new ArrayList<>();
+                    byKey.put(definition.key(), sameName);
+                }
+                sameName.add(definition);
             }
         }
 
@@ -69,7 +74,12 @@ final class FusionFactionDependencyPlan {
             for (FusionIniReferences.Reference reference : group) {
                 if (reference.ownerKey == null) continue;
                 String key = ownerSourceKey(reference.source, reference.ownerKey);
-                refsByOwnerAndSource.computeIfAbsent(key, ignored -> new ArrayList<>()).add(reference);
+                List<FusionIniReferences.Reference> owned = refsByOwnerAndSource.get(key);
+                if (owned == null) {
+                    owned = new ArrayList<>();
+                    refsByOwnerAndSource.put(key, owned);
+                }
+                owned.add(reference);
             }
         }
 
