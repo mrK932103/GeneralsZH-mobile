@@ -45,6 +45,7 @@ final class FusionPreflight {
         final Map<String, List<FusionIniReferences.Reference>> references;
         final Map<String, List<FusionIniReferences.Reference>> referencesOutsideSelection;
         final List<FusionIniConflictAnalyzer.Conflict> iniConflicts;
+        final List<FusionIniBlockParser.Block> iniBlocks;
         final List<Issue> issues;
 
         Result(int archiveCount, int entryCount, Map<String, List<String>> pathSources,
@@ -59,6 +60,7 @@ final class FusionPreflight {
             this.references = freezeMapOfLists(references);
             this.referencesOutsideSelection = freezeMapOfLists(referencesOutsideSelection);
             this.iniConflicts = Collections.unmodifiableList(new ArrayList<>(iniConflicts));
+            this.iniBlocks = Collections.unmodifiableList(new ArrayList<>(iniBlocks));
             this.issues = Collections.unmodifiableList(new ArrayList<>(issues));
         }
 
@@ -234,7 +236,8 @@ final class FusionPreflight {
         if (selectedMods == null || selectedMods.isEmpty()) {
             issues.add(new Issue(true, "Select at least one mod."));
             return new Result(0, 0, sources, definitions, references, outside,
-                new ArrayList<FusionIniConflictAnalyzer.Conflict>(), issues);
+                new ArrayList<FusionIniConflictAnalyzer.Conflict>(),
+                new ArrayList<FusionIniBlockParser.Block>(), issues);
         }
 
         for (ModManager.Mod mod : selectedMods) {
@@ -370,7 +373,7 @@ final class FusionPreflight {
                 + " typed reference(s) are not defined in the selected mods; they may be supplied by the base game or other INI files."));
         }
         return new Result(archives, entries, sources, definitions, references, outside,
-            iniConflicts, issues);
+            iniConflicts, iniBlocks, issues);
     }
 
 
