@@ -142,10 +142,10 @@ final class FusionBigArchive {
             return "";
         }
         String value = path.replace('/', '\\\\').trim();
-        if (value.startsWith("\\\\") || value.matches("^[A-Za-z]:.*")) {
+        if (value.startsWith("\\") || value.matches("^[A-Za-z]:.*")) {
             throw new IllegalArgumentException("Absolute archive path: " + path);
         }
-        String[] parts = value.split("\\\\\\\\+");
+        String[] parts = value.split("\\\\+");
         List<String> safe = new ArrayList<>();
         for (String part : parts) {
             if (part.isEmpty() || ".".equals(part)) {
