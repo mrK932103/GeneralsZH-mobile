@@ -192,12 +192,12 @@ final class FusionBigArchiveWriter {
                     throw new IOException("Fusion archive table verification failed at entry " + i);
                 }
             }
-            boolean hadDestination = destination.exists();
+            boolean hadDestination = canonicalDestination.exists();
             if (hadDestination && !canonicalDestination.renameTo(backup)) {
                 throw new IOException("Cannot preserve existing Fusion output before replacement");
             }
             try {
-                Files.move(temp.toPath(), destination.toPath(), StandardCopyOption.ATOMIC_MOVE);
+                Files.move(temp.toPath(), canonicalDestination.toPath(), StandardCopyOption.ATOMIC_MOVE);
             } catch (IOException atomicFailure) {
                 if (!temp.renameTo(canonicalDestination)) {
                     if (hadDestination && !backup.renameTo(canonicalDestination)) {
@@ -210,7 +210,7 @@ final class FusionBigArchiveWriter {
             if (backup.exists()) backup.delete();
         } catch (IOException | RuntimeException e) {
             temp.delete();
-            if (backup.exists() && !canonicalDestination.exists()) backup.renameTo(destination);
+            if (backup.exists() && !canonicalDestination.exists()) backup.renameTo(canonicalDestination);
             if (e instanceof IOException) throw (IOException) e;
             throw new IOException("Fusion archive creation failed", e);
         }
