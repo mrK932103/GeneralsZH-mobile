@@ -21,3 +21,10 @@ This is not yet end-to-end source-isolated gameplay. The new source-aware side o
 ## Validation
 
 No native compilation, unit test, APK build, device test or in-game match was run for this increment. The changes are committed as a staged native prototype and must be compile-checked before they are treated as stable.
+
+
+## Follow-up in the same increment
+
+- The standard `PlayerList::newGame()` path already passes each side Dict to `Player::initFromDict`; the legacy overload now reads the optional `playerFusionSource` field. This means a side created with the new SidesList overload reaches the source-aware PlayerTemplate lookup without changing legacy callers.
+- The Skirmish-side validation and the human/AI Skirmish script matching loops inside `Player::initFromDict` now resolve each side's PlayerTemplate using that side's own source ID. This prevents a same-named side from another selected mod being mistaken for the current faction when matching sides and selecting source-specific Skirmish scripts.
+- The standard faction combo box/preferences still do not expose source-tagged templates. The new SidesList overload is an engine entry point for the eventual selector integration, not proof that the UI can currently select Fusion factions.
