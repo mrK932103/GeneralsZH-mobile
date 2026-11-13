@@ -242,4 +242,30 @@ public class FusionNamespacePlanTest {
         assertEquals("Weapon", references.get(9).kind);
         assertEquals("FusionOCLWeapon", references.get(9).name);
     }
+
+    @Test
+    public void fxListNuggetsExposeNestedAudioParticleAndFxReferences() {
+        String source = "TEOD/Effects.big!Data/INI/FXList.ini";
+        String ini = "FXList FUSION_COMPOSITE_FX\n"
+            + "  Sound\n"
+            + "    Name = FUSION_IMPACT_SOUND\n"
+            + "  End\n"
+            + "  ParticleSystem\n"
+            + "    Name = FUSION_IMPACT_SMOKE\n"
+            + "  End\n"
+            + "  FXListAtBonePos\n"
+            + "    FX = FUSION_SECONDARY_FX\n"
+            + "  End\n"
+            + "End\n";
+        List<FusionIniReferences.Reference> references = FusionIniReferences.scan(
+            ini.getBytes(java.nio.charset.Charset.forName("ISO-8859-1")), source);
+
+        assertEquals(3, references.size());
+        assertEquals("AudioEvent", references.get(0).kind);
+        assertEquals("FUSION_IMPACT_SOUND", references.get(0).name);
+        assertEquals("ParticleSystem", references.get(1).kind);
+        assertEquals("FUSION_IMPACT_SMOKE", references.get(1).name);
+        assertEquals("FXList", references.get(2).kind);
+        assertEquals("FUSION_SECONDARY_FX", references.get(2).name);
+    }
 }
