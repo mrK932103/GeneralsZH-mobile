@@ -338,3 +338,17 @@ The product requirement is source isolation, not archive overlay:
 7. Run local unit tests and Android/native builds, then install and test on device. No source build or device test has been run for the source-qualified catalog at this point.
 
 No playable faction merge is claimed by this milestone. The current BIG overlay builder remains a separate, conservative archive utility and must not be presented as the requested source-isolated faction runtime.
+
+
+### Player-template source isolation audit (14 November 2026)
+
+A follow-up read of the current native engine sources found that the branch already contains a partial source-aware faction-template path:
+
+- `PlayerTemplate` carries `m_fusionSourceId`; the value is assigned from `INI::getSourceId()` while parsing a `PlayerTemplate` definition.
+- `PlayerTemplateStore::findPlayerTemplate(name, sourceId)` resolves a faction within the requested source. The legacy overload intentionally continues to search only untagged templates, preserving legacy map behavior.
+- The store exposes separate legacy and Fusion enumeration methods, plus a combined selectable enumeration.
+- `Player::initFromDict` reads the optional `playerFusionSource` dictionary key and uses the source-qualified template lookup. Its skirmish-side and script-owner matching also compare source identity, avoiding same-side-name matches across different sources.
+
+This is meaningful faction-selection groundwork, but it does **not** establish complete faction isolation. The audit still needs to trace where the Skirmish UI writes `playerFusionSource` into every selected side dictionary, how AI/player creation preserves it through all paths, and whether every faction-owned reference (starting units/buildings, intrinsic sciences, command sets, special-power shortcuts, icons/load screens/audio) resolves against the same source. The wider runtime registries (ThingTemplate, Weapon, Armor, Locomotor, FX/OCL/ParticleSystem, command UI, upgrades/sciences/special powers, audio and asset paths) remain separate isolation work.
+
+No native compile, Android build, automated test, or device test was run as part of this source audit. Do not treat the existing PlayerTemplate source tag as proof that mixed-mod Skirmish is playable.
