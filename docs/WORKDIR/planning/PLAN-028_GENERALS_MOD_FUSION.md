@@ -179,3 +179,19 @@ Complete a source-of-truth audit of the managed-mod engine mount path and the la
 - When two archives contain different bytes at the same virtual path, the strict builder now reports all known source archives alongside the conflicting path.
 - This remains a refusal, not a winner-selection rule. The builder still does not merge same-path INI content or reconcile game semantics.
 - Repository-only edits have not been compiled; no APK or in-game validation is claimed.
+
+
+### General multi-mod compatibility requirement (13 November 2026)
+
+Fusion is an N-mod system, not a TEOD/Hypersonic integration. No implementation may hardcode a supported pair or assume a fixed faction count.
+
+- The input model must accept any number of selected Zero Hour mods, preserve an explicit user-selected order, and record each mod's source identity, version/metadata when available, archive inventory, loose files, and detected game target.
+- Compatibility analysis must be based on content domains and engine constraints, not mod names: object definitions and inheritance, weapons/behaviors, upgrades/sciences/special powers, command sets/buttons, player templates/faction registries, command-bar/UI assets, maps, scripts, audio, models, textures, and global INI settings.
+- Merge rules must be domain-specific and composable across N inputs. A pairwise “A + B” patch is not an acceptable architecture. The same rules must handle three or more mods and identify conflicts involving any subset of them.
+- Define explicit support outcomes: (1) automatically mergeable content, (2) mergeable only with user-resolved choices or generated ID remapping, (3) requires a manual compatibility adapter/port, and (4) unsupported. Never label categories 2–4 as automatically compatible.
+- Preserve provenance for every emitted or rejected definition/file: originating mod, archive, virtual path, and INI line/block where available. Conflict reports must identify all participants, not just the first collision.
+- Add no mod-name allowlist as the compatibility mechanism. Optional adapter profiles may be added for known mod families, but they must use the same generic merge interfaces and remain independently testable.
+- Total conversions may change the same global systems in incompatible ways. Fusion must analyze those global changes and either apply a validated adapter or explain why the selected set cannot be fused; “all mods supported” means they can be analyzed and classified, not that every arbitrary combination is guaranteed to become playable.
+- Acceptance fixtures must include one-mod baseline, two compatible mods, at least three mods, duplicate and conflicting definitions, multiple total conversions, and mixed asset/loose-file sources. Eventually include real-world samples from multiple mod families, not just TEOD and Hypersonic.
+
+Implementation consequence: build a reusable parser/model/merge-rule registry and provenance-aware N-way merge planner before adding launcher controls. Do not build a pair-specific faction merger or a generic text-concatenation shortcut.
