@@ -157,7 +157,7 @@ final class FusionMergePlan {
             }
             for (FusionCommandUiAnalyzer.Assessment assessment : commandSetAssessments) {
                 if (assessment.hasSlotConflicts() || !assessment.isFullyComparable()) {
-                    if (out.length() > 0) out.append("\\n");
+                    if (out.length() > 0) out.append("\n");
                     out.append("COMMANDSET / ").append(assessment.setName)
                         .append(": ").append(assessment.conflicts.size())
                         .append(" slot conflict(s), ").append(assessment.unresolved.size())
