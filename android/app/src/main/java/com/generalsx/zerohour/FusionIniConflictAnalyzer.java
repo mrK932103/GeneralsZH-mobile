@@ -11,7 +11,6 @@
 package com.generalsx.zerohour;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -84,7 +83,7 @@ final class FusionIniConflictAnalyzer {
                 byte[] first = group.get(0).exactBytes;
                 boolean identical = true;
                 for (int i = 1; i < group.size(); i++) {
-                    if (!Arrays.equals(first, group.get(i).exactBytes)) {
+                    if (!group.get(0).hasSameExactBytes(group.get(i))) {
                         identical = false;
                         break;
                     }
