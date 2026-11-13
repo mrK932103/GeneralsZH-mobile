@@ -244,3 +244,14 @@ The native Zero Hour engine source was inspected before designing faction reconc
 **Fusion implications:** never concatenate all `PlayerTemplate` blocks blindly and never assume that adding template definitions alone makes every faction playable. The merge plan must preserve stable template identities, identify field-level collisions, validate required faction fields (at minimum playable-side intent and starting building), account for faction-specific starting units and UI assets/command sets, and verify Skirmish script coverage. Any automatic merge must be deterministic and explicit about precedence; unresolved field conflicts must block output. Reordering or expanding the registry also requires invalidating/remapping persisted numeric faction selections rather than trusting old indices.
 
 These are source-inspection findings only. No engine code was changed, and no native/Android compilation or in-game test has been performed.
+
+
+### PlayerTemplate field-level conflict assessment (13 November 2026)
+
+- Added a read-only FusionPlayerTemplateAnalyzer for same-name faction templates.
+- The scalar allowlist is grounded in the native PlayerTemplate::getFieldParse() table. It compares values for engine-confirmed scalar fields such as Side, BaseSide, PlayableSide, StartingBuilding, StartingUnit0..9, science command sets, faction UI assets, and display metadata.
+- Differing values are reported with every source and line. A field omitted by a participant is not treated as an explicit conflicting value because the engine updates existing templates field-by-field and leaves omitted members intact.
+- Custom parser directives (ProductionCostChange, ProductionTimeChange, ProductionVeterancyLevel), unknown fields, unsafe blocks, and unsupported syntax remain unresolved; they are never guessed as scalar values.
+- FusionMergePlan now includes this field-level assessment for PlayerTemplate collisions and surfaces it in its summary.
+- This is analysis only. It does not combine faction templates, choose precedence, validate referenced objects/assets, allocate stable faction identities, or guarantee Skirmish/AI support. The allowlist is specific to the inspected engine source and may need version-aware adapters for modded engine forks.
+- Added tests for three-way Side conflicts, equal/omitted fields, custom directives, and unknown fields. Tests are committed but have not been executed; no Gradle build or device test has been run.
