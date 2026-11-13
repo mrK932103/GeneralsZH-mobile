@@ -488,3 +488,5 @@ The following source inspection was performed against the current Generals nativ
   - `FXListAtBonePos -> FX` as FXList.
 - Added scanner regression coverage for those five dependencies.
 - Scope and remaining limitations: this is the first native registry vertical slice, not complete FX isolation. FX nuggets still resolve ParticleSystem and RayEffect/Tracer ThingTemplates through global runtime managers; audio event resolution remains global. Other registries and all dependent runtime lookups still require source-aware migration. No native build or Android test run is reported yet.
+
+- Added a cross-source regression test that scans identically named FXList nuggets in Hypersonic and TEOD, then verifies their AudioEvent and ParticleSystem dependencies map to their own source definitions rather than the other mod's definitions.
