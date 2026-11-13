@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Conservative, read-only archive inventory for a proposed Fusion set.
@@ -133,6 +134,14 @@ final class FusionPreflight {
 
         /** Build a deterministic source-qualified plan for every indexed INI definition/reference. */
         FusionNamespacePlan.Result assessDefinitionNamespaces() {
+            return assessDefinitionNamespaces(Collections.<String>emptySet());
+        }
+
+        /**
+         * Assess source isolation, allowing cross-source lookup only for explicitly supplied
+         * base-game archive identities. Selected mods must never be added to this set.
+         */
+        FusionNamespacePlan.Result assessDefinitionNamespaces(Set<String> baseGameSources) {
             List<FusionIniIndex.Definition> allDefinitions = new ArrayList<>();
             for (List<FusionIniIndex.Definition> values : definitions.values()) {
                 allDefinitions.addAll(values);
@@ -141,7 +150,7 @@ final class FusionPreflight {
             for (List<FusionIniReferences.Reference> values : references.values()) {
                 allReferences.addAll(values);
             }
-            return FusionNamespacePlan.build(allDefinitions, allReferences);
+            return FusionNamespacePlan.build(allDefinitions, allReferences, baseGameSources);
         }
 
         /** Build a deterministic source-qualified plan for colliding virtual asset paths. */
