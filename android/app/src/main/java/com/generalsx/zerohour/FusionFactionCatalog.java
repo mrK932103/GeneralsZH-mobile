@@ -98,9 +98,14 @@ final class FusionFactionCatalog {
             Matcher matcher = ASSIGNMENT.matcher(line);
             if (!matcher.matches()) {
                 unresolved.add(block.source + ":" + (block.startLine + i)
-                    + ": unsupported PlayerTemplate directive: " + line);
+                    + ": malformed PlayerTemplate line: " + line);
                 continue;
             }
+            // PlayerTemplate contains many legitimate engine fields (StartingBuilding,
+            // StartingUnit0..n, IntrinsicSciences, PurchaseScienceCommandSet, colors, etc.).
+            // They belong to the faction's dependency closure, but are not required to
+            // identify its root. Do not reject a faction just because this catalog does not
+            // interpret every engine-specific field yet.
             String field = matcher.group(1).toLowerCase(Locale.ROOT);
             String value = unquote(matcher.group(2).trim());
             if ("side".equals(field)) {
