@@ -49,6 +49,12 @@ final class FusionArchiveBuild {
      */
     static Result build(List<ModManager.Mod> selectedMods, File destination) throws IOException {
         if (destination == null) throw new IOException("Fusion output destination is required");
+        if (selectedMods == null || selectedMods.isEmpty()) {
+            throw new IOException("Select at least one mod.");
+        }
+        if (java.nio.file.Files.isSymbolicLink(destination.toPath())) {
+            throw new IOException("Fusion output cannot be a symbolic link.");
+        }
         FusionPreflight.Result preflight = FusionPreflight.inspect(selectedMods);
         for (FusionPreflight.Issue issue : preflight.issues) {
             if (issue.blocking) throw new IOException(issue.message);
@@ -59,10 +65,6 @@ final class FusionArchiveBuild {
         if (preflight.duplicateDefinitionCount() != 0) {
             throw new IOException("Fusion build blocked: duplicate named INI definitions require semantic conflict resolution.");
         }
-        if (selectedMods == null || selectedMods.isEmpty()) {
-            throw new IOException("Select at least one mod.");
-        }
-
         File output = destination.getCanonicalFile();
         for (ModManager.Mod mod : selectedMods) {
             if (mod == null || mod.dir == null || !mod.dir.isDirectory()) {
