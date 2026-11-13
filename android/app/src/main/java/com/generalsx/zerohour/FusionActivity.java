@@ -85,7 +85,7 @@ public final class FusionActivity extends Activity {
         root.addView(analyze);
 
         build = new Button(this);
-        build.setText("Создать безопасный BIG-пакет");
+        build.setText("Создать архив-перекрытие (не объединение фракций)");
         build.setAllCaps(false);
         build.setEnabled(false);
         build.setOnClickListener(v -> buildPackage());
@@ -119,7 +119,17 @@ public final class FusionActivity extends Activity {
                 out.append("BIG-архивов: ").append(result.archiveCount).append("\n");
                 out.append("Записей в архивах: ").append(result.entryCount).append("\n");
                 out.append("INI-определений: ").append(result.definitionCount()).append("\n");
-                out.append("INI-ссылок: ").append(result.referenceCount()).append("\n");
+                out.append("INI-ссылок: ").append(result.referenceCount()).append("\\n");
+                List<FusionFactionCatalog.FactionSource> factions =
+                    FusionFactionCatalog.discover(result.iniBlocks);
+                out.append("Найдено PlayerTemplate-фракций/кандидатов: ")
+                    .append(factions.size()).append("\\n");
+                for (FusionFactionCatalog.FactionSource faction : factions) {
+                    out.append("  - ").append(faction.describe()).append("\\n");
+                    for (String unresolved : faction.unresolved) {
+                        out.append("      REVIEW: ").append(unresolved).append("\\n");
+                    }
+                }
                 out.append("Дублирующихся путей: ").append(result.duplicatePathCount()).append("\n");
                 out.append("Конфликтов определений: ").append(result.duplicateDefinitionCount()).append("\n\n");
                 out.append("ПРОБЛЕМЫ ПРЕДВАРИТЕЛЬНОЙ ПРОВЕРКИ\n");
@@ -135,7 +145,7 @@ public final class FusionActivity extends Activity {
                 out.append(plan.summary(35)).append("\n");
                 out.append("\n");
                 out.append("Безопасная сборка BIG-пакета: ").append(canBuild ? "ДОСТУПНА ПОСЛЕ ПРОВЕРКИ" : "ЗАБЛОКИРОВАНА").append("\n");
-                out.append("Полноценное объединение фракций и семантическое слияние INI пока не реализованы. Проверка сама по себе не меняет исходные моды.");
+                out.append("ВАЖНО: найденные PlayerTemplate — только корни фракций. Их зависимости, ресурсы и изоляция в движке ещё не подключены. Архив-перекрытие не создаёт совместимые фракции. Исходные моды не изменяются.");
                 output = out.toString();
             } catch (Throwable error) {
                 output = "Ошибка анализа: " + error.getClass().getSimpleName()
