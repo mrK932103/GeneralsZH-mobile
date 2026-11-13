@@ -69,6 +69,27 @@ public class FusionMergePlanTest {
         assertTrue(plan.summary(5).contains("semantic merge and engine validation are incomplete"));
     }
 
+
+    @Test
+    public void assessesCommandButtonFieldConflictsFromAllSelectedMods() {
+        List<FusionIniBlockParser.Block> blocks = Arrays.asList(
+            block("CommandButton ButtonA\\n Command = COMMAND_ATTACK\\nEnd", "A.big!a.ini"),
+            block("CommandButton ButtonA\\n Command = COMMAND_STOP\\nEnd", "B.big!b.ini"),
+            block("CommandButton ButtonA\\n Command = COMMAND_GUARD\\nEnd", "C.big!c.ini"));
+        FusionPreflight.Result preflight = preflight(
+            FusionIniConflictAnalyzer.analyze(blocks), Collections.emptyMap());
+        // Supply the full parsed block inventory used by the command-button reference checker.
+        FusionPreflight.Result withBlocks = new FusionPreflight.Result(0, 0,
+            Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
+            Collections.emptyMap(), FusionIniConflictAnalyzer.analyze(blocks), blocks,
+            new ArrayList<FusionPreflight.Issue>());
+        FusionMergePlan.Item item = withBlocks.assessMergePlan().items.get(0);
+        assertEquals(FusionMergePlan.Domain.COMMAND_UI, item.domain);
+        assertTrue(item.commandButtonAssessment != null);
+        assertEquals(1, item.commandButtonAssessment.conflicts.size());
+        assertEquals("command", item.commandButtonAssessment.conflicts.get(0).field);
+    }
+
     private static FusionPreflight.Result preflight(
             List<FusionIniConflictAnalyzer.Conflict> conflicts,
             Map<String, List<String>> paths) {
