@@ -195,3 +195,13 @@ Fusion is an N-mod system, not a TEOD/Hypersonic integration. No implementation 
 - Acceptance fixtures must include one-mod baseline, two compatible mods, at least three mods, duplicate and conflicting definitions, multiple total conversions, and mixed asset/loose-file sources. Eventually include real-world samples from multiple mod families, not just TEOD and Hypersonic.
 
 Implementation consequence: build a reusable parser/model/merge-rule registry and provenance-aware N-way merge planner before adding launcher controls. Do not build a pair-specific faction merger or a generic text-concatenation shortcut.
+
+
+### Conservative declaration-block extraction (13 November 2026)
+
+- Added `FusionIniBlockParser`, which extracts recognized named Generals INI declarations as bounded blocks and retains their original source text, comments, whitespace, and line endings.
+- It tracks recognized End-terminated nested blocks and records exact source line ranges.
+- Any unrecognized bare syntax inside a declaration marks that block ineligible for automatic comparison. Unclosed declarations and declarations that begin before a previous block closes are reported.
+- Preflight now runs this extractor for each distinct INI payload and surfaces parser uncertainty as review warnings.
+- This is not yet a complete Generals INI grammar. It is not used to rewrite or concatenate files, allocate faction slots, or build a playable multi-mod package. Unknown syntax must remain a blocker for automated transformation until explicitly modeled.
+- Source changes have not been compiled or fixture-tested.
