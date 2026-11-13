@@ -39,14 +39,32 @@ final class FusionPreflight {
         final int archiveCount;
         final int entryCount;
         final Map<String, List<String>> pathSources;
+        final Map<String, List<FusionIniIndex.Definition>> definitions;
         final List<Issue> issues;
 
         Result(int archiveCount, int entryCount, Map<String, List<String>> pathSources,
-               List<Issue> issues) {
+               Map<String, List<FusionIniIndex.Definition>> definitions, List<Issue> issues) {
             this.archiveCount = archiveCount;
             this.entryCount = entryCount;
             this.pathSources = Collections.unmodifiableMap(pathSources);
+            this.definitions = Collections.unmodifiableMap(definitions);
             this.issues = Collections.unmodifiableList(issues);
+        }
+
+        int definitionCount() {
+            int count = 0;
+            for (List<FusionIniIndex.Definition> values : definitions.values()) {
+                count += values.size();
+            }
+            return count;
+        }
+
+        int duplicateDefinitionCount() {
+            int count = 0;
+            for (List<FusionIniIndex.Definition> values : definitions.values()) {
+                if (values.size() > 1) count++;
+            }
+            return count;
         }
 
         boolean canBuildArchiveOverlay() {
@@ -72,13 +90,14 @@ final class FusionPreflight {
      */
     static Result inspect(List<ModManager.Mod> selectedMods) {
         Map<String, List<String>> sources = new LinkedHashMap<>();
+        Map<String, List<FusionIniIndex.Definition>> definitions = new LinkedHashMap<>();
         List<Issue> issues = new ArrayList<>();
         int archives = 0;
         int entries = 0;
 
         if (selectedMods == null || selectedMods.isEmpty()) {
             issues.add(new Issue(true, "Select at least one mod."));
-            return new Result(0, 0, sources, issues);
+            return new Result(0, 0, sources, definitions, issues);
         }
 
         for (ModManager.Mod mod : selectedMods) {
@@ -99,13 +118,26 @@ final class FusionPreflight {
                     FusionBigArchive.Archive archive = FusionBigArchive.read(archiveFile);
                     for (FusionBigArchive.Entry entry : archive.entries) {
                         entries++;
+                        String source = mod.name + "/" + archiveFile.getName();
                         String key = entry.normalizedPath;
                         List<String> owners = sources.get(key);
                         if (owners == null) {
                             owners = new ArrayList<>();
                             sources.put(key, owners);
                         }
-                        owners.add(mod.name + "/" + archiveFile.getName());
+                        owners.add(source);
+                        if (key.startsWith("data\\\\ini\\\\") && key.endsWith(".ini")) {
+                            byte[] bytes = FusionBigArchive.readEntry(archive, entry, 16 * 1024 * 1024);
+                            for (FusionIniIndex.Definition definition : FusionIniIndex.scan(bytes,
+                                    source + "!" + entry.path)) {
+                                List<FusionIniIndex.Definition> matches = definitions.get(definition.key());
+                                if (matches == null) {
+                                    matches = new ArrayList<>();
+                                    definitions.put(definition.key(), matches);
+                                }
+                                matches.add(definition);
+                            }
+                        }
                     }
                 } catch (IOException | IllegalArgumentException e) {
                     issues.add(new Issue(true, "Cannot use " + archiveFile.getName()
@@ -120,7 +152,17 @@ final class FusionPreflight {
                     + " (" + String.join(", ", path.getValue()) + ")"));
             }
         }
-        return new Result(archives, entries, sources, issues);
+        for (Map.Entry<String, List<FusionIniIndex.Definition>> definition : definitions.entrySet()) {
+            if (definition.getValue().size() > 1) {
+                List<String> locations = new ArrayList<>();
+                for (FusionIniIndex.Definition item : definition.getValue()) {
+                    locations.add(item.source + ":" + item.line);
+                }
+                issues.add(new Issue(false, "Duplicate INI definition " + definition.getKey()
+                    + " (" + String.join(", ", locations) + ")"));
+            }
+        }
+        return new Result(archives, entries, sources, definitions, issues);
     }
 
     private static void collectArchives(File directory, List<File> output, int depth) {
