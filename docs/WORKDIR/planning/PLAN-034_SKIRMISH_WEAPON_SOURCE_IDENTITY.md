@@ -30,3 +30,5 @@ No native compilation, unit test, APK build, device test or in-game match was ru
 - The standard faction combo box/preferences still do not expose source-tagged templates. The new SidesList overload is an engine entry point for the eventual selector integration, not proof that the UI can currently select Fusion factions.
 
 - Player now exposes its source identity through `getFusionSourceId()`, derived from its selected PlayerTemplate. This gives later object/weapon/projectile code a direct ownership-context accessor without duplicating a separate source string on every Player.
+
+- Added `getSelectablePlayerTemplateCount()` and `getNthSelectablePlayerTemplate()` to `PlayerTemplateStore`. They expose one deterministic combined view (legacy factions first, then source-tagged Fusion factions) while preserving the old legacy-only enumeration API and its indices. The Skirmish UI still needs to be switched to this view and persist both faction name and source ID; this accessor alone does not enable faction selection.
