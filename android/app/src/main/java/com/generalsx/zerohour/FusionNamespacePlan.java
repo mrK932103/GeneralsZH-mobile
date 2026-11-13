@@ -46,7 +46,7 @@ final class FusionNamespacePlan {
         }
 
         String sourceKey() {
-            return source + "::" + normalize(type) + ":" + normalize(originalName);
+            return sourceId(source) + "::" + normalize(type) + ":" + normalize(originalName);
         }
     }
 
@@ -87,7 +87,7 @@ final class FusionNamespacePlan {
         }
 
         String runtimeName(String source, String type, String originalName) {
-            return sourceNames.get(source + "::" + normalize(type) + ":"
+            return sourceNames.get(sourceId(source) + "::" + normalize(type) + ":"
                 + normalize(originalName));
         }
     }
@@ -133,7 +133,7 @@ final class FusionNamespacePlan {
         Set<String> unresolved = new LinkedHashSet<>();
         Set<String> allocated = new LinkedHashSet<>();
         for (FusionIniIndex.Definition def : ordered) {
-            String source = safe(def.source);
+            String source = sourceId(def.source);
             String sourceKey = source + "::" + normalize(def.type) + ":" + normalize(def.name);
             if (bySourceKey.get(sourceKey) == null) {
                 unresolved.add("Duplicate declaration in source: " + sourceKey);
@@ -152,7 +152,7 @@ final class FusionNamespacePlan {
         List<ReferenceMapping> mapped = new ArrayList<>();
         if (references != null) {
             for (FusionIniReferences.Reference ref : references) {
-                String source = safe(ref.source);
+                String source = sourceId(ref.source);
                 String typed = normalize(ref.kind) + ":" + normalize(ref.name);
                 String localKey = source + "::" + typed;
                 String target = names.get(localKey);
@@ -193,6 +193,20 @@ final class FusionNamespacePlan {
         } catch (NoSuchAlgorithmException impossible) {
             throw new IllegalStateException("SHA-256 is required by the Java runtime", impossible);
         }
+    }
+
+    /**
+     * INI entries from different files in one BIG archive (or loose mod root) share one
+     * namespace. Keeping the archive/member suffix here would incorrectly split one mod.
+     */
+    private static String sourceId(String source) {
+        String value = safe(source).replace('\\\\', '/');
+        int member = value.indexOf('!');
+        if (member >= 0) return value.substring(0, member).toLowerCase(Locale.ROOT);
+        String lower = value.toLowerCase(Locale.ROOT);
+        int iniRoot = lower.indexOf("/data/ini/");
+        if (iniRoot >= 0) return value.substring(0, iniRoot).toLowerCase(Locale.ROOT);
+        return lower;
     }
 
     private static String normalize(String value) {
