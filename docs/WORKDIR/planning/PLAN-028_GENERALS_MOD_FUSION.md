@@ -289,3 +289,16 @@ These are source-inspection findings only. No engine code was changed, and no na
 - These analyzers do not merge command sets, rename button IDs, rewrite references, validate every transitive gameplay/UI dependency, or prove that a faction's selected command set is usable. They are diagnostics only; all collisions remain blocked.
 - Added tests for three-way slot conflicts, non-overlapping slots, missing button references, unsupported directives, slot 18/19 bounds, duplicate assignments, three-way CommandButton field conflicts, unknown fields, and repeated field assignments.
 - Source and test changes have not been compiled or executed. No Android build or device test has been performed.
+
+
+### CommandSet and CommandButton field/slot assessment (13 November 2026)
+
+- Added read-only N-way analyzers for CommandSet slot assignments and CommandButton fields. They preserve source locations, compare all participants, and never emit rewritten INI.
+- The CommandSet slot range is grounded in the native CommandSet::m_commandSetFieldParseTable: slots 1 through 18 are valid. The native header confirms MAX_COMMANDS_PER_SET = 18; the Android UI currently displays 14 cells, while the remaining slots are reserved for script-only commands.
+- Each selected CommandSet is now checked, including sets that have no duplicate declaration. This catches missing CommandButton references that would otherwise be invisible to a duplicate-only conflict report.
+- Repeated assignments to the same slot within one declaration are marked unresolved because the native parser writes into the indexed array and later assignments overwrite earlier values.
+- The CommandButton scalar field allowlist is grounded in CommandButton::s_commandButtonFieldParseTable in the native ControlBar implementation. Unknown fields and repeated fields remain unresolved. Different values are reported with every participant.
+- Native loading behavior confirms that duplicate same-name CommandSet declarations outside override loading trigger a duplicate error, while duplicate same-name CommandButton declarations also trigger an error; overrides use separate engine paths. Fusion must not treat duplicate declarations as ordinary concatenation.
+- Corrected test fixtures that accidentally encoded literal backslash-n sequences instead of actual line breaks, and added plan-level coverage for missing button references in a unique CommandSet.
+- These analyzers are diagnostics only. They do not merge command slots, resolve button-name collisions, validate all referenced objects/upgrades/sciences/special powers/assets/text labels, or guarantee a working control bar. No package is authorized by this phase.
+- Tests are committed but not executed; no Android build or device test has been performed.
