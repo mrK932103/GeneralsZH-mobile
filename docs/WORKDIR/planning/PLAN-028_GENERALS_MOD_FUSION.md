@@ -90,8 +90,8 @@ Complete a source-of-truth audit of the managed-mod engine mount path and the la
 
 - Added `FusionDependencyGraph.java` to build a candidate dependency closure from indexed declarations, typed references, and declared parent/inheritance names.
 - Exposed dependency tracing through `FusionPreflight.Result.traceDependencies(...)`.
-- Reworked `FusionIniReferences.java` to bind recognized typed references to the nearest recognized declaration block using brace depth, instead of assigning every reference in an INI file to every definition in that file.
-- Updated `FusionDependencyGraph.java` to follow only references whose owner key matches the current definition. Also corrected `ChildObject` parent lookup to resolve against an `Object` definition.
-- Remaining parser limitations: this is still a lexical scanner, not a complete Generals INI parser. It assumes recognized declarations open brace-delimited blocks, does not model every nested semantic construct, and cannot resolve macros, dynamic references, or fields not yet included in the typed reference map. Results remain advisory and must not drive automatic merge/extraction yet.
+- Reworked `FusionIniReferences.java` to scope typed references to recognized declaration owners using Generals-style `End` terminators and a conservative set of nested block fields; it no longer assumes C-like braces.
+- Updated `FusionDependencyGraph.java` to index references by owner once before traversal, follow only references owned by the current definition, and resolve `ChildObject` parents against `Object` definitions.
+- Remaining parser limitations: this is still a lexical heuristic, not a complete Generals INI parser. Nested block openers are not yet exhaustively modeled; macros, dynamic references, inherited fields, and unrecognized assignment types can be missed. Results remain advisory and must not drive automatic merge/extraction yet.
 - Confirmed the existing `ModPacker` documents the BIGF header layout used by the reader: little-endian archive size and big-endian entry count/header size.
-- No UI, merge writer, or engine launch integration has been implemented yet. No APK build or device test has been run.
+- No Fusion UI, semantic INI merger, archive builder, or engine launch integration has been implemented yet. The existing engine managed-mod list still mounts separate mod folders in priority order; Fusion output must be a single generated package and must not be represented as an ordinary multi-mod overlay. No APK build or device test has been run.
