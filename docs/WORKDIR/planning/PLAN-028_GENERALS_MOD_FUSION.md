@@ -121,3 +121,12 @@ Complete a source-of-truth audit of the managed-mod engine mount path and the la
 - This is file-level deduplication only. It does not merge INI definitions or decide mod load order. Duplicate named INI definitions remain blocked, including identical definitions until the INI-level merger can prove a safe combination.
 - Hashing is an additional full read for colliding files; source archive length is checked before reading. The writer still performs its own source consistency checks when publishing.
 - Not compiled or device-tested.
+
+
+### Identical INI archive-entry indexing (13 November 2026)
+
+- Preflight now hashes each selected `Data\\INI\\*.ini` entry and indexes each distinct byte sequence once per normalized virtual path.
+- If the same INI path is repeated byte-for-byte across selected archives, it no longer creates artificial duplicate declaration/reference records in the dependency index.
+- If one virtual INI path has multiple different byte variants, each distinct variant is indexed so conflicting declarations remain visible. Repeated copies of any already-seen variant are skipped.
+- This affects diagnostics and dependency indexing only. Archive assembly still independently verifies repeated file bytes, and duplicate named definitions across different INI paths remain conflicts.
+- The INI payload is already read under the existing 16 MiB entry limit; SHA-256 is computed in memory for that bounded payload. This has not been compiled or device-tested.
