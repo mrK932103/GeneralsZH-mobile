@@ -103,3 +103,13 @@ Complete a source-of-truth audit of the managed-mod engine mount path and the la
 ### Writer safety follow-up
 
 - `FusionBigArchiveWriter` now resolves the output path canonically, refuses an existing directory or symbolic-link target, pads short temporary-file prefixes, and consistently publishes/restores via the canonical destination. This is still an archive-level safety primitive, not semantic mod fusion.
+
+
+### Additional safety audit (13 November 2026)
+
+- Rejected BIGF entry paths that cannot round-trip through the archive's ISO-8859-1 path encoding, preventing silent replacement-character corruption.
+- Changed backup handling to use a unique temporary backup name per build, avoiding collisions with stale backups left by interrupted earlier runs.
+- Added an explicit symbolic-link check in the build orchestrator before canonicalizing the requested output path.
+- Moved the empty-selection check ahead of preflight work.
+- Added a preflight blocker for .gib files because the current reader and builder support validated .big/BIGF archives only; unsupported archives are no longer silently omitted.
+- These are source-level hardening changes only; they have not been compiled or device-tested.
