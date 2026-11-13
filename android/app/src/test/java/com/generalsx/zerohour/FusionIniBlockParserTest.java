@@ -100,11 +100,11 @@ public class FusionIniBlockParserTest {
     public void groupsNamesCaseInsensitivelyAcrossAllSources() {
         List<FusionIniBlockParser.Block> blocks = new ArrayList<>();
         blocks.add(FusionIniBlockParser.parse(bytes(
-            "Object TankA\\n  BuildCost = 100\\nEnd"), "A.big!a.ini").blocks.get(0));
+            "Object TankA\n  BuildCost = 100\nEnd"), "A.big!a.ini").blocks.get(0));
         blocks.add(FusionIniBlockParser.parse(bytes(
-            "object tanka\\n  BuildCost = 100\\nEnd"), "B.big!b.ini").blocks.get(0));
+            "object tanka\n  BuildCost = 100\nEnd"), "B.big!b.ini").blocks.get(0));
         blocks.add(FusionIniBlockParser.parse(bytes(
-            "OBJECT TANKA\\n  BuildCost = 100\\nEnd"), "C.big!c.ini").blocks.get(0));
+            "OBJECT TANKA\n  BuildCost = 100\nEnd"), "C.big!c.ini").blocks.get(0));
 
         List<FusionIniConflictAnalyzer.Conflict> conflicts =
             FusionIniConflictAnalyzer.analyze(blocks);
@@ -119,21 +119,21 @@ public class FusionIniBlockParserTest {
     public void distinctDeclarationTypesDoNotCollideByName() {
         List<FusionIniBlockParser.Block> blocks = new ArrayList<>();
         blocks.add(FusionIniBlockParser.parse(bytes(
-            "Object SharedName\\n  BuildCost = 100\\nEnd"), "A.big!a.ini").blocks.get(0));
+            "Object SharedName\n  BuildCost = 100\nEnd"), "A.big!a.ini").blocks.get(0));
         blocks.add(FusionIniBlockParser.parse(bytes(
-            "Weapon SharedName\\n  AttackRange = 100\\nEnd"), "B.big!b.ini").blocks.get(0));
+            "Weapon SharedName\n  AttackRange = 100\nEnd"), "B.big!b.ini").blocks.get(0));
 
         assertTrue(FusionIniConflictAnalyzer.analyze(blocks).isEmpty());
     }
 
     @Test
     public void finalBlockWithoutTrailingNewlineIsPreserved() {
-        String source = "; comment\\nObject TankA\\n  BuildCost = 100\\nEnd";
+        String source = "; comment\nObject TankA\n  BuildCost = 100\nEnd";
         FusionIniBlockParser.Result result =
             FusionIniBlockParser.parse(bytes(source), "mod.big!object.ini");
         assertTrue(result.problems.toString(), result.problems.isEmpty());
         assertEquals(1, result.blocks.size());
-        assertEquals("Object TankA\\n  BuildCost = 100\\nEnd",
+        assertEquals("Object TankA\n  BuildCost = 100\nEnd",
             new String(result.blocks.get(0).copyExactBytes(), INI));
         assertTrue(result.blocks.get(0).safeForComparison);
     }
