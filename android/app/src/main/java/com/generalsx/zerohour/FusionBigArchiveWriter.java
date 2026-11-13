@@ -121,12 +121,24 @@ final class FusionBigArchiveWriter {
         }
         totalSize = offset;
 
-        File parent = destination.getAbsoluteFile().getParentFile();
+        File canonicalDestination = destination.getCanonicalFile();
+        if (canonicalDestination.exists() && (!destination.isFile()
+                || java.nio.file.Files.isSymbolicLink(canonicalDestination.toPath()))) {
+            throw new IOException("Fusion output must be a regular file, not a directory or symbolic link");
+        }
+        File parent = canonicalDestination.getParentFile();
         if (parent == null || (!parent.isDirectory() && !parent.mkdirs())) {
             throw new IOException("Cannot create Fusion output directory");
         }
-        File temp = File.createTempFile(destination.getName() + ".", ".fusion-tmp", parent);
-        File backup = new File(parent, destination.getName() + ".fusion-backup");
+        String tempPrefix = canonicalDestination.getName() + ".";
+        while (tempPrefix.length() < 3) tempPrefix += "_";
+        File temp = File.createTempFile(tempPrefix, ".fusion-tmp", parent);
+        File backup = new File(parent, canonicalDestination.getName() + ".fusion-backup");
+        if (backup.exists() && (!backup.isFile()
+                || java.nio.file.Files.isSymbolicLink(backup.toPath()))) {
+            temp.delete();
+            throw new IOException("Fusion backup path is not a regular file");
+        }
         if (backup.exists() && !backup.delete()) {
             temp.delete();
             throw new IOException("Cannot clear stale Fusion backup");
@@ -181,14 +193,14 @@ final class FusionBigArchiveWriter {
                 }
             }
             boolean hadDestination = destination.exists();
-            if (hadDestination && !destination.renameTo(backup)) {
+            if (hadDestination && !canonicalDestination.renameTo(backup)) {
                 throw new IOException("Cannot preserve existing Fusion output before replacement");
             }
             try {
                 Files.move(temp.toPath(), destination.toPath(), StandardCopyOption.ATOMIC_MOVE);
             } catch (IOException atomicFailure) {
-                if (!temp.renameTo(destination)) {
-                    if (hadDestination && !backup.renameTo(destination)) {
+                if (!temp.renameTo(canonicalDestination)) {
+                    if (hadDestination && !backup.renameTo(canonicalDestination)) {
                         throw new IOException("Publish failed and previous output could not be restored",
                             atomicFailure);
                     }
@@ -198,7 +210,7 @@ final class FusionBigArchiveWriter {
             if (backup.exists()) backup.delete();
         } catch (IOException | RuntimeException e) {
             temp.delete();
-            if (backup.exists() && !destination.exists()) backup.renameTo(destination);
+            if (backup.exists() && !canonicalDestination.exists()) backup.renameTo(destination);
             if (e instanceof IOException) throw (IOException) e;
             throw new IOException("Fusion archive creation failed", e);
         }
