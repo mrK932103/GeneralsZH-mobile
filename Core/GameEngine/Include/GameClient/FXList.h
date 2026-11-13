@@ -203,6 +203,8 @@ public:
 		return nullptr if no such FXList exists.
 	*/
 	const FXList *findFXList( const char* name ) const;
+	// Fusion lookup: prefer the exact source namespace, then the legacy/base-game store.
+	const FXList *findFXList( const char* name, const AsciiString& sourceId ) const;
 
 	static void parseFXListDefinition(INI* ini);
 
@@ -211,7 +213,8 @@ private:
 	// use the hashing function for Ints.
 	typedef std::hash_map< NameKeyType, FXList, rts::hash<NameKeyType>, rts::equal_to<NameKeyType>/**/> FXListMap;
 
-	FXListMap m_fxmap;
+	FXListMap m_fxmap; // untagged legacy/base-game definitions
+	FXListMap m_fusionFxmap; // source-qualified Fusion definitions
 
 };
 
