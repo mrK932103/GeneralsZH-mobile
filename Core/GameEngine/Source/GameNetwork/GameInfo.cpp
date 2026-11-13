@@ -1462,7 +1462,7 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
 								break;
 							}
 							Int playerTemplate = atoi(slotValue.str());
-							if (playerTemplate < PLAYERTEMPLATE_MIN || playerTemplate >= ThePlayerTemplateStore->getPlayerTemplateCount())
+							if (playerTemplate < PLAYERTEMPLATE_MIN || playerTemplate >= ThePlayerTemplateStore->getSelectablePlayerTemplateCount())
 							{
 								optionsOk = false;
 								DEBUG_LOG(("ParseAsciiStringToGameInfo - player template value is invalid, quitting"));
