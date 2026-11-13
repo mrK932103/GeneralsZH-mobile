@@ -80,7 +80,6 @@ final class FusionIniConflictAnalyzer {
             if (!safe) {
                 status = Status.UNSAFE_TO_COMPARE;
             } else {
-                byte[] first = group.get(0).exactBytes;
                 boolean identical = true;
                 for (int i = 1; i < group.size(); i++) {
                     if (!group.get(0).hasSameExactBytes(group.get(i))) {
