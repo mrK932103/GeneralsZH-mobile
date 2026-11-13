@@ -94,14 +94,19 @@ final class FusionArchiveBuild {
                     FusionBigArchiveWriter.SourceEntry candidate =
                         new FusionBigArchiveWriter.SourceEntry(archive, entry);
                     String key = entry.normalizedPath;
-                    byte[] digest = digestEntry(candidate);
-                    byte[] previous = contentDigests.get(key);
-                    if (previous == null) {
-                        contentDigests.put(key, digest);
+                    if (!uniqueEntries.containsKey(key)) {
                         uniqueEntries.put(key, candidate);
-                    } else if (!MessageDigest.isEqual(previous, digest)) {
-                        throw new IOException("Fusion build blocked: conflicting file contents for "
-                            + entry.path + ". Explicit file-level merge is required.");
+                    } else {
+                        byte[] digest = digestEntry(candidate);
+                        byte[] previous = contentDigests.get(key);
+                        if (previous == null) {
+                            previous = digestEntry(uniqueEntries.get(key));
+                            contentDigests.put(key, previous);
+                        }
+                        if (!MessageDigest.isEqual(previous, digest)) {
+                            throw new IOException("Fusion build blocked: conflicting file contents for "
+                                + entry.path + ". Explicit file-level merge is required.");
+                        }
                     }
                 }
             }
