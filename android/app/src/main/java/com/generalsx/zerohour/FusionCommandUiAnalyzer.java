@@ -132,7 +132,8 @@ final class FusionCommandUiAnalyzer {
                 values.add(value);
                 if (!buttonNames.contains(button.toLowerCase(Locale.ROOT))) {
                     unresolved.add(block.source + ":" + value.line
-                        + ": CommandSet slot " + slot + " references missing CommandButton " + button);
+                        + ": CommandSet slot " + slot + " references CommandButton " + button
+                        + " not found in the selected-mod inventory (base-game inventory is not indexed).");
                 }
             }
         }
