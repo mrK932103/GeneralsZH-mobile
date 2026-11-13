@@ -100,12 +100,12 @@ final class FusionPreflight {
                     remaining++;
                     continue;
                 }
-                if (summary.length() > 0) summary.append("\\n");
+                if (summary.length() > 0) summary.append("\n");
                 summary.append(conflict.describe());
                 shown++;
             }
             if (remaining > 0) {
-                summary.append("\\n... and ").append(remaining).append(" more conflict(s)");
+                summary.append("\n... and ").append(remaining).append(" more conflict(s)");
             }
             return summary.toString();
         }
