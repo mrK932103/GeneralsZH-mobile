@@ -473,3 +473,18 @@ The following source inspection was performed against the current Generals nativ
 - Native OCL nuggets still store some references as strings and perform global runtime lookups. This scanner change inventories those dependencies; it does not yet provide source-qualified runtime resolution.
 
 - Corrected nested-block accounting for the native OCL nugget grammar (`CreateObject`, `CreateDebris`, `ApplyRandomForce`, `DeliverPayload`, `FireWeapon`, `Attack`) and FXList nugget blocks. Without these block boundaries, an inner `End` could be mistaken for the end of the owning declaration and later dependencies silently skipped. A regression test now verifies a `FireWeapon` nugget is scanned without closing its parent OCL.
+
+
+### FXList source-qualified store vertical slice (14 November 2026)
+
+- Added a separate source-qualified FXList map while retaining the legacy untagged map.
+- `FXListStore::parseFXListDefinition()` now stores a Fusion-loaded FXList under a composite source/name key. Definitions from different selected mods can therefore share a display name without overwriting one another.
+- Added `findFXList(name, sourceId)`: exact source match first, then the untagged legacy/base-game store. It never searches another Fusion mod's namespace.
+- Updated `INI::parseFXList()` to pass the active `INI::getSourceId()` into the lookup. This also covers nested `FXListAtBonePos -> FX` pointers because the nested parser shares the active INI source context.
+- Extended the read-only dependency scanner to follow FXList nugget blocks and record:
+  - `Sound -> Name` as AudioEvent.
+  - `ParticleSystem -> Name` as ParticleSystem.
+  - `RayEffect -> Name` and `Tracer -> TracerName` as ThingTemplate/Object references.
+  - `FXListAtBonePos -> FX` as FXList.
+- Added scanner regression coverage for those five dependencies.
+- Scope and remaining limitations: this is the first native registry vertical slice, not complete FX isolation. FX nuggets still resolve ParticleSystem and RayEffect/Tracer ThingTemplates through global runtime managers; audio event resolution remains global. Other registries and all dependent runtime lookups still require source-aware migration. No native build or Android test run is reported yet.
