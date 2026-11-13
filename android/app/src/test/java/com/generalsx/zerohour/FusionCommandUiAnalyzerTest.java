@@ -72,4 +72,38 @@ public class FusionCommandUiAnalyzerTest {
         assertFalse(result.isFullyComparable());
         assertTrue(result.unresolved.toString().contains("CustomLayout"));
     }
+
+    @Test
+    public void engineSlotRangeIncludesEighteenButRejectsNineteen() {
+        FusionIniBlockParser.Block valid = block(
+            "CommandSet SharedSet\\n 18 = CommandA\\nEnd", "A.big!ui.ini");
+        FusionIniBlockParser.Block invalid = block(
+            "CommandSet SharedSet\\n 19 = CommandB\\nEnd", "B.big!ui.ini");
+
+        FusionCommandUiAnalyzer.Assessment accepted = FusionCommandUiAnalyzer.analyze(
+            Arrays.asList(valid), Arrays.asList(valid));
+        FusionCommandUiAnalyzer.Assessment rejected = FusionCommandUiAnalyzer.analyze(
+            Arrays.asList(invalid), Arrays.asList(invalid));
+
+        assertTrue(accepted.isFullyComparable());
+        assertFalse(rejected.isFullyComparable());
+        assertTrue(rejected.unresolved.toString().contains("19 = CommandB"));
+    }
+
+    @Test
+    public void duplicateAssignmentToSameSlotIsReportedAsConflict() {
+        FusionIniBlockParser.Block duplicate = block(
+            "CommandSet SharedSet\\n 1 = CommandA\\n 1 = CommandB\\nEnd",
+            "A.big!ui.ini");
+        FusionIniBlockParser.Block buttons = block(
+            "CommandButton CommandA\\n Command = DOZER_CONSTRUCT\\nEnd\\n"
+            + "CommandButton CommandB\\n Command = DOZER_CONSTRUCT\\nEnd",
+            "buttons.big!ui.ini");
+
+        FusionCommandUiAnalyzer.Assessment result = FusionCommandUiAnalyzer.analyze(
+            Arrays.asList(duplicate), Arrays.asList(duplicate, buttons));
+        assertEquals(1, result.conflicts.size());
+        assertEquals(2, result.conflicts.get(0).values.size());
+        assertTrue(result.isFullyComparable());
+    }
 }
