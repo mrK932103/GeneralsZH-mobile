@@ -155,3 +155,11 @@ Complete a source-of-truth audit of the managed-mod engine mount path and the la
 - These findings are warnings, not proof that a file is invalid: the scanner intentionally recognizes only a bounded subset of Generals INI syntax. Unknown syntax is not rewritten, and these diagnostics do not authorize automatic INI merging.
 - The new pass runs only for distinct INI byte variants already admitted by the existing bounded 16 MiB entry read. It does not add archive writes or extract files.
 - No Android compilation, fixture tests, APK build, or device validation has been performed yet.
+
+
+### INI scope stack refinement (13 November 2026)
+
+- Replaced the single integer nesting counter in `FusionIniStructure` with explicit recognized scope frames carrying block names, opening line numbers, and declaration identity.
+- A premature named declaration now reports the exact previous declaration and opening line before recovery; EOF diagnostics identify the innermost unclosed block and its containing declaration.
+- This improves diagnostic specificity and avoids losing the identity of the declaration when nested blocks remain open.
+- The scanner remains a bounded lexical heuristic. It does not validate unknown block forms or make automatic merge decisions. No compile, fixture run, or device test has been performed.
