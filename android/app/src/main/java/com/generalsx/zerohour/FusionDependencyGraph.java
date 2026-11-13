@@ -84,8 +84,10 @@ final class FusionDependencyGraph {
             List<String> outgoing = new ArrayList<>();
             for (FusionIniIndex.Definition definition : definitions.get(current)) {
                 if (definition.parent != null && !definition.parent.trim().isEmpty()) {
-                    String parentKey = definition.type.toLowerCase(java.util.Locale.ROOT)
-                        + ":" + definition.parent.toLowerCase(java.util.Locale.ROOT);
+                    String parentKind = "ChildObject".equalsIgnoreCase(definition.type)
+                        ? "object" : definition.type.toLowerCase(java.util.Locale.ROOT);
+                    String parentKey = parentKind + ":"
+                        + definition.parent.toLowerCase(java.util.Locale.ROOT);
                     outgoing.add(parentKey);
                     if (!visited.contains(parentKey)) pending.addLast(parentKey);
                 }
