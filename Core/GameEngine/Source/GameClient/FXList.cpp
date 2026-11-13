@@ -50,6 +50,7 @@
 #include "GameClient/Drawable.h"
 #include "GameClient/ParticleSys.h"
 #include "GameLogic/PartitionManager.h"
+#include <string>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // PUBLIC DATA ////////////////////////////////////////////////////////////////////////////////////
@@ -850,6 +851,7 @@ FXListStore::FXListStore()
 FXListStore::~FXListStore()
 {
 	m_fxmap.clear();
+	m_fusionFxmap.clear();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -867,14 +869,49 @@ const FXList *FXListStore::findFXList(const char* name) const
 }
 
 //-------------------------------------------------------------------------------------------------
+// Fusion lookups never search another mod's namespace. The untagged map is the
+// explicit shared/base-game fallback for definitions loaded outside Fusion.
+const FXList *FXListStore::findFXList(const char* name, const AsciiString& sourceId) const
+{
+	if (stricmp(name, "None") == 0)
+		return nullptr;
+
+	if (sourceId.isNotEmpty())
+	{
+		std::string qualifiedName = sourceId.str();
+		qualifiedName.push_back('\\x1f');
+		qualifiedName += name;
+		NameKeyType key = TheNameKeyGenerator->nameToKey(qualifiedName.c_str());
+		FXListMap::const_iterator it = m_fusionFxmap.find(key);
+		if (it != m_fusionFxmap.end())
+			return &(*it).second;
+	}
+
+	return findFXList(name);
+}
+
+//-------------------------------------------------------------------------------------------------
 /*static */ void FXListStore::parseFXListDefinition(INI *ini)
 {
 	// read the FXList name
 	const char *c = ini->getNextToken();
+	const AsciiString sourceId = ini->getSourceId();
 	NameKeyType key = TheNameKeyGenerator->nameToKey(c);
-	FXList& fxl = TheFXListStore->m_fxmap[key];
-	fxl.clear();
-	ini->initFromINI(&fxl, TheFXListFieldParse);
+	FXList* fxl = nullptr;
+	if (sourceId.isNotEmpty())
+	{
+		std::string qualifiedName = sourceId.str();
+		qualifiedName.push_back('\\x1f');
+		qualifiedName += c;
+		key = TheNameKeyGenerator->nameToKey(qualifiedName.c_str());
+		fxl = &TheFXListStore->m_fusionFxmap[key];
+	}
+	else
+	{
+		fxl = &TheFXListStore->m_fxmap[key];
+	}
+	fxl->clear();
+	ini->initFromINI(fxl, TheFXListFieldParse);
 }
 
 //-------------------------------------------------------------------------------------------------
