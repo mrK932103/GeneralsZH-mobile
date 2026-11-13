@@ -436,3 +436,16 @@ The following source inspection was performed against the current Generals nativ
 - The table is a source audit, not a claim that all call sites in the entire codebase have been exhausted.
 - No registry code was modified in this step. A blind `sourceId` field addition would not fix parser reuse, override chains, delayed resolution, or name-only Xfer restoration.
 - The first safe code slice should be a source-aware store with explicit source-qualified parser and lookup APIs plus tests, then its references should be migrated together. Do not enable mixed-mod Skirmish for a registry until all of its lookup paths are source-aware.
+
+
+### Weapon delayed-reference scanner slice (14 November 2026)
+
+- Extended `FusionIniReferences` to recognize WeaponTemplate dependency fields that the native engine stores as names and resolves later or at runtime:
+  - `ProjectileObject` and `ProjectileStreamName` → `Object` (ThingTemplate lookup).
+  - `FireOCL`, `VeterancyFireOCL`, `ProjectileDetonationOCL`, and `VeterancyProjectileDetonationOCL` → `ObjectCreationList`.
+  - `ProjectileExhaust` and `VeterancyProjectileExhaust` → `ParticleSystem`.
+  - `ProjectileDetonationFX` and `VeterancyProjectileDetonationFX` → `FXList`.
+  - `HistoricBonusWeapon` → `Weapon`.
+- Added namespace-plan tests for all seven dependency categories and for same-named projectile objects referenced by Hypersonic and TEOD. The tests assert that each mod's reference maps to its own source namespace.
+- This closes a concrete blind spot in the static INI dependency inventory. It does not change native pointer resolution, rewrite INI/archive contents, or make these runtime registries source-aware. The mixed-mod launcher must remain blocked until native lookup paths and the full dependency graph are migrated.
+- The Android/JUnit test suite has not been executed in this environment; these are committed tests, not a reported passing build.
