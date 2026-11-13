@@ -90,7 +90,11 @@ final class FusionBigArchiveWriter {
                 throw new IOException("Duplicate or empty virtual path; refusing ambiguous merge: "
                     + entry.path);
             }
-            byte[] encoded = entry.path.replace('/', '\\').getBytes(StandardCharsets.ISO_8859_1);
+            String archivePath = entry.path.replace('/', '\\');
+            byte[] encoded = archivePath.getBytes(StandardCharsets.ISO_8859_1);
+            if (!archivePath.equals(new String(encoded, StandardCharsets.ISO_8859_1))) {
+                throw new IOException("BIGF path contains characters outside ISO-8859-1: " + entry.path);
+            }
             if (encoded.length == 0 || encoded.length > 4096) {
                 throw new IOException("Invalid BIGF path length: " + entry.path);
             }
