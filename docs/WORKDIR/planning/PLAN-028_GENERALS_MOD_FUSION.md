@@ -395,3 +395,14 @@ Still unresolved: the selected source-qualified template's *dependent gameplay d
 - Do not implement a partial `ThingTemplate::sourceId` field or silently namespace only the top-level object name. Either approach leaves delayed/runtime references able to cross into another mod and can produce mixed dependency graphs.
 - Next native milestone: inventory every `findTemplate()`/name-based registry lookup reachable from `ThingTemplate` fields, then implement and test a bounded source-aware vertical slice with explicit shared/base fallback. Until that audit is complete, Fusion must continue to block combinations with unresolved cross-source object dependencies rather than claim they are playable.
 - This is a source audit/documentation update only. No native engine change, Android build, or device test is claimed.
+
+
+
+### Fusion INI source-context propagation audit (14 November 2026)
+
+- Confirmed the native `INI` loader already has a Fusion-only source context: `loadFromFusionSource(filename, loadType, xfer, sourceId)` sets `m_sourceId` for the duration of parsing, and `getSourceId()` exposes it to field parsers. Legacy `load()` continues with an empty source identity.
+- `loadFileDirectory()` and recursive `loadDirectory()` preserve the supplied source ID when opening both the primary INI file and nested directory files. The source context is cleared on normal unprepare and on the exception path.
+- Found an existing source-aware typed-reference example in `INI.cpp`: weapon-template parsing reads `ini->getSourceId()` and calls `TheWeaponStore->findWeaponTemplate(name, sourceId)` for Fusion loads, retaining the legacy lookup for ordinary loads. This is evidence that the engine already has a pattern for source-qualified registries; it does not establish that every registry follows it.
+- The contrast is important: `ThingFactory::parseObjectDefinition()` still calls the global name-only `findTemplateInternal(name)`, and `ThingTemplate::resolveNames()` later resolves prerequisite names without an explicit source parameter. Thus source context reaches the INI parser but is not consistently carried into object definitions and delayed object-reference resolution.
+- Follow-up audit must compare every INI field parser and registry lookup against the weapon-template pattern, including Armor, Locomotor, FX/OCL, CommandSet/CommandButton, Upgrade, Science, SpecialPower, AudioEvent, ParticleSystem, and object references. Any registry that lacks source-qualified lookup remains a potential cross-mod collision.
+- No runtime code was changed in this audit. This is an architecture inventory update only; it does not mean the listed registries are source-isolated.
