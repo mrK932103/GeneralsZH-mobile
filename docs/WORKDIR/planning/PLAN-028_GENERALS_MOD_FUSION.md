@@ -171,3 +171,11 @@ Complete a source-of-truth audit of the managed-mod engine mount path and the la
 - The strict archive builder now includes up to 20 duplicate declaration keys and their archive/file/line locations in its blocking error, including parent names where present.
 - This is diagnostics only: duplicate definitions remain blocked; no conflicting declaration is selected or silently overwritten.
 - No Android compile, automated fixture test, or device validation has been performed.
+
+
+### Source-aware collision diagnostics (13 November 2026)
+
+- Added a lookup that maps a normalized virtual path back to all source mod/archive names found during preflight.
+- When two archives contain different bytes at the same virtual path, the strict builder now reports all known source archives alongside the conflicting path.
+- This remains a refusal, not a winner-selection rule. The builder still does not merge same-path INI content or reconcile game semantics.
+- Repository-only edits have not been compiled; no APK or in-game validation is claimed.
