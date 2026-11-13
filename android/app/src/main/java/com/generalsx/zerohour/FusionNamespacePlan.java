@@ -120,7 +120,7 @@ final class FusionNamespacePlan {
                 byTypedName.put(typed, candidates);
             }
             candidates.add(def);
-            String sourceKey = safe(def.source) + "::" + typed;
+            String sourceKey = sourceId(def.source) + "::" + typed;
             FusionIniIndex.Definition previous = bySourceKey.put(sourceKey, def);
             if (previous != null) {
                 // Duplicate declarations within one source are not silently disambiguated.
