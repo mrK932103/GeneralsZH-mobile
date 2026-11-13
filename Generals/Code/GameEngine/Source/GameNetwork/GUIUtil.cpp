@@ -233,9 +233,11 @@ void PopulateColorComboBox(Int comboBox, GameWindow *comboArray[], GameInfo *myG
 
 // -----------------------------------------------------------------------------
 
-void PopulatePlayerTemplateComboBox(Int comboBox, GameWindow *comboArray[], GameInfo *myGame, Bool allowObservers)
+void PopulatePlayerTemplateComboBox(Int comboBox, GameWindow *comboArray[], GameInfo *myGame, Bool allowObservers, Bool allowFusionFactions)
 {
-	Int numPlayerTemplates = ThePlayerTemplateStore->getPlayerTemplateCount();
+	Int numPlayerTemplates = allowFusionFactions
+		? ThePlayerTemplateStore->getSelectablePlayerTemplateCount()
+		: ThePlayerTemplateStore->getPlayerTemplateCount();
 	UnicodeString playerTemplateName;
 
 	GadgetComboBoxReset(comboArray[comboBox]);
@@ -248,32 +250,53 @@ void PopulatePlayerTemplateComboBox(Int comboBox, GameWindow *comboArray[], Game
 
 	for (Int c=0; c<numPlayerTemplates; ++c)
 	{
-		const PlayerTemplate *fac = ThePlayerTemplateStore->getNthPlayerTemplate(c);
+		const PlayerTemplate *fac = allowFusionFactions
+			? ThePlayerTemplateStore->getNthSelectablePlayerTemplate(c)
+			: ThePlayerTemplateStore->getNthPlayerTemplate(c);
 		if (!fac)
 			continue;
 
 		if (fac->getStartingBuilding().isEmpty())
 			continue;
 
-		// GeneralsX @bugfix felipebraz 11/05/2026 Keep Zero Hour's multiplayer faction gating so host menus do not offer unsupported or locked options.
-		if (myGame->oldFactionsOnly() && !fac->isOldFaction())
+		const Bool isFusionFaction = fac->getFusionSourceId().isNotEmpty();
+
+		// Keep the original multiplayer restrictions for ordinary game factions.
+		// Source-tagged Fusion factions are explicitly opted into by the Skirmish UI.
+		if (!isFusionFaction && myGame->oldFactionsOnly() && !fac->isOldFaction())
 			continue;
 
-		// GeneralsX @bugfix Copilot 11/05/2026 Guard ChallengeGenerals access in base Generals where the singleton may be unavailable during skirmish menu setup.
-		Bool disallowLockedGenerals = TRUE;
-		const GeneralPersona *general = TheChallengeGenerals ? TheChallengeGenerals->getGeneralByTemplateName(fac->getName()) : nullptr;
-		Bool startsLocked = general ? !general->isStartingEnabled() : FALSE;
-		if (disallowLockedGenerals && startsLocked)
-			continue;
+		// Challenge-generals locks belong to the base game's legacy faction set.
+		if (!isFusionFaction)
+		{
+			const GeneralPersona *general = TheChallengeGenerals ? TheChallengeGenerals->getGeneralByTemplateName(fac->getName()) : nullptr;
+			Bool startsLocked = general ? !general->isStartingEnabled() : FALSE;
+			if (startsLocked)
+				continue;
+		}
 
 		AsciiString side;
 		side.format("SIDE:%s", fac->getSide().str());
-		if (seenSides.find(side) != seenSides.end())
+		AsciiString sideKey = side;
+		if (isFusionFaction)
+		{
+			sideKey.concat("|");
+			sideKey.concat(fac->getFusionSourceId());
+		}
+		if (seenSides.find(sideKey) != seenSides.end())
 			continue;
 
-		seenSides.insert(side);
+		seenSides.insert(sideKey);
 
-		newIndex = GadgetComboBoxAddEntry(comboArray[comboBox], TheGameText->fetch(side), def->getColor());
+		if (isFusionFaction)
+		{
+			playerTemplateName.format(L"%ls [%hs]", TheGameText->fetch(side).str(), fac->getFusionSourceId().str());
+			newIndex = GadgetComboBoxAddEntry(comboArray[comboBox], playerTemplateName, def->getColor());
+		}
+		else
+		{
+			newIndex = GadgetComboBoxAddEntry(comboArray[comboBox], TheGameText->fetch(side), def->getColor());
+		}
 		GadgetComboBoxSetItemData(comboArray[comboBox], newIndex, (void *)c);
 	}
 	seenSides.clear();
