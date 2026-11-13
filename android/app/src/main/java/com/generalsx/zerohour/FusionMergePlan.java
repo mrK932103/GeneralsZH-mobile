@@ -218,7 +218,7 @@ final class FusionMergePlan {
                 participants.add(new Participant(source, -1, -1));
             }
             items.add(new Item(entry.getKey(), Domain.ARCHIVE_FILE,
-                Resolution.FILE_CONTENT_VERIFICATION_REQUIRED, null, participants, null, null));
+                Resolution.FILE_CONTENT_VERIFICATION_REQUIRED, null, participants, null, null, null));
         }
 
         for (FusionPreflight.Issue issue : preflight.issues) {
