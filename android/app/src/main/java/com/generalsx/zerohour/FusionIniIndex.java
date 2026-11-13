@@ -29,7 +29,7 @@ final class FusionIniIndex {
     private static final Pattern DECLARATION = Pattern.compile(
         "^(Object|ChildObject|CommandSet|CommandButton|Weapon|Armor|Locomotor|FXList|"
         + "ParticleSystem|Upgrade|Science|SpecialPower|AudioEvent|CrateData|"
-        + "MappedImage|PlayerTemplate)\\s+([^\\s;]+)(?:\\s+([^\\s;]+))?\\s*$",
+        + "MappedImage|PlayerTemplate|ObjectCreationList|OCL)\\s+([^\\s;]+)(?:\\s+([^\\s;]+))?\\s*$",
         Pattern.CASE_INSENSITIVE);
 
     static final class Definition {
