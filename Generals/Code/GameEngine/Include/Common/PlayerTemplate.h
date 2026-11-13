@@ -78,6 +78,10 @@ public:
 
 	NameKeyType getNameKey() const { DEBUG_ASSERTCRASH(m_nameKey != NAMEKEY_INVALID, ("bad namekey")); return m_nameKey; }
 	AsciiString getName() const { return KEYNAME(m_nameKey); }
+	// Stable owner identity for source-isolated Fusion templates; empty for legacy loads.
+	void setFusionSourceId(AsciiString sourceId) { m_fusionSourceId = sourceId; }
+	AsciiString getFusionSourceId() const { return m_fusionSourceId; }
+
 
 	UnicodeString getDisplayName() const { return m_displayName; }
 
@@ -142,6 +146,8 @@ protected:
 private:
 
 	NameKeyType			m_nameKey;
+	AsciiString			m_fusionSourceId;			///< owning Fusion mod; empty for ordinary game templates
+
 	UnicodeString		m_displayName;
 	AsciiString			m_side, m_baseSide;
 	Handicap				m_handicap;						///< initial baseline for Player capabilities
@@ -201,6 +207,8 @@ public:
 
 	const PlayerTemplate* getNthPlayerTemplate(Int i) const;
 	const PlayerTemplate* findPlayerTemplate(NameKeyType namekey) const;
+	const PlayerTemplate* findPlayerTemplate(NameKeyType namekey, const AsciiString& sourceId) const;
+
 	Int getPlayerTemplateCount() const { return m_playerTemplates.size(); }
 
 
