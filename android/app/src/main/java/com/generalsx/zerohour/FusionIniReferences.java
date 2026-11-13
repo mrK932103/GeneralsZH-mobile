@@ -177,6 +177,12 @@ final class FusionIniReferences {
     private static String referenceKind(String field, String ownerKey, List<String> blockStack) {
         String key = field.toLowerCase(Locale.ROOT);
         String nestedBlock = blockStack.isEmpty() ? "" : blockStack.get(blockStack.size() - 1);
+        if (ownerKey != null && ownerKey.startsWith("playertemplate:")) {
+            if ("startingbuilding".equals(key) || key.matches("startingunit[0-9]+")
+                    || "startingunit".equals(key)) return "Object";
+            if ("intrinsicsciences".equals(key)) return "Science";
+            if ("purchasesciencecommandset".equals(key)) return "CommandSet";
+        }
         if (ownerKey != null && ownerKey.startsWith("fxlist:")) {
             if ("sound".equals(nestedBlock) && "name".equals(key)) return "AudioEvent";
             if ("particlesystem".equals(nestedBlock) && "name".equals(key)) return "ParticleSystem";
