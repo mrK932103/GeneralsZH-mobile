@@ -222,3 +222,10 @@ Implementation consequence: build a reusable parser/model/merge-rule registry an
 - Added per-class counts and bounded summaries for `IDENTICAL_EXACT`, `DIFFERENT_CONTENT`, and `UNSAFE_TO_COMPARE`. This gives the future report UI a stable data source without parsing diagnostic prose.
 - The archive builder still blocks every duplicate named definition. Exact byte identity is not yet sufficient to make a definition safe to deduplicate because the containing INI file may have unrelated unique definitions, ordering requirements, or global side effects.
 - Source-only change; not compiled, unit-tested, or device-tested.
+
+
+### Parser regression-test milestone (13 November 2026)
+
+- Added JUnit tests for exact CRLF block preservation and line locations, unknown bare syntax being marked unsafe, three-way exact duplicates, three-way divergent duplicates, and unsafe participants.
+- Added JUnit 4 as an Android app test dependency.
+- These tests are committed but not yet executed. They are not evidence of a successful Gradle build; the Android native toolchain and mod archives are not available in this editing session.
