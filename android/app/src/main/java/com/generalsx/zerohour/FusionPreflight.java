@@ -92,6 +92,62 @@ final class FusionPreflight {
             return count;
         }
 
+        /**
+         * Describe duplicate declarations with exact source locations for actionable conflict reports.
+         */
+        String duplicateDefinitionSummary(int limit) {
+            StringBuilder summary = new StringBuilder();
+            int shown = 0;
+            int remaining = 0;
+            for (Map.Entry<String, List<FusionIniIndex.Definition>> entry : definitions.entrySet()) {
+                List<FusionIniIndex.Definition> values = entry.getValue();
+                if (values.size() < 2) continue;
+                if (shown >= limit) {
+                    remaining++;
+                    continue;
+                }
+                if (summary.length() > 0) summary.append("\\n");
+                summary.append(entry.getKey()).append(": ");
+                for (int i = 0; i < values.size(); i++) {
+                    if (i > 0) summary.append("; ");
+                    FusionIniIndex.Definition item = values.get(i);
+                    summary.append(item.source).append(":").append(item.line);
+                    if (item.parent != null && !item.parent.isEmpty()) {
+                        summary.append(" (parent ").append(item.parent).append(")");
+                    }
+                }
+                shown++;
+            }
+            if (remaining > 0) {
+                summary.append("\\n... and ").append(remaining)
+                    .append(" more duplicate definition key(s)");
+            }
+            return summary.toString();
+        }
+
+        /** Describe duplicate virtual paths, retaining every archive source. */
+        String duplicatePathSummary(int limit) {
+            StringBuilder summary = new StringBuilder();
+            int shown = 0;
+            int remaining = 0;
+            for (Map.Entry<String, List<String>> entry : pathSources.entrySet()) {
+                if (entry.getValue().size() < 2) continue;
+                if (shown >= limit) {
+                    remaining++;
+                    continue;
+                }
+                if (summary.length() > 0) summary.append("\\n");
+                summary.append(entry.getKey()).append(": ")
+                    .append(String.join("; ", entry.getValue()));
+                shown++;
+            }
+            if (remaining > 0) {
+                summary.append("\\n... and ").append(remaining)
+                    .append(" more duplicate path(s)");
+            }
+            return summary.toString();
+        }
+
         boolean canBuildArchiveOverlay() {
             for (Issue issue : issues) {
                 if (issue.blocking) return false;
