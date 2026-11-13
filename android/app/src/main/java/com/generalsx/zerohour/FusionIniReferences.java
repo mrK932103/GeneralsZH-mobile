@@ -151,8 +151,8 @@ final class FusionIniReferences {
     }
 
     private static String tokensFirst(String line) {
-        int end = line.indexOf(' ');
-        return end < 0 ? line : line.substring(0, end);
+        String[] tokens = line.split("\\s+");
+        return tokens.length == 0 ? "" : tokens[0];
     }
 
     private static boolean opensBareBlock(String line) {
@@ -178,6 +178,8 @@ final class FusionIniReferences {
         if (ownerKey != null && ownerKey.startsWith("fxlist:")) {
             if ("sound".equals(nestedBlock) && "name".equals(key)) return "AudioEvent";
             if ("particlesystem".equals(nestedBlock) && "name".equals(key)) return "ParticleSystem";
+            if ("rayeffect".equals(nestedBlock) && "name".equals(key)) return "Object";
+            if ("tracer".equals(nestedBlock) && "tracername".equals(key)) return "Object";
         }
         // ObjectCreationList nuggets retain these names and resolve them later during
         // gameplay. Their meaning is specific to OCL blocks, so don't classify generic
