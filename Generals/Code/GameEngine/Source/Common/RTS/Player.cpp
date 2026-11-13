@@ -3840,6 +3840,14 @@ Bool Player::isPlayableSide() const
 // ------------------------------------------------------------------------------------------------
 void Player::crc( Xfer *xfer )
 {
+	// Distinguish same-named factions selected from different Fusion sources.
+	// Keep the legacy CRC stream unchanged for ordinary untagged PlayerTemplates.
+	if (m_playerTemplate && m_playerTemplate->getFusionSourceId().isNotEmpty())
+	{
+		AsciiString fusionSourceId = m_playerTemplate->getFusionSourceId();
+		xfer->xferAsciiString(&fusionSourceId);
+	}
+
 	// Player battle plan bonuses
 	Bool battlePlanBonus = m_battlePlanBonuses != nullptr;
 	xfer->xferBool( &battlePlanBonus );
