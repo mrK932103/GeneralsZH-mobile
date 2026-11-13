@@ -1855,7 +1855,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 			else
 			{
 				const PlayerTemplate* pt = nullptr;
-				pt = ThePlayerTemplateStore->getNthPlayerTemplate(slot->getPlayerTemplate());
+				pt = ThePlayerTemplateStore->getNthSelectablePlayerTemplate(slot->getPlayerTemplate());
 
 				placeNetworkBuildingsForPlayer(i, slot, player, pt);
 			}
