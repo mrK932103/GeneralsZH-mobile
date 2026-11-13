@@ -403,9 +403,8 @@ protected:
 	unsigned m_readBufferNext;                ///< next char in read buffer
 	unsigned m_readBufferUsed;                ///< number of bytes in read buffer
 
-	AsciiString m_filename;
+	AsciiString m_filename;										///< filename of file currently loading
 	AsciiString m_sourceId;									///< selected Fusion mod identity, empty for legacy loads
-										///< filename of file currently loading
 	INILoadType m_loadType;										///< load type for current file
 	UnsignedInt m_lineNum;										///< current line number that's been read
 	char m_buffer[ INI_MAX_CHARS_PER_LINE+1 ];///< buffer to read file contents into
