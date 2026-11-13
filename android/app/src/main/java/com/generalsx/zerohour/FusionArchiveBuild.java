@@ -16,10 +16,11 @@ import java.io.RandomAccessFile;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Strict orchestration for the first safe Fusion archive build milestone.
@@ -63,10 +64,6 @@ final class FusionArchiveBuild {
         for (FusionPreflight.Issue issue : preflight.issues) {
             if (issue.blocking) throw new IOException(issue.message);
         }
-        if (preflight.duplicatePathCount() != 0) {
-            // Repeated asset paths are safe only when their bytes are exactly identical.
-            // Different contents still require an explicit semantic/load-order decision.
-        }
         if (preflight.duplicateDefinitionCount() != 0) {
             throw new IOException("Fusion build blocked: duplicate named INI definitions require semantic conflict resolution.");
         }
@@ -78,6 +75,18 @@ final class FusionArchiveBuild {
             File root = mod.dir.getCanonicalFile();
             if (isWithin(output, root)) {
                 throw new IOException("Fusion output must be outside every selected source mod folder.");
+            }
+        }
+
+        Set<String> selectedRoots = new HashSet<>();
+        for (ModManager.Mod mod : selectedMods) {
+            if (mod == null || mod.dir == null || !mod.dir.isDirectory()
+                    || java.nio.file.Files.isSymbolicLink(mod.dir.toPath())) {
+                throw new IOException("A selected mod folder is missing or unsafe.");
+            }
+            String root = mod.dir.getCanonicalPath();
+            if (!selectedRoots.add(root)) {
+                throw new IOException("The same mod folder was selected more than once: " + mod.name);
             }
         }
 
@@ -155,6 +164,8 @@ final class FusionArchiveBuild {
                 || java.nio.file.Files.isSymbolicLink(directory.toPath())) return;
         File[] children = directory.listFiles();
         if (children == null) return;
+        java.util.Arrays.sort(children, java.util.Comparator.comparing(
+            file -> file.getName().toLowerCase(java.util.Locale.ROOT)));
         for (File child : children) {
             if (java.nio.file.Files.isSymbolicLink(child.toPath())) continue;
             if (child.isDirectory()) collectArchives(child, output, depth + 1);
