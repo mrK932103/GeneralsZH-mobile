@@ -743,8 +743,18 @@ void Player::deletePlayerAI()
 //
 void Player::initFromDict(const Dict* d)
 {
+	initFromDict(d, AsciiString::TheEmptyString);
+}
+
+//=============================================================================
+// Fusion entry point. The source ID is supplied by the Skirmish slot/launcher;
+// an empty ID preserves the exact legacy faction lookup behavior.
+void Player::initFromDict(const Dict* d, const AsciiString& fusionSourceId)
+{
 	AsciiString tmplname = d->getAsciiString(TheKey_playerFaction);
-	const PlayerTemplate* pt = ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(tmplname));
+	const PlayerTemplate* pt = fusionSourceId.isNotEmpty()
+		? ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(tmplname), fusionSourceId)
+		: ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(tmplname));
 	DEBUG_ASSERTCRASH(pt != nullptr, ("PlayerTemplate %s not found -- this is an obsolete map (please open and resave in WB)",tmplname.str()));
 
 	init(pt);
