@@ -202,4 +202,33 @@ public class FusionNamespacePlanTest {
                 "Object", "FusionProjectile"),
             plan.references.get(1).runtimeName);
     }
+
+    @Test
+    public void objectCreationListsExposeNestedRuntimeDependencies() {
+        String source = "Hypersonic/Gameplay.big!Data/INI/ObjectCreationList.ini";
+        String ini = "ObjectCreationList CREATE_FUSION_PAYLOAD\n"
+            + "  Transport = FusionTransport\n"
+            + "  PutInContainer = FusionContainer\n"
+            + "  Payload = FusionPayload 3\n"
+            + "  ObjectNames = FusionDebrisA FusionDebrisB\n"
+            + "  ParticleSystem = FusionDebrisSmoke\n"
+            + "  FadeSound = FusionFadeSound\n"
+            + "End\n";
+        List<FusionIniReferences.Reference> references = FusionIniReferences.scan(
+            ini.getBytes(java.nio.charset.Charset.forName("ISO-8859-1")), source);
+
+        assertEquals(7, references.size());
+        assertEquals("Object", references.get(0).kind);
+        assertEquals("FusionTransport", references.get(0).name);
+        assertEquals("Object", references.get(1).kind);
+        assertEquals("FusionContainer", references.get(1).name);
+        assertEquals("Object", references.get(2).kind);
+        assertEquals("FusionPayload", references.get(2).name);
+        assertEquals("Object", references.get(3).kind);
+        assertEquals("FusionDebrisA", references.get(3).name);
+        assertEquals("Object", references.get(4).kind);
+        assertEquals("FusionDebrisB", references.get(4).name);
+        assertEquals("ParticleSystem", references.get(5).kind);
+        assertEquals("AudioEvent", references.get(6).kind);
+    }
 }
