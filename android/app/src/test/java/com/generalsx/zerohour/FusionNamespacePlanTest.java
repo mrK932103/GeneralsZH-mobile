@@ -124,4 +124,37 @@ public class FusionNamespacePlanTest {
             plan.references.get(0).runtimeName);
     }
 
+
+    @Test
+    public void weaponDelayedReferencesAreIncludedInSourceNamespacePlan() {
+        String source = "Hypersonic/Weapons.big!Data/INI/Weapon.ini";
+        String ini = "Weapon FusionWeapon\n"
+            + "  ProjectileObject = FusionProjectile\n"
+            + "  ProjectileStreamName = FusionProjectileStream\n"
+            + "  FireOCL = CREATE_FUSION_MUZZLE\n"
+            + "  ProjectileDetonationOCL = CREATE_FUSION_BLAST\n"
+            + "  ProjectileExhaust = FusionExhaust\n"
+            + "  ProjectileDetonationFX = FusionDetonationFX\n"
+            + "  HistoricBonusWeapon = FusionBonusWeapon\n"
+            + "End\n";
+        List<FusionIniReferences.Reference> references = FusionIniReferences.scan(
+            ini.getBytes(java.nio.charset.Charset.forName("ISO-8859-1")), source);
+
+        assertEquals(7, references.size());
+        List<FusionIniIndex.Definition> definitions = Arrays.asList(
+            new FusionIniIndex.Definition("Object", "FusionProjectile", null, source, 20),
+            new FusionIniIndex.Definition("Object", "FusionProjectileStream", null, source, 21),
+            new FusionIniIndex.Definition("ObjectCreationList", "CREATE_FUSION_MUZZLE", null, source, 22),
+            new FusionIniIndex.Definition("ObjectCreationList", "CREATE_FUSION_BLAST", null, source, 23),
+            new FusionIniIndex.Definition("ParticleSystem", "FusionExhaust", null, source, 24),
+            new FusionIniIndex.Definition("FXList", "FusionDetonationFX", null, source, 25),
+            new FusionIniIndex.Definition("Weapon", "FusionBonusWeapon", null, source, 26));
+
+        FusionNamespacePlan.Result plan = FusionNamespacePlan.build(definitions, references);
+        assertTrue(plan.unresolved.toString(), plan.isComplete());
+        for (FusionIniReferences.Reference reference : references) {
+            assertEquals(plan.runtimeName(source, reference.kind, reference.name),
+                plan.references.get(references.indexOf(reference)).runtimeName);
+        }
+    }
 }
