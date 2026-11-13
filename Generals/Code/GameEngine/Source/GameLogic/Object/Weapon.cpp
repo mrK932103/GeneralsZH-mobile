@@ -1509,6 +1509,29 @@ const WeaponTemplate *WeaponStore::findWeaponTemplate( const char* name ) const
 }
 
 //-------------------------------------------------------------------------------------------------
+// Source-qualified lookup scans the owning templates rather than the legacy global NameKey map.
+const WeaponTemplate *WeaponStore::findWeaponTemplate( const AsciiString& name, const AsciiString& sourceId ) const
+{
+	if (sourceId.isEmpty())
+		return findWeaponTemplate(name);
+
+	if (name.compareNoCase("None") == 0)
+		return nullptr;
+
+	const NameKeyType key = TheNameKeyGenerator->nameToKey(name);
+	for (std::vector<WeaponTemplate*>::const_iterator it = m_weaponTemplateVector.begin();
+		it != m_weaponTemplateVector.end(); ++it)
+	{
+		const WeaponTemplate *weapon = *it;
+		if (weapon->getNameKey() == key &&
+			weapon->getFusionSourceId().compareNoCase(sourceId) == 0)
+			return weapon;
+	}
+	return nullptr;
+}
+
+//-------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 WeaponTemplate *WeaponStore::findWeaponTemplatePrivate( NameKeyType key ) const
 {
 	// search weapon list for name
@@ -1521,7 +1544,7 @@ WeaponTemplate *WeaponStore::findWeaponTemplatePrivate( NameKeyType key ) const
 }
 
 //-------------------------------------------------------------------------------------------------
-WeaponTemplate *WeaponStore::newWeaponTemplate(AsciiString name)
+WeaponTemplate *WeaponStore::newWeaponTemplate(AsciiString name, const AsciiString& sourceId)
 {
 
 	// sanity
@@ -1532,8 +1555,12 @@ WeaponTemplate *WeaponStore::newWeaponTemplate(AsciiString name)
 	WeaponTemplate *wt = newInstance(WeaponTemplate);
 	wt->m_name = name;
 	wt->m_nameKey = TheNameKeyGenerator->nameToKey( name );
+	wt->setFusionSourceId(sourceId);
 	m_weaponTemplateVector.push_back(wt);
-	m_weaponTemplateHashMap[wt->m_nameKey] = wt;
+	// Keep the legacy global lookup map unchanged for Fusion-owned definitions.
+	// Source-aware callers use the overload above and scan the template vector.
+	if (sourceId.isEmpty())
+		m_weaponTemplateHashMap[wt->m_nameKey] = wt;
 
 	return wt;
 }
@@ -1650,7 +1677,10 @@ void WeaponStore::postProcessLoad()
 	name.set(c);
 
 	// find existing item if present
-	WeaponTemplate *weapon = TheWeaponStore->findWeaponTemplatePrivate( TheNameKeyGenerator->nameToKey( name ) );
+	const AsciiString sourceId = ini->getSourceId();
+	WeaponTemplate *weapon = const_cast<WeaponTemplate*>(sourceId.isNotEmpty()
+		? TheWeaponStore->findWeaponTemplate(name, sourceId)
+		: TheWeaponStore->findWeaponTemplatePrivate(TheNameKeyGenerator->nameToKey(name)));
 	if (weapon)
 	{
 		if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES)
@@ -1665,7 +1695,7 @@ void WeaponStore::postProcessLoad()
 	else
 	{
 		// no item is present, create a new one
-		weapon = TheWeaponStore->newWeaponTemplate(name);
+		weapon = TheWeaponStore->newWeaponTemplate(name, sourceId);
 	}
 
 	// parse the ini weapon definition
