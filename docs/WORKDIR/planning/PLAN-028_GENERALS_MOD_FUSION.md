@@ -98,3 +98,8 @@ Complete a source-of-truth audit of the managed-mod engine mount path and the la
 - Added `FusionArchiveBuild.java` as a strict orchestration layer. It reruns preflight, blocks duplicate virtual paths and duplicate named INI definitions, prevents output inside source mod folders, and combines only non-overlapping entries. It does not yet merge same-path INI files, resolve faction/UI conflicts, include loose files, or integrate with the launcher.
 - Hardened `FusionBigArchiveWriter.java`: unique temporary output file, preservation/rollback of an existing destination, source archive size re-check while copying, and verification of output offsets as well as paths and sizes.
 - Hardened `FusionPreflight.java` to detect loose files under the game's `Data`, `Art`, `Window`, `Maps`, `Shaders`, `Movies`, `Audio`, and `Fonts` layout roots and block the build. This prevents a BIGF-only output from silently dropping mod content; loose-file packing is still not implemented. The existing engine managed-mod list still mounts separate mod folders in priority order; Fusion output must be a single generated package and must not be represented as an ordinary multi-mod overlay. No APK build or device test has been run.
+
+
+### Writer safety follow-up
+
+- `FusionBigArchiveWriter` now resolves the output path canonically, refuses an existing directory or symbolic-link target, pads short temporary-file prefixes, and consistently publishes/restores via the canonical destination. This is still an archive-level safety primitive, not semantic mod fusion.
