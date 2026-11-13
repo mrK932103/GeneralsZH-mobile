@@ -11,6 +11,7 @@
 package com.generalsx.zerohour;
 
 import android.app.Activity;
+import java.io.File;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
@@ -134,8 +135,8 @@ public final class FusionActivity extends Activity {
                 out.append("\nПЛАН ОБЪЕДИНЕНИЯ\n");
                 out.append(plan.summary(35)).append("\n");
                 out.append("\n");
-                out.append("Создание игрового Fusion-пакета: ПОКА НЕДОСТУПНО.\n");
-                out.append("Эта проверка ничего не изменяет в исходных модах и не создаёт архив, который можно запускать в игре.");
+                out.append("Безопасная сборка BIG-пакета: ").append(canBuild ? "ДОСТУПНА ПОСЛЕ ПРОВЕРКИ" : "ЗАБЛОКИРОВАНА").append("\\n");
+                out.append("Полноценное объединение фракций и семантическое слияние INI пока не реализованы. Проверка сама по себе не меняет исходные моды.");
                 output = out.toString();
             } catch (Throwable error) {
                 output = "Ошибка анализа: " + error.getClass().getSimpleName()
