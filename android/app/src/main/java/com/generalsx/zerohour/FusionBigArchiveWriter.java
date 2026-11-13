@@ -122,8 +122,8 @@ final class FusionBigArchiveWriter {
         totalSize = offset;
 
         File canonicalDestination = destination.getCanonicalFile();
-        if (canonicalDestination.exists() && (!destination.isFile()
-                || java.nio.file.Files.isSymbolicLink(canonicalDestination.toPath()))) {
+        if (destination.exists() && (!destination.isFile()
+                || java.nio.file.Files.isSymbolicLink(destination.toPath()))) {
             throw new IOException("Fusion output must be a regular file, not a directory or symbolic link");
         }
         File parent = canonicalDestination.getParentFile();
