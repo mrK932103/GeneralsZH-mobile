@@ -30,10 +30,20 @@ final class FusionIniReferences {
         + "MappedImage|PlayerTemplate|ObjectCreationList|OCL)\\s+([^\\s;]+)(?:\\s+([^\\s;]+))?\\s*$",
         Pattern.CASE_INSENSITIVE);
 
-    // These assignments introduce nested End-terminated blocks in common ZH INI domains.
+    // Assignment forms that introduce nested End-terminated blocks.
     private static final String[] BLOCK_FIELDS = {
         "behavior", "draw", "body", "clientupdate", "geometry",
         "conditionstate", "transitionstate"
+    };
+
+    // Common bare block headers used inside Draw and other INI modules.
+    // Keep this list explicit: treating every unknown bare line as a block opener
+    // would misread legacy properties that use whitespace instead of '='.
+    private static final String[] BARE_BLOCKS = {
+        "defaultconditionstate", "modelconditionstate", "transitionstate",
+        "conditionstate", "idleState", "movingstate", "weaponset",
+        "weaponSlot", "turret", "barrel", "passenger", "dock",
+        "animationstate", "attackstate", "deathstate"
     };
 
     static final class Reference {
@@ -91,7 +101,10 @@ final class FusionIniReferences {
             }
 
             Matcher field = FIELD.matcher(clean);
-            if (!field.matches()) continue;
+            if (!field.matches()) {
+                if (opensBareBlock(clean)) blockDepth++;
+                continue;
+            }
 
             String fieldName = field.group(1);
             String kind = referenceKind(fieldName);
@@ -111,6 +124,15 @@ final class FusionIniReferences {
             if (opensNestedBlock(fieldName, field.group(2))) blockDepth++;
         }
         return result;
+    }
+
+    private static boolean opensBareBlock(String line) {
+        String[] tokens = line.split("\\s+");
+        if (tokens.length == 0 || tokens.length > 3) return false;
+        for (String candidate : BARE_BLOCKS) {
+            if (candidate.equalsIgnoreCase(tokens[0])) return true;
+        }
+        return false;
     }
 
     private static boolean opensNestedBlock(String field, String value) {
