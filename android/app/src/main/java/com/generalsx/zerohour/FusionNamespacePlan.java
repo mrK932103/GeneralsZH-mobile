@@ -46,7 +46,7 @@ final class FusionNamespacePlan {
         }
 
         String sourceKey() {
-            return sourceId(source) + "::" + normalize(type) + ":" + normalize(originalName);
+            return sourceId(source) + "::" + normalizeType(type) + ":" + normalize(originalName);
         }
     }
 
@@ -87,7 +87,7 @@ final class FusionNamespacePlan {
         }
 
         String runtimeName(String source, String type, String originalName) {
-            return sourceNames.get(sourceId(source) + "::" + normalize(type) + ":"
+            return sourceNames.get(sourceId(source) + "::" + normalizeType(type) + ":"
                 + normalize(originalName));
         }
     }
@@ -127,7 +127,7 @@ final class FusionNamespacePlan {
         Map<String, List<FusionIniIndex.Definition>> byTypedName = new LinkedHashMap<>();
         Map<String, FusionIniIndex.Definition> bySourceKey = new LinkedHashMap<>();
         for (FusionIniIndex.Definition def : ordered) {
-            String typed = normalize(def.type) + ":" + normalize(def.name);
+            String typed = normalizeType(def.type) + ":" + normalize(def.name);
             List<FusionIniIndex.Definition> candidates = byTypedName.get(typed);
             if (candidates == null) {
                 candidates = new ArrayList<>();
@@ -135,10 +135,11 @@ final class FusionNamespacePlan {
             }
             candidates.add(def);
             String sourceKey = sourceId(def.source) + "::" + typed;
-            FusionIniIndex.Definition previous = bySourceKey.put(sourceKey, def);
-            if (previous != null) {
-                // Duplicate declarations within one source are not silently disambiguated.
+            if (bySourceKey.containsKey(sourceKey)) {
+                // Keep the key invalid even when a third or later duplicate is encountered.
                 bySourceKey.put(sourceKey, null);
+            } else {
+                bySourceKey.put(sourceKey, def);
             }
         }
 
@@ -148,13 +149,13 @@ final class FusionNamespacePlan {
         Set<String> allocated = new LinkedHashSet<>();
         for (FusionIniIndex.Definition def : ordered) {
             String source = sourceId(def.source);
-            String sourceKey = source + "::" + normalize(def.type) + ":" + normalize(def.name);
+            String sourceKey = source + "::" + normalizeType(def.type) + ":" + normalize(def.name);
             if (bySourceKey.get(sourceKey) == null) {
                 unresolved.add("Duplicate declaration in source: " + sourceKey);
                 continue;
             }
             String runtime = makeRuntimeName(source, def.type, def.name);
-            String unique = normalize(def.type) + ":" + normalize(runtime);
+            String unique = normalizeType(def.type) + ":" + normalize(runtime);
             if (!allocated.add(unique)) {
                 unresolved.add("Generated runtime-name collision: " + runtime);
                 continue;
@@ -167,7 +168,7 @@ final class FusionNamespacePlan {
         if (references != null) {
             for (FusionIniReferences.Reference ref : references) {
                 String source = sourceId(ref.source);
-                String typed = normalize(ref.kind) + ":" + normalize(ref.name);
+                String typed = normalizeType(ref.kind) + ":" + normalize(ref.name);
                 String localKey = source + "::" + typed;
                 String target = names.get(localKey);
                 if (target == null) {
@@ -233,6 +234,13 @@ final class FusionNamespacePlan {
         int archiveSeparator = value.lastIndexOf('/');
         if (archiveSeparator > 0) value = value.substring(0, archiveSeparator);
         return value.toLowerCase(Locale.ROOT);
+    }
+
+    private static String normalizeType(String value) {
+        String type = normalize(value);
+        if ("childobject".equals(type)) return "object";
+        if ("ocl".equals(type)) return "objectcreationlist";
+        return type;
     }
 
     private static String normalize(String value) {
