@@ -179,6 +179,10 @@ public:
 	// Load one specific INI file by name.
 	// Throws if the INI file is not found or is not read correctly.
 	UnsignedInt load( AsciiString filename, INILoadType loadType, Xfer *pXfer );
+	// Fusion-only entry point: the caller supplies the stable selected-mod identity.
+	// Legacy load()/loadFileDirectory() keep an empty source identity and retain old behavior.
+	UnsignedInt loadFromFusionSource( AsciiString filename, INILoadType loadType, Xfer *pXfer, AsciiString sourceId );
+
 
 	static Bool isDeclarationOfType( AsciiString blockType, AsciiString blockName, char *bufferToCheck );
 	static Bool isEndOfBlock( char *bufferToCheck );
@@ -247,6 +251,8 @@ public:
 	static void parseChallengeModeDefinition( INI* ini );
 
 	AsciiString getFilename() const { return m_filename; }
+	AsciiString getSourceId() const { return m_sourceId; }
+
 	INILoadType getLoadType() const { return m_loadType; }
 	UnsignedInt getLineNum() const { return m_lineNum; }
 	Bool isEOF() const { return m_endOfFile; }
@@ -397,7 +403,9 @@ protected:
 	unsigned m_readBufferNext;                ///< next char in read buffer
 	unsigned m_readBufferUsed;                ///< number of bytes in read buffer
 
-	AsciiString m_filename;										///< filename of file currently loading
+	AsciiString m_filename;
+	AsciiString m_sourceId;									///< selected Fusion mod identity, empty for legacy loads
+										///< filename of file currently loading
 	INILoadType m_loadType;										///< load type for current file
 	UnsignedInt m_lineNum;										///< current line number that's been read
 	char m_buffer[ INI_MAX_CHARS_PER_LINE+1 ];///< buffer to read file contents into
