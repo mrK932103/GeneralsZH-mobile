@@ -115,7 +115,9 @@ final class FusionArchiveBuild {
                         }
                         if (!MessageDigest.isEqual(previous, digest)) {
                             throw new IOException("Fusion build blocked: conflicting file contents for "
-                                + entry.path + ". Explicit file-level merge is required.");
+                                + entry.path + ". Sources: "
+                                + preflight.pathSourceSummary(key)
+                                + ". Explicit file-level merge is required.");
                         }
                     }
                 }
