@@ -157,4 +157,35 @@ public class FusionNamespacePlanTest {
                 plan.references.get(references.indexOf(reference)).runtimeName);
         }
     }
+
+    @Test
+    public void delayedWeaponDependenciesStayWithTheirOwningModWhenNamesCollide() {
+        String hypersonic = "Hypersonic/Weapons.big!Data/INI/Weapon.ini";
+        String teod = "TEOD/Weapons.big!Data/INI/Weapon.ini";
+        String weaponIni = "Weapon FusionWeapon\n  ProjectileObject = FusionProjectile\nEnd\n";
+        List<FusionIniReferences.Reference> references = new java.util.ArrayList<>();
+        references.addAll(FusionIniReferences.scan(
+            weaponIni.getBytes(java.nio.charset.Charset.forName("ISO-8859-1")), hypersonic));
+        references.addAll(FusionIniReferences.scan(
+            weaponIni.getBytes(java.nio.charset.Charset.forName("ISO-8859-1")), teod));
+        List<FusionIniIndex.Definition> definitions = Arrays.asList(
+            new FusionIniIndex.Definition("Object", "FusionProjectile", null,
+                "Hypersonic/Objects.big!Data/INI/Projectile.ini", 10),
+            new FusionIniIndex.Definition("Object", "FusionProjectile", null,
+                "TEOD/Objects.big!Data/INI/Projectile.ini", 10));
+
+        FusionNamespacePlan.Result plan = FusionNamespacePlan.build(definitions, references);
+        assertTrue(plan.unresolved.toString(), plan.isComplete());
+        assertNotEquals(
+            plan.references.get(0).runtimeName,
+            plan.references.get(1).runtimeName);
+        assertEquals(
+            plan.runtimeName("Hypersonic/Objects.big!Data/INI/Projectile.ini",
+                "Object", "FusionProjectile"),
+            plan.references.get(0).runtimeName);
+        assertEquals(
+            plan.runtimeName("TEOD/Objects.big!Data/INI/Projectile.ini",
+                "Object", "FusionProjectile"),
+            plan.references.get(1).runtimeName);
+    }
 }
