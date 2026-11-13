@@ -85,7 +85,7 @@ public final class FusionActivity extends Activity {
         root.addView(analyze);
 
         build = new Button(this);
-        build.setText("Создать архив-перекрытие (не объединение фракций)");
+        build.setText("Сборка изолированных фракций ещё в разработке");
         build.setAllCaps(false);
         build.setEnabled(false);
         build.setOnClickListener(v -> buildPackage());
@@ -157,7 +157,7 @@ public final class FusionActivity extends Activity {
                 if (isFinishing() || isDestroyed()) return;
                 report.setText(finalOutput);
                 selectedForBuild = new ArrayList<>(selected);
-                build.setEnabled(buildAllowed);
+                build.setEnabled(false);
                 running = false;
                 analyze.setEnabled(true);
             });
