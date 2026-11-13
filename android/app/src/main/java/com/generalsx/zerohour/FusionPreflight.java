@@ -131,6 +131,10 @@ final class FusionPreflight {
                 issues.add(new Issue(true, "A selected mod folder is missing or unsafe."));
                 continue;
             }
+            if (hasLooseGameFiles(mod.dir, 0)) {
+                issues.add(new Issue(true, "Loose game files are present in " + mod.name
+                    + "; Fusion currently accepts BIGF archives only and will not omit loose assets."));
+            }
             List<File> files = new ArrayList<>();
             collectArchives(mod.dir, files, 0);
             if (files.isEmpty()) {
@@ -206,6 +210,41 @@ final class FusionPreflight {
                 + " typed reference(s) are not defined in the selected mods; they may be supplied by the base game or other INI files."));
         }
         return new Result(archives, entries, sources, definitions, references, outside, issues);
+    }
+
+
+    /** Detect loose game-layout files not represented by the BIGF-only inventory. */
+    private static boolean hasLooseGameFiles(File directory, int depth) {
+        if (directory == null || depth > 8 || !directory.isDirectory()
+                || Files.isSymbolicLink(directory.toPath())) return false;
+        File[] children = directory.listFiles();
+        if (children == null) return false;
+        for (File child : children) {
+            if (Files.isSymbolicLink(child.toPath())) continue;
+            if (child.isDirectory()) {
+                if (ModImportService.GAME_FOLDERS.contains(child.getName().toLowerCase(Locale.ROOT))
+                        && containsLooseFile(child, 0)) return true;
+                if (hasLooseGameFiles(child, depth + 1)) return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsLooseFile(File directory, int depth) {
+        if (depth > 24 || Files.isSymbolicLink(directory.toPath())) return false;
+        File[] children = directory.listFiles();
+        if (children == null) return false;
+        for (File child : children) {
+            if (Files.isSymbolicLink(child.toPath())) continue;
+            if (child.isDirectory()) {
+                if (containsLooseFile(child, depth + 1)) return true;
+            } else if (child.isFile()
+                    && !child.getName().toLowerCase(Locale.ROOT).endsWith(".big")
+                    && !child.getName().toLowerCase(Locale.ROOT).endsWith(".gib")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void collectArchives(File directory, List<File> output, int depth) {
