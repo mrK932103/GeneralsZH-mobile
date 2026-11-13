@@ -406,3 +406,33 @@ Still unresolved: the selected source-qualified template's *dependent gameplay d
 - The contrast is important: `ThingFactory::parseObjectDefinition()` still calls the global name-only `findTemplateInternal(name)`, and `ThingTemplate::resolveNames()` later resolves prerequisite names without an explicit source parameter. Thus source context reaches the INI parser but is not consistently carried into object definitions and delayed object-reference resolution.
 - Follow-up audit must compare every INI field parser and registry lookup against the weapon-template pattern, including Armor, Locomotor, FX/OCL, CommandSet/CommandButton, Upgrade, Science, SpecialPower, AudioEvent, ParticleSystem, and object references. Any registry that lacks source-qualified lookup remains a potential cross-mod collision.
 - No runtime code was changed in this audit. This is an architecture inventory update only; it does not mean the listed registries are source-isolated.
+
+
+
+### Native registry collision matrix — typed stores (14 November 2026)
+
+The following source inspection was performed against the current Generals native engine branch. This matrix distinguishes a source-aware INI field parser from a genuinely source-isolated runtime store.
+
+| Registry / path | Current behavior observed | Fusion consequence |
+|---|---|---|
+| WeaponTemplate definition lookup | Has `m_fusionSourceId` and a source-qualified `findWeaponTemplate(name, sourceId)`; INI typed weapon-reference parsing uses it. | Partial support only. |
+| WeaponTemplate delayed references | `WeaponTemplate::postProcessLoad()` resolves projectile names with global `ThingFactory::findTemplate(name)`, and fire/detonation OCL names with global `findObjectCreationList(name)`. | A weapon can still bind to another source's projectile or OCL even when its weapon-template pointer was source-qualified. |
+| Armor | `ArmorStore` is keyed only by `NameKeyType`; parsing writes directly to `m_armorTemplates[key]`. No source-qualified key or lookup was found in the inspected declarations/implementation. | Same-name armor definitions collide globally. |
+| Locomotor | `LocomotorStore` is keyed by `NameKeyType`; parser resolves existing definitions by name key and builds global override chains. Runtime creation and Xfer restore resolve by name key. | Same-name definitions/overrides are shared globally; save/transfer path also has no source token. |
+| Upgrade | `UpgradeCenter` searches a single linked list by name key; parser reuses the first matching entry. | Duplicate names are merged/reused rather than represented as independent source-owned upgrades. |
+| Science | `ScienceStore` uses a single vector keyed by `ScienceType` derived from global NameKey; parsing finds existing science by that value and override handling is global. | Same-name science identities and prerequisites cannot currently be independent across mods. |
+| SpecialPower | `SpecialPowerStore` searches one global vector by name; definition IDs are allocated from one global counter and overrides chain globally. | Same-name powers collide and their runtime IDs are not source-qualified. |
+
+#### Required implementation order
+
+1. Establish one shared source identity contract for definitions and explicit base/shared-source fallback. Keep empty source IDs on the legacy path.
+2. Convert one registry at a time to source-qualified storage and lookup, preserving the original legacy overloads. Add tests for same-name definitions in two sources, same-source override behavior, base fallback, and missing-source failure.
+3. Update every INI field parser and every delayed/post-load/runtime lookup to use the owning definition's source identity. The WeaponTemplate audit proves why changing only the initial parser is insufficient: its later projectile/OCL resolution is still global.
+4. Update serialization/Xfer for any source-owned object whose templates are reconstructed by name (LocomotorSet is a confirmed example). Define backward compatibility for old saves/network peers before changing wire formats.
+5. Run native compilation and targeted tests after each vertical slice; only then connect the registry to faction dependency closure and Fusion preflight.
+
+#### Scope and safety
+
+- The table is a source audit, not a claim that all call sites in the entire codebase have been exhausted.
+- No registry code was modified in this step. A blind `sourceId` field addition would not fix parser reuse, override chains, delayed resolution, or name-only Xfer restoration.
+- The first safe code slice should be a source-aware store with explicit source-qualified parser and lookup APIs plus tests, then its references should be migrated together. Do not enable mixed-mod Skirmish for a registry until all of its lookup paths are source-aware.
