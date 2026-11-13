@@ -32,8 +32,8 @@ final class FusionIniReferences {
 
     // These assignments introduce nested End-terminated blocks in common ZH INI domains.
     private static final String[] BLOCK_FIELDS = {
-        "behavior", "draw", "body", "clientupdate", "geometry", "module",
-        "module_tag", "conditionstate", "transitionstate", " locomotor"
+        "behavior", "draw", "body", "clientupdate", "geometry",
+        "conditionstate", "transitionstate"
     };
 
     static final class Reference {
@@ -118,8 +118,7 @@ final class FusionIniReferences {
         for (String candidate : BLOCK_FIELDS) {
             if (candidate.trim().equals(key)) return true;
         }
-        // ModuleTag is often written as a field name; also accept namespaced module fields.
-        return key.startsWith("module_") && !value.trim().isEmpty();
+        return false;
     }
 
     private static String referenceKind(String field) {
