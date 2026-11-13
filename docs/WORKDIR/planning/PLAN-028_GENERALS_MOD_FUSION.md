@@ -25,6 +25,15 @@ The feature is not the same as enabling several managed mods. The current manage
 - Do not enable a Fusion set automatically after a failed build or failed game start.
 - Do not alter `main`; all work stays on `claude/generals-mod-fusion`.
 
+## Implementation status
+
+### Completed — first archive-inventory layer
+
+- Added `FusionBigArchive.java`: read-only BIGF parser with header/table bounds checks, entry-count and path-length limits, archive-size validation, and rejection of absolute/traversal paths. BIG4 is deliberately rejected until its layout is verified.
+- Added `FusionPreflight.java`: inventories BIGF archives from selected managed-mod folders, records normalized virtual paths and their source archives, and reports invalid archives and duplicate paths. It does not modify source files.
+- Added this plan and the November 2026 development diary entry.
+- These classes are not yet connected to the launcher UI or the game launch path. No claim is made that Fusion currently builds a playable merged mod.
+
 ## Planned architecture
 
 ### Phase 1 — inventory and deterministic preflight
