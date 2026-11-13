@@ -58,58 +58,87 @@ final class FusionIniStructure {
         }
     }
 
+    private static final class Scope {
+        final String name;
+        final int line;
+        final boolean declaration;
+
+        Scope(String name, int line, boolean declaration) {
+            this.name = name;
+            this.line = line;
+            this.declaration = declaration;
+        }
+    }
+
     private FusionIniStructure() {}
 
     static List<Problem> scan(byte[] bytes, String source) {
         String[] lines = new String(bytes, Charset.forName("ISO-8859-1"))
-            .replace("\r", "").split("\n", -1);
+            .replace("\\r", "").split("\\n", -1);
         List<Problem> problems = new ArrayList<>();
-        int depth = 0;
-        String declaration = null;
-        int declarationLine = 0;
+        List<Scope> scopes = new ArrayList<>();
 
         for (int i = 0; i < lines.length; i++) {
+            int lineNumber = i + 1;
             String line = stripComment(lines[i]).trim();
             if (line.isEmpty() || line.startsWith("#") || line.startsWith("//")) continue;
 
             Matcher header = DECLARATION.matcher(line);
             if (header.matches()) {
-                if (depth != 0) {
-                    problems.add(new Problem(source, i + 1,
-                        "A named declaration starts before the previous declaration is closed."));
+                if (!scopes.isEmpty()) {
+                    Scope owner = findDeclaration(scopes);
+                    String ownerName = owner == null ? "recognized nested block"
+                        : owner.name;
+                    problems.add(new Problem(source, lineNumber,
+                        "A named declaration starts before " + ownerName
+                            + " is closed (opened at line "
+                            + (owner == null ? scopes.get(0).line : owner.line) + ")."));
+                    scopes.clear();
                 }
-                declaration = header.group(1) + " " + header.group(2);
-                declarationLine = i + 1;
-                depth = 1;
+                scopes.add(new Scope(header.group(1) + " " + header.group(2),
+                    lineNumber, true));
                 continue;
             }
 
             if ("End".equalsIgnoreCase(line)) {
-                if (depth == 0) {
-                    problems.add(new Problem(source, i + 1,
+                if (scopes.isEmpty()) {
+                    problems.add(new Problem(source, lineNumber,
                         "End has no matching recognized declaration or nested block."));
-                } else if (--depth == 0) {
-                    declaration = null;
-                    declarationLine = 0;
+                } else {
+                    scopes.remove(scopes.size() - 1);
                 }
                 continue;
             }
 
-            if (depth == 0) continue;
+            if (scopes.isEmpty()) continue;
             Matcher field = FIELD.matcher(line);
             if (field.matches()) {
-                if (opensFieldBlock(field.group(1))) depth++;
+                if (opensFieldBlock(field.group(1))) {
+                    scopes.add(new Scope(field.group(1), lineNumber, false));
+                }
             } else if (opensBareBlock(line)) {
-                depth++;
+                scopes.add(new Scope(line, lineNumber, false));
             }
         }
 
-        if (depth > 0) {
-            problems.add(new Problem(source, declarationLine,
-                "Declaration or nested block is not closed by End before end of file: "
-                    + (declaration == null ? "unknown block" : declaration)));
+        if (!scopes.isEmpty()) {
+            Scope owner = findDeclaration(scopes);
+            Scope unclosed = scopes.get(scopes.size() - 1);
+            String ownerName = owner == null ? "recognized INI scope" : owner.name;
+            problems.add(new Problem(source, unclosed.line,
+                "Unclosed " + (unclosed.declaration ? "declaration " : "nested block ")
+                    + unclosed.name + " at end of file; containing scope "
+                    + ownerName + " opened at line "
+                    + (owner == null ? scopes.get(0).line : owner.line) + "."));
         }
         return problems;
+    }
+
+    private static Scope findDeclaration(List<Scope> scopes) {
+        for (Scope scope : scopes) {
+            if (scope.declaration) return scope;
+        }
+        return null;
     }
 
     private static boolean opensFieldBlock(String field) {
