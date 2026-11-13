@@ -96,7 +96,7 @@ public class FusionNamespacePlanTest {
         FusionIniIndex.Definition definition = new FusionIniIndex.Definition(
             "Weapon", "UniqueCannon", null, definitionSource, 3);
         FusionIniReferences.Reference reference = new FusionIniReferences.Reference(
-            "AnotherMod/Gameplay.big!Data/INI/Object/Unit.ini", "Weapon", "UniqueCannon",
+            "Weapon", "UniqueCannon", "AnotherMod/Gameplay.big!Data/INI/Object/Unit.ini",
             27, "object:unit");
 
         FusionNamespacePlan.Result plan = FusionNamespacePlan.build(
@@ -112,7 +112,7 @@ public class FusionNamespacePlanTest {
         FusionIniIndex.Definition definition = new FusionIniIndex.Definition(
             "Weapon", "BaseCannon", null, baseSource, 3);
         FusionIniReferences.Reference reference = new FusionIniReferences.Reference(
-            "Hypersonic/Units.big!Data/INI/Object/Unit.ini", "Weapon", "BaseCannon",
+            "Weapon", "BaseCannon", "Hypersonic/Units.big!Data/INI/Object/Unit.ini",
             27, "object:unit");
 
         FusionNamespacePlan.Result plan = FusionNamespacePlan.build(
