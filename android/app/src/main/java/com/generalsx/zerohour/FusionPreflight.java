@@ -199,6 +199,11 @@ final class FusionPreflight {
                                     }
                                     refs.add(reference);
                                 }
+                                for (FusionIniStructure.Problem problem : FusionIniStructure.scan(bytes,
+                                        iniSource)) {
+                                    issues.add(new Issue(false, "INI structure warning: "
+                                        + problem.describe()));
+                                }
                             }
                         }
                     }
