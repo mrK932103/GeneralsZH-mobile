@@ -236,7 +236,7 @@ static Bool gxIsModSource(const AsciiString &filename)
 	return FALSE;
 }
 
-UnsignedInt INI::loadFileDirectory( AsciiString fileDirName, INILoadType loadType, Xfer *pXfer, Bool subdirs )
+UnsignedInt INI::loadFileDirectory( AsciiString fileDirName, INILoadType loadType, Xfer *pXfer, Bool subdirs, AsciiString sourceId )
 {
 	// GeneralsX @feature BenderAI 20/02/2026 Debug hang investigation
 	fprintf(stderr, "[INI] loadFileDirectory('%s') START\n", fileDirName.str());
@@ -266,7 +266,9 @@ UnsignedInt INI::loadFileDirectory( AsciiString fileDirName, INILoadType loadTyp
 	{
 		fprintf(stderr, "[INI] loadFileDirectory - loading iniFile: '%s' START\n", iniFile.str());
 		fflush(stderr);
-		filesRead += load(iniFile, loadType, pXfer);
+		filesRead += sourceId.isNotEmpty()
+			? loadFromFusionSource(iniFile, loadType, pXfer, sourceId)
+			: load(iniFile, loadType, pXfer);
 		fprintf(stderr, "[INI] loadFileDirectory - loading iniFile: '%s' END\n", iniFile.str());
 		fflush(stderr);
 	}
@@ -275,7 +277,7 @@ UnsignedInt INI::loadFileDirectory( AsciiString fileDirName, INILoadType loadTyp
 	fprintf(stderr, "[INI] loadFileDirectory - calling loadDirectory('%s') START\n", iniDir.str());
 	fflush(stderr);
 	s_gxMaskLowerDirectory = TheFileSystem->doesFileExist(iniFile.str()) && gxIsModSource(iniFile);
-	filesRead += loadDirectory(iniDir, loadType, pXfer, subdirs);
+	filesRead += loadDirectory(iniDir, loadType, pXfer, subdirs, sourceId);
 	s_gxMaskLowerDirectory = FALSE;
 	fprintf(stderr, "[INI] loadFileDirectory - calling loadDirectory('%s') END\n", iniDir.str());
 	fflush(stderr);
@@ -298,7 +300,7 @@ UnsignedInt INI::loadFileDirectory( AsciiString fileDirName, INILoadType loadTyp
 	* If we are to load subdirectories, we will load them *after* we load all the
 	* files in the current directory */
 //-------------------------------------------------------------------------------------------------
-UnsignedInt INI::loadDirectory( AsciiString dirName, INILoadType loadType, Xfer *pXfer, Bool subdirs )
+UnsignedInt INI::loadDirectory( AsciiString dirName, INILoadType loadType, Xfer *pXfer, Bool subdirs, AsciiString sourceId )
 {
 	// GeneralsX @feature BenderAI 20/02/2026 Debug hang investigation
 	fprintf(stderr, "[INI] loadDirectory('%s') START\n", dirName.str());
@@ -356,7 +358,9 @@ UnsignedInt INI::loadDirectory( AsciiString dirName, INILoadType loadType, Xfer 
 
 		if ((tempname.find('\\') == nullptr) && (tempname.find('/') == nullptr)) {
 			// this file doesn't reside in a subdirectory, load it first.
-			filesRead += load( *it, loadType, pXfer );
+			filesRead += sourceId.isNotEmpty()
+				? loadFromFusionSource(*it, loadType, pXfer, sourceId)
+				: load(*it, loadType, pXfer);
 		}
 		++it;
 	}
