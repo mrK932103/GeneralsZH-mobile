@@ -32,3 +32,12 @@ No native compilation, unit test, APK build, device test or in-game match was ru
 - Player now exposes its source identity through `getFusionSourceId()`, derived from its selected PlayerTemplate. This gives later object/weapon/projectile code a direct ownership-context accessor without duplicating a separate source string on every Player.
 
 - Added `getSelectablePlayerTemplateCount()` and `getNthSelectablePlayerTemplate()` to `PlayerTemplateStore`. They expose one deterministic combined view (legacy factions first, then source-tagged Fusion factions) while preserving the old legacy-only enumeration API and its indices. The Skirmish UI still needs to be switched to this view and persist both faction name and source ID; this accessor alone does not enable faction selection.
+
+
+## Normal Skirmish selector integration (in progress)
+
+- `PopulatePlayerTemplateComboBox` now has an opt-in `allowFusionFactions` parameter. The ordinary LAN/online callers keep the legacy-only list; the local Skirmish menu opts into the combined list.
+- Fusion entries are displayed with their source ID and are not collapsed against same-named base-game sides. Legacy faction gating and Challenge General lock filtering remain unchanged for ordinary factions; source-tagged entries bypass those base-game-only restrictions.
+- Skirmish preferences now save a stable `PlayerTemplateName` + `PlayerTemplateSource` pair and resolve that pair on load, retaining the old numeric preference as a compatibility fallback.
+- The local Skirmish `GameLogic` path now resolves combined faction indices and writes `playerFusionSource` into each side Dict. `Player::initFromDict` already consumes this field to resolve the matching source-tagged PlayerTemplate.
+- This connects faction selection identity through player creation, but it does **not** make mixed-mod gameplay safe yet: ThingTemplate, object dependencies, weapons beyond the currently covered references, AI/build scripts, assets and other registries still need source isolation. No compile/APK/device test has been run.
