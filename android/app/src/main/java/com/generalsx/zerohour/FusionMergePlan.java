@@ -57,14 +57,17 @@ final class FusionMergePlan {
         final Resolution resolution;
         final FusionIniConflictAnalyzer.Status comparison;
         final List<Participant> participants;
+        final FusionPlayerTemplateAnalyzer.Assessment factionAssessment;
 
         Item(String key, Domain domain, Resolution resolution,
-             FusionIniConflictAnalyzer.Status comparison, List<Participant> participants) {
+             FusionIniConflictAnalyzer.Status comparison, List<Participant> participants,
+             FusionPlayerTemplateAnalyzer.Assessment factionAssessment) {
             this.key = key;
             this.domain = domain;
             this.resolution = resolution;
             this.comparison = comparison;
             this.participants = Collections.unmodifiableList(new ArrayList<>(participants));
+            this.factionAssessment = factionAssessment;
         }
     }
 
@@ -110,6 +113,16 @@ final class FusionMergePlan {
                 out.append(item.domain).append(" / ").append(item.key)
                     .append(" -> ").append(item.resolution)
                     .append(" (").append(item.participants.size()).append(" source(s))");
+                if (item.factionAssessment != null) {
+                    for (FusionPlayerTemplateAnalyzer.FieldConflict field
+                            : item.factionAssessment.conflicts) {
+                        out.append("\\n  field conflict: ").append(field.field)
+                            .append(" (").append(field.participants.size()).append(" value(s))");
+                    }
+                    for (String unresolved : item.factionAssessment.unresolved) {
+                        out.append("\\n  faction review: ").append(unresolved);
+                    }
+                }
                 shown++;
             }
             if (items.size() > shown) {
@@ -142,6 +155,10 @@ final class FusionMergePlan {
             }
             Domain domain = domainFor(conflict.participants.isEmpty()
                 ? "" : conflict.participants.get(0).type);
+            FusionPlayerTemplateAnalyzer.Assessment factionAssessment = null;
+            if (domain == Domain.FACTION_REGISTRY) {
+                factionAssessment = FusionPlayerTemplateAnalyzer.analyze(conflict.participants);
+            }
             Resolution resolution;
             if (conflict.status == FusionIniConflictAnalyzer.Status.UNSAFE_TO_COMPARE) {
                 resolution = Resolution.MANUAL_PARSER_OR_ADAPTER_REQUIRED;
@@ -154,7 +171,8 @@ final class FusionMergePlan {
             } else {
                 resolution = Resolution.MANUAL_PARSER_OR_ADAPTER_REQUIRED;
             }
-            items.add(new Item(conflict.key, domain, resolution, conflict.status, participants));
+            items.add(new Item(conflict.key, domain, resolution, conflict.status, participants,
+                factionAssessment));
         }
 
         for (Map.Entry<String, List<String>> entry : preflight.pathSources.entrySet()) {
@@ -164,7 +182,7 @@ final class FusionMergePlan {
                 participants.add(new Participant(source, -1, -1));
             }
             items.add(new Item(entry.getKey(), Domain.ARCHIVE_FILE,
-                Resolution.FILE_CONTENT_VERIFICATION_REQUIRED, null, participants));
+                Resolution.FILE_CONTENT_VERIFICATION_REQUIRED, null, participants, null));
         }
 
         for (FusionPreflight.Issue issue : preflight.issues) {
