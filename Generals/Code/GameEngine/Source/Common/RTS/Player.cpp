@@ -771,6 +771,7 @@ void Player::initFromDict(const Dict* d, const AsciiString& fusionSourceId)
 	Bool forceHuman = false;
 	// GeneralsX @bugfix Copilot 22/03/2026 Initialize multiplayer start index before any skirmish name/script qualification.
 	m_mpStartIndex = d->getInt(TheKey_multiplayerStartIndex, &exists);
+	const AsciiString playerFusionSourceId = getFusionSourceId();
 	if (d->getBool(TheKey_playerIsSkirmish, &exists))
 	{
 
@@ -786,7 +787,7 @@ void Player::initFromDict(const Dict* d, const AsciiString& fusionSourceId)
 			const PlayerTemplate* spt = spSourceId.isNotEmpty()
 				? ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(spTemplateName), spSourceId)
 				: ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(spTemplateName));
-			if (spt && spt->getSide() == getSide())
+			if (spt && spt->getFusionSourceId().compareNoCase(playerFusionSourceId) == 0 && spt->getSide() == getSide())
 			{
 				skirmish = true;
 				break;
@@ -819,7 +820,7 @@ void Player::initFromDict(const Dict* d, const AsciiString& fusionSourceId)
 				pt = sideSourceId.isNotEmpty()
 					? ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(templateName), sideSourceId)
 					: ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(templateName));
-				if (pt && pt->getSide() == mySide) {
+				if (pt && pt->getFusionSourceId().compareNoCase(playerFusionSourceId) == 0 && pt->getSide() == mySide) {
 					qualTemplatePlayerName.format("%s%d", TheSidesList->getSkirmishSideInfo(i)->getDict()->getAsciiString(TheKey_playerName).str(), m_mpStartIndex);
 					found = true;
 					break;
@@ -860,7 +861,7 @@ void Player::initFromDict(const Dict* d, const AsciiString& fusionSourceId)
 			pt = sideSourceId.isNotEmpty()
 				? ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(templateName), sideSourceId)
 				: ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(templateName));
-			if (pt && pt->getSide() == mySide) {
+			if (pt && pt->getFusionSourceId().compareNoCase(playerFusionSourceId) == 0 && pt->getSide() == mySide) {
 				qualTemplatePlayerName.format("%s%d", TheSidesList->getSkirmishSideInfo(skirmishNdx)->getDict()->getAsciiString(TheKey_playerName).str(), m_mpStartIndex);
 				found = true;
 				break;
