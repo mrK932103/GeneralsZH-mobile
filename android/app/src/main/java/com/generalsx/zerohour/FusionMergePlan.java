@@ -163,11 +163,11 @@ final class FusionMergePlan {
                         .append(" slot conflict(s), ").append(assessment.unresolved.size())
                         .append(" unresolved issue(s)");
                     for (FusionCommandUiAnalyzer.SlotConflict slot : assessment.conflicts) {
-                        out.append("\\n  slot ").append(slot.slot)
+                        out.append("\n  slot ").append(slot.slot)
                             .append(" has ").append(slot.values.size()).append(" assignments");
                     }
                     for (String unresolved : assessment.unresolved) {
-                        out.append("\\n  command UI review: ").append(unresolved);
+                        out.append("\n  command UI review: ").append(unresolved);
                     }
                 }
             }
