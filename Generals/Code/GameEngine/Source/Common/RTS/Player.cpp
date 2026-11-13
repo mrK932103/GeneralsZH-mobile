@@ -780,8 +780,12 @@ void Player::initFromDict(const Dict* d, const AsciiString& fusionSourceId)
 		// really work, but it's better than crashing.
 		for (Int spIdx = 0; spIdx < TheSidesList->getNumSkirmishSides(); ++spIdx)
 		{
-			AsciiString spTemplateName = TheSidesList->getSkirmishSideInfo(spIdx)->getDict()->getAsciiString(TheKey_playerFaction);
-			const PlayerTemplate* spt = ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(spTemplateName));
+			const Dict* skirmishDict = TheSidesList->getSkirmishSideInfo(spIdx)->getDict();
+			AsciiString spTemplateName = skirmishDict->getAsciiString(TheKey_playerFaction);
+			AsciiString spSourceId = skirmishDict->getAsciiString(NAMEKEY("playerFusionSource"));
+			const PlayerTemplate* spt = spSourceId.isNotEmpty()
+				? ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(spTemplateName), spSourceId)
+				: ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(spTemplateName));
 			if (spt && spt->getSide() == getSide())
 			{
 				skirmish = true;
@@ -809,8 +813,12 @@ void Player::initFromDict(const Dict* d, const AsciiString& fusionSourceId)
 			Bool found = false;
 			AsciiString  qualTemplatePlayerName;
 			for (i=0; i<TheSidesList->getNumSkirmishSides(); i++) {
-				AsciiString templateName = TheSidesList->getSkirmishSideInfo(i)->getDict()->getAsciiString(TheKey_playerFaction);
-				pt = ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(templateName));
+				const Dict* skirmishDict = TheSidesList->getSkirmishSideInfo(i)->getDict();
+				AsciiString templateName = skirmishDict->getAsciiString(TheKey_playerFaction);
+				AsciiString sideSourceId = skirmishDict->getAsciiString(NAMEKEY("playerFusionSource"));
+				pt = sideSourceId.isNotEmpty()
+					? ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(templateName), sideSourceId)
+					: ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(templateName));
 				if (pt && pt->getSide() == mySide) {
 					qualTemplatePlayerName.format("%s%d", TheSidesList->getSkirmishSideInfo(i)->getDict()->getAsciiString(TheKey_playerName).str(), m_mpStartIndex);
 					found = true;
@@ -846,8 +854,12 @@ void Player::initFromDict(const Dict* d, const AsciiString& fusionSourceId)
 		Bool found = false;
 		AsciiString  qualTemplatePlayerName;
 		for (skirmishNdx=0; skirmishNdx<TheSidesList->getNumSkirmishSides(); skirmishNdx++) {
-			AsciiString templateName = TheSidesList->getSkirmishSideInfo(skirmishNdx)->getDict()->getAsciiString(TheKey_playerFaction);
-			pt = ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(templateName));
+			const Dict* skirmishDict = TheSidesList->getSkirmishSideInfo(skirmishNdx)->getDict();
+			AsciiString templateName = skirmishDict->getAsciiString(TheKey_playerFaction);
+			AsciiString sideSourceId = skirmishDict->getAsciiString(NAMEKEY("playerFusionSource"));
+			pt = sideSourceId.isNotEmpty()
+				? ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(templateName), sideSourceId)
+				: ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(templateName));
 			if (pt && pt->getSide() == mySide) {
 				qualTemplatePlayerName.format("%s%d", TheSidesList->getSkirmishSideInfo(skirmishNdx)->getDict()->getAsciiString(TheKey_playerName).str(), m_mpStartIndex);
 				found = true;
