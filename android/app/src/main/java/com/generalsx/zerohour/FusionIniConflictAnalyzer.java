@@ -12,6 +12,7 @@ package com.generalsx.zerohour;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,7 @@ final class FusionIniConflictAnalyzer {
         Conflict(String key, Status status, List<FusionIniBlockParser.Block> participants) {
             this.key = key;
             this.status = status;
-            this.participants = participants;
+            this.participants = Collections.unmodifiableList(new ArrayList<>(participants));
         }
 
         String describe() {
