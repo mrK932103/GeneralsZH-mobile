@@ -22,8 +22,8 @@ import java.util.Set;
 
 /**
  * Builds a conservative typed dependency graph from the declarations and references found by
- * Fusion preflight. Because the current scanner is file-level rather than block-aware, edges are
- * candidates for review and must not be treated as proof that every reference belongs to a root.
+ * Fusion preflight. References are scoped to recognized INI declaration blocks; lexical parsing
+ * still cannot resolve macros, dynamic names, or all engine-specific semantics.
  */
 final class FusionDependencyGraph {
     static final class Node {
@@ -54,7 +54,7 @@ final class FusionDependencyGraph {
     private FusionDependencyGraph() {}
 
     /**
-     * GeneralsX @feature author 13/11/2026 Build candidate transitive dependency closure.
+     * GeneralsX @feature author 13/11/2026 Build block-scoped candidate dependency closure.
      */
     static Result trace(FusionPreflight.Result preflight, List<String> roots) {
         Map<String, List<FusionIniIndex.Definition>> definitions = preflight.definitions;
@@ -90,11 +90,13 @@ final class FusionDependencyGraph {
                     if (!visited.contains(parentKey)) pending.addLast(parentKey);
                 }
             }
-            for (Map.Entry<String, List<FusionIniReferences.Reference>> entry : references.entrySet()) {
-                for (FusionIniReferences.Reference reference : entry.getValue()) {
-                    if (reference.source.equals(definitions.get(current).get(0).source)) {
+            for (FusionIniIndex.Definition definition : definitions.get(current)) {
+                for (List<FusionIniReferences.Reference> values : references.values()) {
+                    for (FusionIniReferences.Reference reference : values) {
+                        if (reference.ownerKey == null
+                                || !reference.ownerKey.equals(definition.key())) continue;
                         String target = reference.key();
-                        outgoing.add(target);
+                        if (!outgoing.contains(target)) outgoing.add(target);
                         if (!visited.contains(target)) pending.addLast(target);
                     }
                 }
