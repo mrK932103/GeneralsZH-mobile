@@ -31,11 +31,12 @@ final class FusionDependencyGraph {
         final Map<String, List<String>> edges;
 
         Result(Set<String> visited, Set<String> unresolved, Map<String, List<String>> edges) {
-            this.visited = Collections.unmodifiableSet(visited);
-            this.unresolved = Collections.unmodifiableSet(unresolved);
+            this.visited = Collections.unmodifiableSet(new LinkedHashSet<>(visited));
+            this.unresolved = Collections.unmodifiableSet(new LinkedHashSet<>(unresolved));
             Map<String, List<String>> immutableEdges = new LinkedHashMap<>();
             for (Map.Entry<String, List<String>> entry : edges.entrySet()) {
-                immutableEdges.put(entry.getKey(), Collections.unmodifiableList(entry.getValue()));
+                immutableEdges.put(entry.getKey(), Collections.unmodifiableList(
+                    new ArrayList<>(entry.getValue())));
             }
             this.edges = Collections.unmodifiableMap(immutableEdges);
         }
