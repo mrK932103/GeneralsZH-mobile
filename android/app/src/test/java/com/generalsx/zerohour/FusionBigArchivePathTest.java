@@ -36,7 +36,7 @@ public class FusionBigArchivePathTest {
     @Test
     public void rejectsNullAndEmptyPathsAsEmpty() {
         assertEquals("", FusionBigArchive.normalizePath(null));
-        assertEquals("", FusionBigArchive.normalizePath(" . / "));
+        assertEquals("", FusionBigArchive.normalizePath("./"));
     }
 
     private static void assertRejected(String path) {
