@@ -214,3 +214,11 @@ Implementation consequence: build a reusable parser/model/merge-rule registry an
 - Every outcome retains all participant source paths and line ranges. Preflight now reports this classification alongside existing duplicate declaration warnings.
 - No participant is selected as a winner. Even byte-identical duplicates remain blocked by the current archive builder until safe deduplication is integrated with same-path INI file assembly and provenance rules.
 - Not compiled or fixture-tested.
+
+
+### Structured conflict result follow-up (13 November 2026)
+
+- Fusion preflight now retains the N-way INI conflict classifications as structured result data, rather than exposing them only as formatted warning strings.
+- Added per-class counts and bounded summaries for `IDENTICAL_EXACT`, `DIFFERENT_CONTENT`, and `UNSAFE_TO_COMPARE`. This gives the future report UI a stable data source without parsing diagnostic prose.
+- The archive builder still blocks every duplicate named definition. Exact byte identity is not yet sufficient to make a definition safe to deduplicate because the containing INI file may have unrelated unique definitions, ordering requirements, or global side effects.
+- Source-only change; not compiled, unit-tested, or device-tested.
