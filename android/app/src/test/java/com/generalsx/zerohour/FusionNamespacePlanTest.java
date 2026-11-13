@@ -136,11 +136,18 @@ public class FusionNamespacePlanTest {
             + "  ProjectileExhaust = FusionExhaust\n"
             + "  ProjectileDetonationFX = FusionDetonationFX\n"
             + "  HistoricBonusWeapon = FusionBonusWeapon\n"
+            + "  FireFX = FusionFireFX\n"
+            + "  FireSound = FusionFireSound\n"
+            + "  VeterancyFireFX = VETERANCY_ELITE FusionVeterancyFireFX\n"
+            + "  VeterancyFireOCL = VETERANCY_ELITE CREATE_VET_MUZZLE\n"
+            + "  VeterancyProjectileDetonationOCL = VETERANCY_HEROIC CREATE_VET_BLAST\n"
+            + "  VeterancyProjectileExhaust = VETERANCY_ELITE FusionVeterancyExhaust\n"
+            + "  VeterancyProjectileDetonationFX = VETERANCY_HEROIC FusionVeterancyDetonationFX\n"
             + "End\n";
         List<FusionIniReferences.Reference> references = FusionIniReferences.scan(
             ini.getBytes(java.nio.charset.Charset.forName("ISO-8859-1")), source);
 
-        assertEquals(7, references.size());
+        assertEquals(14, references.size());
         List<FusionIniIndex.Definition> definitions = Arrays.asList(
             new FusionIniIndex.Definition("Object", "FusionProjectile", null, source, 20),
             new FusionIniIndex.Definition("Object", "FusionProjectileStream", null, source, 21),
@@ -148,7 +155,14 @@ public class FusionNamespacePlanTest {
             new FusionIniIndex.Definition("ObjectCreationList", "CREATE_FUSION_BLAST", null, source, 23),
             new FusionIniIndex.Definition("ParticleSystem", "FusionExhaust", null, source, 24),
             new FusionIniIndex.Definition("FXList", "FusionDetonationFX", null, source, 25),
-            new FusionIniIndex.Definition("Weapon", "FusionBonusWeapon", null, source, 26));
+            new FusionIniIndex.Definition("Weapon", "FusionBonusWeapon", null, source, 26),
+            new FusionIniIndex.Definition("FXList", "FusionFireFX", null, source, 27),
+            new FusionIniIndex.Definition("AudioEvent", "FusionFireSound", null, source, 28),
+            new FusionIniIndex.Definition("FXList", "FusionVeterancyFireFX", null, source, 29),
+            new FusionIniIndex.Definition("ObjectCreationList", "CREATE_VET_MUZZLE", null, source, 30),
+            new FusionIniIndex.Definition("ObjectCreationList", "CREATE_VET_BLAST", null, source, 31),
+            new FusionIniIndex.Definition("ParticleSystem", "FusionVeterancyExhaust", null, source, 32),
+            new FusionIniIndex.Definition("FXList", "FusionVeterancyDetonationFX", null, source, 33));
 
         FusionNamespacePlan.Result plan = FusionNamespacePlan.build(definitions, references);
         assertTrue(plan.unresolved.toString(), plan.isComplete());
