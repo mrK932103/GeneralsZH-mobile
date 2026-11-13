@@ -12,6 +12,8 @@ package com.generalsx.zerohour;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -117,6 +119,7 @@ final class FusionPreflight {
         Map<String, List<FusionIniReferences.Reference>> references = new LinkedHashMap<>();
         Map<String, List<FusionIniReferences.Reference>> outside = new LinkedHashMap<>();
         List<Issue> issues = new ArrayList<>();
+        Map<String, byte[]> indexedIniDigests = new LinkedHashMap<>();
         int archives = 0;
         int entries = 0;
 
@@ -161,23 +164,29 @@ final class FusionPreflight {
                         owners.add(source);
                         if (key.startsWith("data\\ini\\") && key.endsWith(".ini")) {
                             byte[] bytes = FusionBigArchive.readEntry(archive, entry, 16 * 1024 * 1024);
-                            for (FusionIniIndex.Definition definition : FusionIniIndex.scan(bytes,
-                                    source + "!" + entry.path)) {
-                                List<FusionIniIndex.Definition> matches = definitions.get(definition.key());
-                                if (matches == null) {
-                                    matches = new ArrayList<>();
-                                    definitions.put(definition.key(), matches);
+                            byte[] digest = sha256(bytes);
+                            byte[] indexedDigest = indexedIniDigests.get(key);
+                            if (indexedDigest == null || !MessageDigest.isEqual(indexedDigest, digest)) {
+                                if (indexedDigest == null) indexedIniDigests.put(key, digest);
+                                String iniSource = source + "!" + entry.path;
+                                for (FusionIniIndex.Definition definition : FusionIniIndex.scan(bytes,
+                                        iniSource)) {
+                                    List<FusionIniIndex.Definition> matches = definitions.get(definition.key());
+                                    if (matches == null) {
+                                        matches = new ArrayList<>();
+                                        definitions.put(definition.key(), matches);
+                                    }
+                                    matches.add(definition);
                                 }
-                                matches.add(definition);
-                            }
-                            for (FusionIniReferences.Reference reference : FusionIniReferences.scan(bytes,
-                                    source + "!" + entry.path)) {
-                                List<FusionIniReferences.Reference> refs = references.get(reference.key());
-                                if (refs == null) {
-                                    refs = new ArrayList<>();
-                                    references.put(reference.key(), refs);
+                                for (FusionIniReferences.Reference reference : FusionIniReferences.scan(bytes,
+                                        iniSource)) {
+                                    List<FusionIniReferences.Reference> refs = references.get(reference.key());
+                                    if (refs == null) {
+                                        refs = new ArrayList<>();
+                                        references.put(reference.key(), refs);
+                                    }
+                                    refs.add(reference);
                                 }
-                                refs.add(reference);
                             }
                         }
                     }
@@ -214,6 +223,15 @@ final class FusionPreflight {
                 + " typed reference(s) are not defined in the selected mods; they may be supplied by the base game or other INI files."));
         }
         return new Result(archives, entries, sources, definitions, references, outside, issues);
+    }
+
+
+    private static byte[] sha256(byte[] bytes) {
+        try {
+            return MessageDigest.getInstance("SHA-256").digest(bytes);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is unavailable.", e);
+        }
     }
 
 
