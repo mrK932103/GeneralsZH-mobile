@@ -78,6 +78,10 @@ final class FusionPreflight {
             return count;
         }
 
+        FusionDependencyGraph.Result traceDependencies(List<String> roots) {
+            return FusionDependencyGraph.trace(this, roots);
+        }
+
         int duplicateDefinitionCount() {
             int count = 0;
             for (List<FusionIniIndex.Definition> values : definitions.values()) {
