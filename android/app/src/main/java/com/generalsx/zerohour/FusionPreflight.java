@@ -131,6 +131,24 @@ final class FusionPreflight {
             return FusionMergePlan.assess(this);
         }
 
+        /** Build a deterministic source-qualified plan for every indexed INI definition/reference. */
+        FusionNamespacePlan.Result assessDefinitionNamespaces() {
+            List<FusionIniIndex.Definition> allDefinitions = new ArrayList<>();
+            for (List<FusionIniIndex.Definition> values : definitions.values()) {
+                allDefinitions.addAll(values);
+            }
+            List<FusionIniReferences.Reference> allReferences = new ArrayList<>();
+            for (List<FusionIniReferences.Reference> values : references.values()) {
+                allReferences.addAll(values);
+            }
+            return FusionNamespacePlan.build(allDefinitions, allReferences);
+        }
+
+        /** Build a deterministic source-qualified plan for colliding virtual asset paths. */
+        FusionAssetNamespacePlan.Result assessAssetNamespaces() {
+            return FusionAssetNamespacePlan.build(pathSources);
+        }
+
         int duplicateDefinitionCount() {
             int count = 0;
             for (List<FusionIniIndex.Definition> values : definitions.values()) {
