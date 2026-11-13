@@ -48,7 +48,10 @@ final class FusionIniIndex {
         }
 
         String key() {
-            return type.toLowerCase(Locale.ROOT) + ":" + name.toLowerCase(Locale.ROOT);
+            String normalizedType = type.toLowerCase(Locale.ROOT);
+            if ("childobject".equals(normalizedType)) normalizedType = "object";
+            if ("ocl".equals(normalizedType)) normalizedType = "objectcreationlist";
+            return normalizedType + ":" + name.toLowerCase(Locale.ROOT);
         }
     }
 
