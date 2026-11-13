@@ -104,6 +104,7 @@ public class FusionCommandUiAnalyzerTest {
             Arrays.asList(duplicate), Arrays.asList(duplicate, buttons));
         assertEquals(1, result.conflicts.size());
         assertEquals(2, result.conflicts.get(0).values.size());
-        assertTrue(result.isFullyComparable());
+        assertFalse(result.isFullyComparable());
+        assertTrue(result.unresolved.toString().contains("assigned more than once"));
     }
 }
