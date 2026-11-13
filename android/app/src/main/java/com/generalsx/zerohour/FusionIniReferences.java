@@ -145,7 +145,18 @@ final class FusionIniReferences {
 
     private static String referenceKind(String field) {
         String key = field.toLowerCase(Locale.ROOT);
-        if ("weapon".equals(key) || "primaryweapon".equals(key) || "secondaryweapon".equals(key)) return "Weapon";
+        if ("weapon".equals(key) || "primaryweapon".equals(key) || "secondaryweapon".equals(key)
+                || "historicbonusweapon".equals(key)) return "Weapon";
+        // WeaponTemplate stores these names and resolves them after INI parsing. Keep them
+        // in the dependency graph even though they are not ordinary immediate typed fields.
+        if ("projectileobject".equals(key) || "projectilestreamname".equals(key)) return "Object";
+        if ("fireocl".equals(key) || "veterancyfireocl".equals(key)
+                || "projectiledetonationocl".equals(key)
+                || "veterancyprojectiledetonationocl".equals(key)) return "ObjectCreationList";
+        if ("projectileexhaust".equals(key)
+                || "veterancyprojectileexhaust".equals(key)) return "ParticleSystem";
+        if ("projectiledetonationfx".equals(key)
+                || "veterancyprojectiledetonationfx".equals(key)) return "FXList";
         if ("locomotor".equals(key)) return "Locomotor";
         if ("armor".equals(key)) return "Armor";
         if ("commandset".equals(key)) return "CommandSet";
