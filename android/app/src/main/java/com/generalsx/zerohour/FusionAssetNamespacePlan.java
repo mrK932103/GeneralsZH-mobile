@@ -142,6 +142,9 @@ final class FusionAssetNamespacePlan {
         String value = source.replace('\\', '/');
         int member = value.indexOf('!');
         if (member >= 0) value = value.substring(0, member);
+        // Preflight source is ModName/Archive.big; namespace by selected mod, not archive.
+        int archiveSeparator = value.lastIndexOf('/');
+        if (archiveSeparator > 0) value = value.substring(0, archiveSeparator);
         return value.toLowerCase(Locale.ROOT);
     }
 
