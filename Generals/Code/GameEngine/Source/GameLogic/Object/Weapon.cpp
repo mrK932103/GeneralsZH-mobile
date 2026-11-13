@@ -3270,7 +3270,7 @@ void Weapon::crc( Xfer *xfer )
 void Weapon::xfer( Xfer *xfer )
 {
 	// version
-	const XferVersion currentVersion = 3;
+	const XferVersion currentVersion = 4;
 	XferVersion version = currentVersion;
 	xfer->xferVersion( &version, currentVersion );
 
@@ -3278,9 +3278,17 @@ void Weapon::xfer( Xfer *xfer )
 	{
 		AsciiString tmplName = m_template->getName();
 		xfer->xferAsciiString(&tmplName);
+		AsciiString fusionSourceId;
+		if (version >= 4)
+		{
+			fusionSourceId = m_template->getFusionSourceId();
+			xfer->xferAsciiString(&fusionSourceId);
+		}
 		if (xfer->getXferMode() == XFER_LOAD)
 		{
-			m_template = TheWeaponStore->findWeaponTemplate(tmplName);
+			m_template = fusionSourceId.isNotEmpty()
+				? TheWeaponStore->findWeaponTemplate(tmplName, fusionSourceId)
+				: TheWeaponStore->findWeaponTemplate(tmplName);
 			if (m_template == nullptr)
 				throw INI_INVALID_DATA;
 		}
