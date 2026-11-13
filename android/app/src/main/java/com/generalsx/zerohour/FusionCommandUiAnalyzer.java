@@ -84,6 +84,9 @@ final class FusionCommandUiAnalyzer {
         List<String> unresolved = new ArrayList<>();
         Map<Integer, List<SlotValue>> slots = new LinkedHashMap<>();
         Set<String> buttonNames = new LinkedHashSet<>();
+        if (allBlocks == null || allBlocks.isEmpty()) {
+            unresolved.add("The selected-mod CommandButton inventory is unavailable; references cannot be verified.");
+        }
         if (allBlocks != null) {
             for (FusionIniBlockParser.Block block : allBlocks) {
                 if (block != null && "CommandButton".equalsIgnoreCase(block.type)) {
@@ -93,6 +96,7 @@ final class FusionCommandUiAnalyzer {
         }
 
         for (FusionIniBlockParser.Block block : setBlocks) {
+            Set<Integer> seenSlotsInBlock = new LinkedHashSet<>();
             if (block == null || !"CommandSet".equalsIgnoreCase(block.type)
                     || !name.equalsIgnoreCase(block.name)) {
                 unresolved.add("Mixed or non-CommandSet declaration supplied.");
@@ -113,6 +117,11 @@ final class FusionCommandUiAnalyzer {
                     continue;
                 }
                 int slot = Integer.parseInt(matcher.group(1));
+                if (!seenSlotsInBlock.add(slot)) {
+                    unresolved.add(block.source + ":" + (block.startLine + i)
+                        + ": CommandSet slot " + slot
+                        + " is assigned more than once in one declaration; engine load order overwrites earlier values.");
+                }
                 String button = matcher.group(2);
                 SlotValue value = new SlotValue(slot, button, block.source, block.startLine + i);
                 List<SlotValue> values = slots.get(slot);
@@ -121,7 +130,7 @@ final class FusionCommandUiAnalyzer {
                     slots.put(slot, values);
                 }
                 values.add(value);
-                if (!buttonNames.isEmpty() && !buttonNames.contains(button.toLowerCase(Locale.ROOT))) {
+                if (!buttonNames.contains(button.toLowerCase(Locale.ROOT))) {
                     unresolved.add(block.source + ":" + value.line
                         + ": CommandSet slot " + slot + " references missing CommandButton " + button);
                 }
