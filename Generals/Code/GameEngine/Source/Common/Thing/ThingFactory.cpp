@@ -51,6 +51,16 @@
 
 enum { TEMPLATE_HASH_SIZE = 12288 };
 
+// Keep Fusion template identity independent from the original INI name. The separator is
+// deliberately outside the identifier grammar used by ThingTemplate names.
+static AsciiString makeFusionThingTemplateKey(const AsciiString& name, const AsciiString& sourceId)
+{
+	AsciiString key = sourceId;
+	key.concat("::");
+	key.concat(name);
+	return key;
+}
+
 // PUBLIC DATA ////////////////////////////////////////////////////////////////////////////////////
 ThingFactory *TheThingFactory = nullptr;  ///< Thing manager singleton declaration
 
@@ -73,6 +83,7 @@ void ThingFactory::freeDatabase()
 	}
 
 	m_templateHashMap.clear();
+	m_fusionTemplateHashMap.clear();
 
 }
 
@@ -81,18 +92,32 @@ void ThingFactory::freeDatabase()
 //-------------------------------------------------------------------------------------------------
 void ThingFactory::addTemplate( ThingTemplate *tmplate )
 {
-	ThingTemplateHashMapIt tIt = m_templateHashMap.find(tmplate->getName());
-
-	if (tIt != m_templateHashMap.end()) {
-		DEBUG_CRASH(("Duplicate Thing Template name found: %s", tmplate->getName().str()));
+	const AsciiString& sourceId = tmplate->getSourceId();
+	if (sourceId.isNotEmpty())
+	{
+		AsciiString key = makeFusionThingTemplateKey(tmplate->getName(), sourceId);
+		FusionThingTemplateHashMapIt tIt = m_fusionTemplateHashMap.find(key);
+		if (tIt != m_fusionTemplateHashMap.end())
+			DEBUG_CRASH(("Duplicate Fusion Thing Template '%s' in source '%s'",
+				tmplate->getName().str(), sourceId.str()));
+	}
+	else
+	{
+		ThingTemplateHashMapIt tIt = m_templateHashMap.find(tmplate->getName());
+		if (tIt != m_templateHashMap.end())
+			DEBUG_CRASH(("Duplicate Thing Template name found: %s", tmplate->getName().str()));
 	}
 
 	// Link it to the list
 	tmplate->friend_setNextTemplate(m_firstTemplate);
 	m_firstTemplate = tmplate;
 
-	// Add it to the hash table.
-	m_templateHashMap[tmplate->getName()] = tmplate;
+	// Keep Fusion definitions out of the legacy name-only registry. Legacy lookups must
+	// never accidentally select one of several same-named Fusion definitions.
+	if (sourceId.isNotEmpty())
+		m_fusionTemplateHashMap[makeFusionThingTemplateKey(tmplate->getName(), sourceId)] = tmplate;
+	else
+		m_templateHashMap[tmplate->getName()] = tmplate;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -128,13 +153,23 @@ ThingFactory::~ThingFactory()
 //-------------------------------------------------------------------------------------------------
 ThingTemplate *ThingFactory::newTemplate( const AsciiString& name )
 {
+	return newTemplate(name, AsciiString::TheEmptyString);
+}
+
+//-------------------------------------------------------------------------------------------------
+/** Create a template in the selected Fusion source namespace. */
+//-------------------------------------------------------------------------------------------------
+ThingTemplate *ThingFactory::newTemplate( const AsciiString& name, const AsciiString& sourceId )
+{
 	ThingTemplate *newTemplate;
 
 	// allocate template
 	newTemplate = newInstance(ThingTemplate);
 
 	// if the default template is present, get it and copy over any data to the new template
-	const ThingTemplate *defaultT = findTemplate( "DefaultThingTemplate", FALSE );
+	const ThingTemplate *defaultT = sourceId.isNotEmpty()
+		? findTemplate( "DefaultThingTemplate", sourceId, FALSE )
+		: findTemplate( "DefaultThingTemplate", FALSE );
 	if( defaultT )
 	{
 
@@ -150,6 +185,7 @@ ThingTemplate *ThingFactory::newTemplate( const AsciiString& name )
 
 	// assign name
 	newTemplate->friend_setTemplateName( name );
+	newTemplate->friend_setSourceId( sourceId );
 
 	// add to list
 	addTemplate( newTemplate );
@@ -172,7 +208,7 @@ ThingTemplate* ThingFactory::newOverride( ThingTemplate *thingTemplate )
 	DEBUG_ASSERTCRASH( thingTemplate, ("newOverride(): null 'parent' thing template") );
 
 	// sanity just for debugging, the weapon must be in the master list to do overrides
-	DEBUG_ASSERTCRASH( findTemplate( thingTemplate->getName() ) != nullptr,
+	DEBUG_ASSERTCRASH( findTemplate( thingTemplate->getName(), thingTemplate->getSourceId(), FALSE ) != nullptr,
 										 ("newOverride(): Thing template '%s' not in master list",
 										 thingTemplate->getName().str()) );
 
@@ -235,14 +271,19 @@ void ThingFactory::reset()
 
 		if (stillValid == nullptr) {
 			// Also needs to be removed from the Hash map.
-			m_templateHashMap.erase(templateName);
+			if (t->getSourceId().isNotEmpty())
+				m_fusionTemplateHashMap.erase(makeFusionThingTemplateKey(templateName, t->getSourceId()));
+			else
+				m_templateHashMap.erase(templateName);
 		}
 
 		t = nextT;
 	}
 
 	// TheSuperHackers @bugfix Caball009 25/12/2025 Avoid mismatches by making m_nextTemplateID unique for a single match instead of unique since game launch.
-	DEBUG_ASSERTCRASH(m_firstTemplate && m_firstTemplate->getTemplateID() == m_templateHashMap.size(), ("Template ID is unexpected after deleting overrides"));
+	DEBUG_ASSERTCRASH(m_firstTemplate && m_firstTemplate->getTemplateID()
+		== m_templateHashMap.size() + m_fusionTemplateHashMap.size(),
+		("Template ID is unexpected after deleting overrides"));
 	m_nextTemplateID = static_cast<UnsignedShort>(m_firstTemplate->getTemplateID() + 1);
 }
 
@@ -306,6 +347,30 @@ ThingTemplate *ThingFactory::findTemplateInternal( const AsciiString& name, Bool
 
 }
 
+//-------------------------------------------------------------------------------------------------
+/** Find a template in one Fusion source, then fall back only to untagged/base templates. */
+//-------------------------------------------------------------------------------------------------
+ThingTemplate *ThingFactory::findTemplateInternal(
+	const AsciiString& name, const AsciiString& sourceId, Bool check )
+{
+	if (sourceId.isNotEmpty())
+	{
+		AsciiString key = makeFusionThingTemplateKey(name, sourceId);
+		FusionThingTemplateHashMapIt fusionIt = m_fusionTemplateHashMap.find(key);
+		if (fusionIt != m_fusionTemplateHashMap.end())
+			return fusionIt->second;
+	}
+
+	ThingTemplate *baseTemplate = findTemplateInternal(name, FALSE);
+	if (baseTemplate != nullptr)
+		return baseTemplate;
+
+	if (check && name.isNotEmpty())
+		DEBUG_CRASH(("Failed to find ThingTemplate '%s' in Fusion source '%s'",
+			name.str(), sourceId.str()));
+	return nullptr;
+}
+
 //=============================================================================
 Object *ThingFactory::newObject( const ThingTemplate *tmplate, Team *team, ObjectStatusMaskType statusBits )
 {
@@ -316,7 +381,7 @@ Object *ThingFactory::newObject( const ThingTemplate *tmplate, Team *team, Objec
 	if (!asv.empty())
 	{
 		Int which = GameLogicRandomValue(0, asv.size()-1);
-		const ThingTemplate* tmp = findTemplate( asv[which] );
+		const ThingTemplate* tmp = findTemplate( asv[which], tmplate->getSourceId(), FALSE );
 		if (tmp != nullptr)
 			tmplate = tmp;
 	}
@@ -381,11 +446,16 @@ AsciiString TheThingTemplateBeingParsedName;
 #endif
 
 	// find existing item if present
-	ThingTemplate *thingTemplate = TheThingFactory->findTemplateInternal( name, FALSE );
+	const AsciiString sourceId = ini->getSourceId();
+	ThingTemplate *thingTemplate = sourceId.isNotEmpty()
+		? TheThingFactory->findTemplateInternal(name, sourceId, FALSE)
+		: TheThingFactory->findTemplateInternal(name, FALSE);
 	if( !thingTemplate )
 	{
 		// no item is present, create a new one
-		thingTemplate = TheThingFactory->newTemplate( name );
+		thingTemplate = sourceId.isNotEmpty()
+			? TheThingFactory->newTemplate(name, sourceId)
+			: TheThingFactory->newTemplate(name);
 		if ( ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES )
 		{
 			// This ThingTemplate is actually an override, so we will mark it as such so that it properly
@@ -409,7 +479,9 @@ AsciiString TheThingTemplateBeingParsedName;
 
 	if (reskinFrom.isNotEmpty())
 	{
-		const ThingTemplate* reskinTmpl = TheThingFactory->findTemplate(reskinFrom);
+		const ThingTemplate* reskinTmpl = sourceId.isNotEmpty()
+			? TheThingFactory->findTemplate(reskinFrom, sourceId, FALSE)
+			: TheThingFactory->findTemplate(reskinFrom);
 		if (reskinTmpl)
 		{
 			thingTemplate->copyFrom(reskinTmpl);
