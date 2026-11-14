@@ -49,7 +49,7 @@ void INI::parseMusicTrackDefinition( INI* ini )
 	const char* c = ini->getNextToken();
 	name.set( c );
 
-	track = TheAudio->newAudioEventInfo( name );
+	track = TheAudio->newAudioEventInfo( name, ini->getSourceId() );
 	if (!track) {
 		return;
 	}
@@ -62,6 +62,7 @@ void INI::parseMusicTrackDefinition( INI* ini )
 
 	track->m_audioName = name;
 	track->m_soundType = AT_Music;
+	track->m_fusionSourceId = ini->getSourceId();
 
 	// parse the ini definition
 	ini->initFromINI( track, track->getFieldParse() );
@@ -77,7 +78,7 @@ void INI::parseAudioEventDefinition( INI* ini )
 	const char* c = ini->getNextToken();
 	name.set( c );
 
-	track = TheAudio->newAudioEventInfo( name );
+	track = TheAudio->newAudioEventInfo( name, ini->getSourceId() );
 	if (!track) {
 		return;
 	}
@@ -89,6 +90,7 @@ void INI::parseAudioEventDefinition( INI* ini )
 
 	track->m_audioName = name;
 	track->m_soundType = AT_SoundEffect;
+	track->m_fusionSourceId = ini->getSourceId();
 
 	// parse the ini definition
 	ini->initFromINI( track, track->getFieldParse() );
@@ -104,7 +106,7 @@ void INI::parseDialogDefinition( INI* ini )
 	const char* c = ini->getNextToken();
 	name.set( c );
 
-	track = TheAudio->newAudioEventInfo( name );
+	track = TheAudio->newAudioEventInfo( name, ini->getSourceId() );
 	if (!track) {
 		return;
 	}
@@ -116,6 +118,7 @@ void INI::parseDialogDefinition( INI* ini )
 
 	track->m_audioName = name;
 	track->m_soundType = AT_Streaming;
+	track->m_fusionSourceId = ini->getSourceId();
 
 	// parse the ini definition
 	ini->initFromINI( track, track->getFieldParse() );
