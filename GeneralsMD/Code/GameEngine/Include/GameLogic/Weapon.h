@@ -417,6 +417,8 @@ public:
 	AsciiString getLaserName() const { return m_laserName; }
 	const AsciiString& getLaserBoneName() const { return m_laserBoneName; }
 	NameKeyType getNameKey() const { return m_nameKey; }
+	void setFusionSourceId(AsciiString sourceId) { m_fusionSourceId = sourceId; }
+	AsciiString getFusionSourceId() const { return m_fusionSourceId; }
 	Real getWeaponSpeed() const { return m_weaponSpeed; }
 	Real getMinWeaponSpeed() const { return m_minWeaponSpeed; }
 	Bool isScaleWeaponSpeed() const { return m_isScaleWeaponSpeed; }
@@ -494,6 +496,7 @@ private:
 
 	AsciiString m_name;											///< name for this weapon
 	NameKeyType m_nameKey;									///< unique name key for this weapon template
+	AsciiString m_fusionSourceId;					///< owning Fusion mod; empty for ordinary game weapons
 	AsciiString m_projectileStreamName;			///< Name of object that tracks are stream, if we have one
 	AsciiString m_laserName;								///< Name of the laser object that persists.
 	AsciiString m_laserBoneName;						///< Where to put the laser object
@@ -840,6 +843,7 @@ public:
 		Find the WeaponTemplate with the given name. If no such WeaponTemplate exists, return null.
 	*/
 	const WeaponTemplate *findWeaponTemplate(const AsciiString& name) const;
+	const WeaponTemplate *findWeaponTemplate(const AsciiString& name, const AsciiString& sourceId) const;
 	const WeaponTemplate *findWeaponTemplate(const char* name) const;
 	const WeaponTemplate *findWeaponTemplateByNameKey( NameKeyType key ) const { return findWeaponTemplatePrivate( key ); }
 
@@ -860,7 +864,7 @@ protected:
 
 	WeaponTemplate *findWeaponTemplatePrivate( NameKeyType key ) const;
 
-	WeaponTemplate *newWeaponTemplate( AsciiString name );
+	WeaponTemplate *newWeaponTemplate( AsciiString name, const AsciiString& sourceId = AsciiString::TheEmptyString );
 	WeaponTemplate *newOverride( WeaponTemplate *weaponTemplate );
 
 	void deleteAllDelayedDamage();
