@@ -551,3 +551,11 @@ The following source inspection was performed against the current Generals nativ
 - Legacy `findParentTemplate()` and ParticleSystem Xfer/save restoration still use the untagged name-only map. Fusion particle templates therefore are not yet proven save/replay/network-safe; source identity is currently a runtime parsing/resolution slice.
 - ParticleSystem templates may contain additional nested or editor/script references that still require an audit. This change does not isolate AudioEvent, all FXList particle links, or every other global registry.
 - No C++ compilation, Android NDK build, APK build, unit test, or device test was run. These are committed source changes, not a verified playable mixed-mod build.
+### ParticleSystem INI reference propagation correction (14 November 2026)
+
+- The OCL/ParticleSystem follow-up audit found that the source-aware ParticleSystem manager overload existed, and OCL nuggets already used it, but the shared INI::parseParticleSystemTemplate() still called the legacy name-only lookup.
+- Updated the parser to pass INI::getSourceId() and resolve exact-source ParticleSystem definitions first, with the manager's explicit untagged base-game fallback. Ordinary non-Fusion loads retain the legacy lookup.
+- This also fixes WeaponTemplate ProjectileExhaust and VeterancyProjectileExhaust, because their custom field parsers delegate to INI::parseParticleSystemTemplate().
+- Rechecked the OCL store and WeaponTemplate post-processing: OCL definitions are stored under sourceId::name; OCL references resolve exact source then base; FireWeapon nugget weapon references use the source-aware weapon parser; OCL object, container, transport, payload and particle references carry the nugget's source identity.
+- Remaining OCL caveats include global AudioEvent resolution for fade/bounce sounds and legacy-only GenericDebris lookup (the latter is an intentional shared base object). This does not isolate every nested audio/FX dependency in the engine.
+- No C++ compile, Android NDK build, APK build, unit test, or device test was run. This is a committed parser propagation fix, not proof of playable mixed-mod Skirmish.
