@@ -130,6 +130,7 @@ private:
 	*/
 	ThingTemplate *findTemplateInternal( const AsciiString& name, Bool check = TRUE );
 	ThingTemplate *findTemplateInternal( const AsciiString& name, const AsciiString& sourceId, Bool check );
+	ThingTemplate *findTemplateInSource( const AsciiString& name, const AsciiString& sourceId );
 
 	ThingTemplate					*m_firstTemplate;			///< head of linked list
 	UnsignedShort					m_nextTemplateID;			///< next available ID for templates
