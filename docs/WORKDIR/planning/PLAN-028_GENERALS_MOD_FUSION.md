@@ -559,3 +559,12 @@ The following source inspection was performed against the current Generals nativ
 - Rechecked the OCL store and WeaponTemplate post-processing: OCL definitions are stored under sourceId::name; OCL references resolve exact source then base; FireWeapon nugget weapon references use the source-aware weapon parser; OCL object, container, transport, payload and particle references carry the nugget's source identity.
 - Remaining OCL caveats include global AudioEvent resolution for fade/bounce sounds and legacy-only GenericDebris lookup (the latter is an intentional shared base object). This does not isolate every nested audio/FX dependency in the engine.
 - No C++ compile, Android NDK build, APK build, unit test, or device test was run. This is a committed parser propagation fix, not proof of playable mixed-mod Skirmish.
+### AudioEvent source identity slice (14 November 2026)
+
+- Added a source-qualified AudioEventInfo registry to the shared AudioManager. Fusion definitions are keyed by source ID plus event name; base-game definitions remain in the legacy unqualified map.
+- Added source-aware lookup with exact Fusion-source match followed only by the explicit untagged base-game fallback. It never searches another Fusion mod's audio namespace.
+- AudioEvent, DialogEvent and MusicTrack INI definitions now register under INI::getSourceId(). Their default templates (DefaultSoundEffect, DefaultDialog and DefaultMusicTrack) remain shared base definitions.
+- INI::parseAudioEventRTS now stamps the owning source onto each parsed AudioEventRTS reference. AudioManager resolves and caches the matching source-local AudioEventInfo, and AudioEventRTS copy construction/assignment preserves the source ID so delayed/queued copies retain the correct audio namespace.
+- Fusion audio definitions are included in audio-event enumeration and level-specific cleanup. Fusion music entries are not inserted into the shared base-game music playlist.
+- This covers AudioEventRTS references parsed from source-owned INI definitions, including OCL/FX nuggets that use the common parser. Runtime-created AudioEventRTS instances without an explicit source continue to use the base-game namespace; callers that create such events dynamically must still supply source context in a future integration pass.
+- No C++ compile, Android NDK build, APK build, unit test, or device test was run. This is a committed engine-source change, not proof of playable mixed-mod Skirmish.
