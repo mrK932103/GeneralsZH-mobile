@@ -74,6 +74,8 @@ class ObjectCreationNugget : public MemoryPoolObject
 public:
 
 	ObjectCreationNugget() { }
+	void setFusionSourceId(const AsciiString& sourceId) { m_fusionSourceId = sourceId; }
+	const AsciiString& getFusionSourceId() const { return m_fusionSourceId; }
 	//virtual ~ObjectCreationNugget() { }
 
 	/**
@@ -94,6 +96,9 @@ public:
 		object, or using the existing one.
 	*/
 	virtual Object* create( const Object* primaryObj, const Coord3D *primary, const Coord3D *secondary, Bool createOwner, UnsignedInt lifetimeFrames = 0 ) const;
+
+private:
+	AsciiString m_fusionSourceId;
 };
 EMPTY_DTOR(ObjectCreationNugget)
 
