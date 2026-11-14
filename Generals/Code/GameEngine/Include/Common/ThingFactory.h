@@ -80,6 +80,8 @@ public:
 		note, this is now substantially faster (does a hash-table lookup)
 	*/
 	const ThingTemplate *findTemplate( const AsciiString& name, Bool check = TRUE ) { return findTemplateInternal( name, check ); }
+	const ThingTemplate *findTemplate( const AsciiString& name, const AsciiString& sourceId, Bool check = TRUE )
+		{ return findTemplateInternal( name, sourceId, check ); }
 
 	/**
 		get a template given ID. return null if not found.
