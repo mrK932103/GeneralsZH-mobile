@@ -165,6 +165,7 @@ public:
 		};
 
 		FireWeaponNugget* nugget = newInstance(FireWeaponNugget);
+		nugget->setFusionSourceId(ini->getSourceId());
 		ini->initFromINI(nugget, myFieldParse);
 		((ObjectCreationList*)instance)->addObjectCreationNugget(nugget);
 	}
@@ -236,6 +237,7 @@ public:
 		};
 
 		AttackNugget* nugget = newInstance(AttackNugget);
+		nugget->setFusionSourceId(ini->getSourceId());
 		ini->initFromINI(nugget, myFieldParse);
 		((ObjectCreationList*)instance)->addObjectCreationNugget(nugget);
 	}
@@ -378,7 +380,7 @@ public:
 
 			if( createOwner )
 			{
-				const ThingTemplate* ttn = TheThingFactory->findTemplate(m_transportName);
+				const ThingTemplate* ttn = TheThingFactory->findTemplate(m_transportName, getFusionSourceId(), TRUE);
 				transport = TheThingFactory->newObject( ttn, owner );
 				if( !transport )
 				{
@@ -444,10 +446,10 @@ public:
 					transport->setPosition(&startPos);
 				}
 
-				const ThingTemplate* putInContainerTmpl = m_putInContainerName.isEmpty() ? nullptr : TheThingFactory->findTemplate(m_putInContainerName);
+				const ThingTemplate* putInContainerTmpl = m_putInContainerName.isEmpty() ? nullptr : TheThingFactory->findTemplate(m_putInContainerName, getFusionSourceId(), TRUE);
 				for (std::vector<Payload>::const_iterator it = m_payload.begin(); it != m_payload.end(); ++it)
   			{
-					const ThingTemplate* payloadTmpl = TheThingFactory->findTemplate(it->m_payloadName);
+					const ThingTemplate* payloadTmpl = TheThingFactory->findTemplate(it->m_payloadName, getFusionSourceId(), TRUE);
 					if( !payloadTmpl )
 					{
 						DEBUG_CRASH( ("DeliverPayloadNugget::create() -- %s couldn't create %s (template not found).",
@@ -560,6 +562,7 @@ public:
 		};
 
 		DeliverPayloadNugget* nugget = newInstance(DeliverPayloadNugget);
+		nugget->setFusionSourceId(ini->getSourceId());
 
 		MultiIniFieldParse p;
 		p.add(myFieldParse);
@@ -681,6 +684,7 @@ public:
 		};
 
 		ApplyRandomForceNugget* nugget = newInstance(ApplyRandomForceNugget);
+		nugget->setFusionSourceId(ini->getSourceId());
 		ini->initFromINI(nugget, myFieldParse);
 		((ObjectCreationList*)instance)->addObjectCreationNugget(nugget);
 	}
@@ -882,6 +886,7 @@ public:
 		p.add(myFieldParse);
 
 		GenericObjectCreationNugget* nugget = newInstance(GenericObjectCreationNugget);
+		nugget->setFusionSourceId(ini->getSourceId());
 		nugget->m_nameAreObjects = true;
 
 		ini->initFromINIMulti(nugget, p);
@@ -909,6 +914,7 @@ public:
 		p.add(myFieldParse);
 
 		GenericObjectCreationNugget* nugget = newInstance(GenericObjectCreationNugget);
+		nugget->setFusionSourceId(ini->getSourceId());
 		nugget->m_nameAreObjects = false;
 
 		ini->initFromINIMulti(nugget, p);
@@ -1344,7 +1350,7 @@ protected:
 		Object *firstObject = nullptr;
 		if (!m_putInContainer.isEmpty())
 		{
-			const ThingTemplate* containerTmpl = TheThingFactory->findTemplate(m_putInContainer);
+			const ThingTemplate* containerTmpl = TheThingFactory->findTemplate(m_putInContainer, getFusionSourceId(), TRUE);
 			if (containerTmpl)
 			{
 				container = TheThingFactory->newObject( containerTmpl, debrisOwner );
@@ -1365,7 +1371,7 @@ protected:
 
 			const ThingTemplate* tmpl;
 			if (m_nameAreObjects)
-				tmpl = TheThingFactory->findTemplate(m_names[pick]);
+				tmpl = TheThingFactory->findTemplate(m_names[pick], getFusionSourceId(), TRUE);
 			else
 			{	//this is using the generic debris type so it's probably safe to
 				//remove if requested by the GameLOD manager.
