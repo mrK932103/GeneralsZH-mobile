@@ -145,7 +145,8 @@ UnicodeString GameSlot::getApparentPlayerTemplateDisplayName() const
 	{
 		return TheGameText->fetch("GUI:Random");
 	}
-	return ThePlayerTemplateStore->getNthPlayerTemplate(m_playerTemplate)->getDisplayName();
+	const PlayerTemplate *playerTemplate = ThePlayerTemplateStore->getNthSelectablePlayerTemplate(m_playerTemplate);
+	return playerTemplate ? playerTemplate->getDisplayName() : UnicodeString::TheEmptyString;
 }
 
 Int GameSlot::getApparentPlayerTemplate() const
@@ -1329,7 +1330,7 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
 								break;
 							}
 							Int playerTemplate = atoi(slotValue.str());
-							if (playerTemplate < PLAYERTEMPLATE_MIN || playerTemplate >= ThePlayerTemplateStore->getPlayerTemplateCount())
+							if (playerTemplate < PLAYERTEMPLATE_MIN || playerTemplate >= ThePlayerTemplateStore->getSelectablePlayerTemplateCount())
 							{
 								optionsOk = false;
 								DEBUG_LOG(("ParseAsciiStringToGameInfo - player template value is invalid, quitting"));
@@ -1461,7 +1462,7 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
 								break;
 							}
 							Int playerTemplate = atoi(slotValue.str());
-							if (playerTemplate < PLAYERTEMPLATE_MIN || playerTemplate >= ThePlayerTemplateStore->getPlayerTemplateCount())
+							if (playerTemplate < PLAYERTEMPLATE_MIN || playerTemplate >= ThePlayerTemplateStore->getSelectablePlayerTemplateCount())
 							{
 								optionsOk = false;
 								DEBUG_LOG(("ParseAsciiStringToGameInfo - player template value is invalid, quitting"));

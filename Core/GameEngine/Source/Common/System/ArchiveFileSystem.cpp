@@ -618,6 +618,36 @@ ArchiveFile* ArchiveFileSystem::getArchiveFile(const AsciiString& filename, File
 	return range.get()->second;
 }
 
+// Resolve the duplicate-file slot for one exact archive. FileInstance is a
+// per-path index in the archive priority list, not a global archive number.
+Bool ArchiveFileSystem::getFileInstanceForArchive(const AsciiString& filename, const AsciiString& archiveFilename, FileInstance *instance) const
+{
+	if (instance == nullptr || filename.isEmpty() || archiveFilename.isEmpty())
+		return FALSE;
+
+	ArchivedDirectoryInfoResult result = const_cast<ArchiveFileSystem*>(this)->getArchivedDirectoryInfo(filename.str());
+	if (!result.valid())
+		return FALSE;
+
+	stl::const_range<ArchivedFileLocationMap> range = stl::get_range(result.dirInfo->m_files, result.lastToken, 0);
+	if (!range.valid())
+		return FALSE;
+
+	FileInstance index = 0;
+	for (ArchivedFileLocationMap::const_iterator it = range.begin; it != range.end; ++it, ++index)
+	{
+		if (it->second != nullptr && it->second->getName().compareNoCase(archiveFilename) == 0)
+		{
+			*instance = index;
+			return TRUE;
+		}
+		if (index == ~FileInstance(0))
+			return FALSE;
+	}
+
+	return FALSE;
+}
+
 void ArchiveFileSystem::getFileListInDirectory(const AsciiString& currentDirectory, const AsciiString& originalDirectory, const AsciiString& searchName, FilenameList &filenameList, Bool searchSubdirectories) const
 {
 	ArchiveFileMap::const_iterator it = m_archiveFileMap.begin();

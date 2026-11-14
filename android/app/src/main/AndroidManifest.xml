@@ -167,6 +167,13 @@
             android:theme="@style/Theme.GeneralsZHSettings"
             android:configChanges="orientation|screenSize|keyboardHidden" />
 
+        <!-- GeneralsX @feature 13/11/2026 Generals Mod Fusion analysis screen. -->
+        <activity
+            android:name=".FusionActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GeneralsZHSettings"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
         <activity
             android:name=".ReplayCheckActivity"
             android:exported="false"

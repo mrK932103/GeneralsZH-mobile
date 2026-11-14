@@ -512,6 +512,8 @@ public:
 	ParticleSystemTemplate( const AsciiString &name );
 
 	AsciiString getName() const { return m_name; }
+	void setFusionSourceId(const AsciiString& sourceId) { m_fusionSourceId = sourceId; }
+	const AsciiString& getFusionSourceId() const { return m_fusionSourceId; }
 
 	// This function was made const because of update modules' module data being all const.
 	ParticleSystem *createSlaveSystem( Bool createSlaves = TRUE ) const ;					///< if returns non-null, it is a slave system for use
@@ -536,6 +538,7 @@ protected:
 
 protected:
 	AsciiString								m_name;													///< the name of this template
+	AsciiString								m_fusionSourceId;							///< owning Fusion mod; empty for base-game templates
 
 	// This has to be mutable because of the delayed initialization thing in createSlaveSystem
 	mutable const ParticleSystemTemplate *m_slaveTemplate;		///< if non-null, use this to create a slave system
@@ -757,8 +760,11 @@ public:
   virtual void setOnScreenParticleCount(int count);
 
 	ParticleSystemTemplate *findTemplate( const AsciiString &name ) const;
+	// Fusion lookups are source-local, with an optional fallback to untagged base-game data.
+	ParticleSystemTemplate *findTemplate( const AsciiString &name, const AsciiString& sourceId, Bool allowBaseFallback = TRUE ) const;
 	ParticleSystemTemplate *findParentTemplate( const AsciiString &name, int parentNum ) const;
 	ParticleSystemTemplate *newTemplate( const AsciiString &name );
+	ParticleSystemTemplate *newTemplate( const AsciiString &name, const AsciiString& sourceId );
 
 	/// given a template, instantiate a particle system
 	ParticleSystem *createParticleSystem( const ParticleSystemTemplate *sysTemplate,
@@ -831,7 +837,8 @@ protected:
 	Int m_localPlayerIndex;	///<used to tell particle systems which particles can be skipped due to player shroud status
 
 private:
-	TemplateMap m_templateMap;		///< a hash map of all particle system templates
+	TemplateMap m_templateMap;		///< a hash map of untagged/base particle system templates
+	TemplateMap m_fusionTemplateMap;	///< source-qualified Fusion particle system templates
 	ParticleSystemIDMap m_systemMap; ///< a hash map of all particle systems
 };
 

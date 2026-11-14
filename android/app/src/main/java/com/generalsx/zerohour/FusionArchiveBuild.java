@@ -1,0 +1,180 @@
+/*
+**  Command & Conquer Generals Zero Hour(tm)
+**  Copyright 2025 Electronic Arts Inc.
+**
+**  This program is free software: you can redistribute it and/or modify
+**  it under the terms of the GNU General Public License as published by
+**  the Free Software Foundation, either version 3 of the License, or
+**  (at your option) any later version.
+*/
+
+package com.generalsx.zerohour;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.HashSet;
+import java.util.Set;
+
+/**
+ * Strict orchestration for the first safe Fusion archive build milestone.
+ *
+ * This only combines non-overlapping archive entries. It deliberately refuses any repeated
+ * virtual path or named INI definition; no load-order or semantic merge is guessed. It does
+ * not claim that the resulting package is a playable multi-faction mod.
+ */
+final class FusionArchiveBuild {
+    static final class Result {
+        final File archive;
+        final int sourceMods;
+        final int sourceArchives;
+        final int entries;
+        final FusionPreflight.Result preflight;
+
+        Result(File archive, int sourceMods, int sourceArchives, int entries,
+               FusionPreflight.Result preflight) {
+            this.archive = archive;
+            this.sourceMods = sourceMods;
+            this.sourceArchives = sourceArchives;
+            this.entries = entries;
+            this.preflight = preflight;
+        }
+    }
+
+    private FusionArchiveBuild() {}
+
+    /**
+     * GeneralsX @feature author 13/11/2026 Build a strict non-overlapping Fusion BIGF package.
+     */
+    static Result build(List<ModManager.Mod> selectedMods, File destination) throws IOException {
+        if (destination == null) throw new IOException("Fusion output destination is required");
+        if (selectedMods == null || selectedMods.isEmpty()) {
+            throw new IOException("Select at least one mod.");
+        }
+        if (java.nio.file.Files.isSymbolicLink(destination.toPath())) {
+            throw new IOException("Fusion output cannot be a symbolic link.");
+        }
+        FusionPreflight.Result preflight = FusionPreflight.inspect(selectedMods);
+        for (FusionPreflight.Issue issue : preflight.issues) {
+            if (issue.blocking) throw new IOException(issue.message);
+        }
+        if (preflight.duplicateDefinitionCount() != 0) {
+            throw new IOException("Fusion build blocked: duplicate named INI definitions require semantic conflict resolution.\n"
+                + preflight.duplicateDefinitionSummary(20));
+        }
+        File output = destination.getCanonicalFile();
+        for (ModManager.Mod mod : selectedMods) {
+            if (mod == null || mod.dir == null || !mod.dir.isDirectory()) {
+                throw new IOException("A selected mod folder is missing.");
+            }
+            File root = mod.dir.getCanonicalFile();
+            if (isWithin(output, root)) {
+                throw new IOException("Fusion output must be outside every selected source mod folder.");
+            }
+        }
+
+        Set<String> selectedRoots = new HashSet<>();
+        for (ModManager.Mod mod : selectedMods) {
+            if (mod == null || mod.dir == null || !mod.dir.isDirectory()
+                    || java.nio.file.Files.isSymbolicLink(mod.dir.toPath())) {
+                throw new IOException("A selected mod folder is missing or unsafe.");
+            }
+            String root = mod.dir.getCanonicalPath();
+            if (!selectedRoots.add(root)) {
+                throw new IOException("The same mod folder was selected more than once: " + mod.name);
+            }
+        }
+
+        Map<String, FusionBigArchiveWriter.SourceEntry> uniqueEntries = new LinkedHashMap<>();
+        Map<String, byte[]> contentDigests = new LinkedHashMap<>();
+        int archiveCount = 0;
+        for (ModManager.Mod mod : selectedMods) {
+            List<File> archives = new ArrayList<>();
+            collectArchives(mod.dir, archives, 0);
+            for (File file : archives) {
+                FusionBigArchive.Archive archive = FusionBigArchive.read(file);
+                archiveCount++;
+                for (FusionBigArchive.Entry entry : archive.entries) {
+                    FusionBigArchiveWriter.SourceEntry candidate =
+                        new FusionBigArchiveWriter.SourceEntry(archive, entry);
+                    String key = entry.normalizedPath;
+                    if (!uniqueEntries.containsKey(key)) {
+                        uniqueEntries.put(key, candidate);
+                    } else {
+                        byte[] digest = digestEntry(candidate);
+                        byte[] previous = contentDigests.get(key);
+                        if (previous == null) {
+                            previous = digestEntry(uniqueEntries.get(key));
+                            contentDigests.put(key, previous);
+                        }
+                        if (!MessageDigest.isEqual(previous, digest)) {
+                            throw new IOException("Fusion build blocked: conflicting file contents for "
+                                + entry.path + ". Sources: "
+                                + preflight.pathSourceSummary(key)
+                                + ". Explicit file-level merge is required.");
+                        }
+                    }
+                }
+            }
+        }
+        List<FusionBigArchiveWriter.SourceEntry> entries = new ArrayList<>(uniqueEntries.values());
+        if (entries.isEmpty()) throw new IOException("No BIGF entries found in selected mods.");
+        FusionBigArchiveWriter.write(output, entries);
+        return new Result(output, selectedMods.size(), archiveCount, entries.size(), preflight);
+    }
+
+
+    /** Hash one validated entry without loading large model/texture files into heap memory. */
+    private static byte[] digestEntry(FusionBigArchiveWriter.SourceEntry source) throws IOException {
+        final MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException("SHA-256 is unavailable", e);
+        }
+        byte[] buffer = new byte[64 * 1024];
+        try (RandomAccessFile input = new RandomAccessFile(source.archive.file, "r")) {
+            if (input.length() != source.archive.archiveSize) {
+                throw new IOException("Source archive changed during Fusion inspection: "
+                    + source.archive.file.getName());
+            }
+            input.seek(source.entry.offset);
+            long remaining = source.entry.size;
+            while (remaining > 0) {
+                int count = input.read(buffer, 0, (int) Math.min(buffer.length, remaining));
+                if (count < 0) throw new IOException("Unexpected end of source archive entry");
+                digest.update(buffer, 0, count);
+                remaining -= count;
+            }
+        }
+        return digest.digest();
+    }
+
+    private static boolean isWithin(File candidate, File directory) throws IOException {
+        String child = candidate.getCanonicalPath();
+        String parent = directory.getCanonicalPath();
+        return child.equals(parent) || child.startsWith(parent + File.separator);
+    }
+
+    private static void collectArchives(File directory, List<File> output, int depth) {
+        if (directory == null || depth > 8 || !directory.isDirectory()
+                || java.nio.file.Files.isSymbolicLink(directory.toPath())) return;
+        File[] children = directory.listFiles();
+        if (children == null) return;
+        java.util.Arrays.sort(children, java.util.Comparator.comparing(
+            file -> file.getName().toLowerCase(java.util.Locale.ROOT)));
+        for (File child : children) {
+            if (java.nio.file.Files.isSymbolicLink(child.toPath())) continue;
+            if (child.isDirectory()) collectArchives(child, output, depth + 1);
+            else if (child.isFile() && child.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".big")) {
+                output.add(child);
+            }
+        }
+    }
+}

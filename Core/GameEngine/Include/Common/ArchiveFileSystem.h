@@ -145,6 +145,7 @@ public:
 
 	// Unprotected this for copy-protection routines
 	ArchiveFile* getArchiveFile(const AsciiString& filename, FileInstance instance = 0) const;
+	Bool getFileInstanceForArchive(const AsciiString& filename, const AsciiString& archiveFilename, FileInstance *instance) const; ///< find the per-file instance belonging to one exact archive
 
 	void loadMods();
 	void loadManagedMods(); ///< GeneralsX: the mods switched on in the Android launcher's Mods screen (GXManagedMods.h)

@@ -145,6 +145,7 @@ android {
 }
 
 dependencies {
+    testImplementation 'junit:junit:4.13.2'
     // Material Components for the Setup/Settings/Log-viewer screens only —
     // GeneralsZHActivity (the actual game surface) stays on its own plain
     // fullscreen theme and never touches these widgets.

@@ -2089,7 +2089,9 @@ Bool ParticleSystem::update( Int localPlayerIndex  )
 
 							if (m_attachedSystemName.isEmpty() == false)
 							{
-								const ParticleSystemTemplate *tmp = TheParticleSystemManager->findTemplate( m_attachedSystemName );
+								const ParticleSystemTemplate *tmp = m_template->getFusionSourceId().isNotEmpty()
+					? TheParticleSystemManager->findTemplate(m_attachedSystemName, m_template->getFusionSourceId(), TRUE)
+					: TheParticleSystemManager->findTemplate(m_attachedSystemName);
 								if (tmp)
 								{
 									ParticleSystem *sys = TheParticleSystemManager->createParticleSystem( tmp, TRUE );
@@ -2894,7 +2896,9 @@ ParticleSystemTemplate::~ParticleSystemTemplate()
 ParticleSystem *ParticleSystemTemplate::createSlaveSystem( Bool createSlaves ) const
 {
 	if (m_slaveTemplate == nullptr && m_slaveSystemName.isEmpty() == false)
-		m_slaveTemplate = TheParticleSystemManager->findTemplate( m_slaveSystemName );
+		m_slaveTemplate = m_fusionSourceId.isNotEmpty()
+			? TheParticleSystemManager->findTemplate(m_slaveSystemName, m_fusionSourceId, TRUE)
+			: TheParticleSystemManager->findTemplate(m_slaveSystemName);
 
 	ParticleSystem *slave = nullptr;
 	if (m_slaveTemplate)
@@ -2942,6 +2946,11 @@ ParticleSystemManager::~ParticleSystemManager()
 	TemplateMap::iterator end(m_templateMap.end());
 	for (; begin != end; ++begin) {
 		deleteInstance((*begin).second);
+	}
+	TemplateMap::iterator fusionBegin(m_fusionTemplateMap.begin());
+	TemplateMap::iterator fusionEnd(m_fusionTemplateMap.end());
+	for (; fusionBegin != fusionEnd; ++fusionBegin) {
+		deleteInstance((*fusionBegin).second);
 	}
 }
 
@@ -3177,6 +3186,47 @@ ParticleSystemTemplate *ParticleSystemManager::findTemplate( const AsciiString &
 // ------------------------------------------------------------------------------------------------
 /** Create a new ParticleSystemTemplate */
 // ------------------------------------------------------------------------------------------------
+ParticleSystemTemplate *ParticleSystemManager::findTemplate( const AsciiString &name, const AsciiString& sourceId, Bool allowBaseFallback ) const
+{
+	if (sourceId.isNotEmpty())
+	{
+		AsciiString key = sourceId;
+		key.concat("::");
+		key.concat(name);
+		TemplateMap::const_iterator it = m_fusionTemplateMap.find(key);
+		if (it != m_fusionTemplateMap.end())
+			return it->second;
+	}
+	return allowBaseFallback ? findTemplate(name) : nullptr;
+}
+
+// ------------------------------------------------------------------------------------------------
+/** Create a source-owned particle system template without reusing another mod's definition */
+// ------------------------------------------------------------------------------------------------
+ParticleSystemTemplate *ParticleSystemManager::newTemplate( const AsciiString &name, const AsciiString& sourceId )
+{
+	if (sourceId.isEmpty())
+		return newTemplate(name);
+
+	AsciiString key = sourceId;
+	key.concat("::");
+	key.concat(name);
+	TemplateMap::iterator it = m_fusionTemplateMap.find(key);
+	if (it != m_fusionTemplateMap.end())
+		return it->second;
+
+	ParticleSystemTemplate *sysTemplate = newInstance(ParticleSystemTemplate)(name);
+	sysTemplate->setFusionSourceId(sourceId);
+	if (!m_fusionTemplateMap.insert(std::make_pair(key, sysTemplate)).second)
+	{
+		deleteInstance(sysTemplate);
+		return nullptr;
+	}
+	return sysTemplate;
+}
+
+// ------------------------------------------------------------------------------------------------
+/** Create a new ParticleSystemTemplate */
 ParticleSystemTemplate *ParticleSystemManager::newTemplate( const AsciiString &name )
 {
 	ParticleSystemTemplate *sysTemplate = findTemplate(name);

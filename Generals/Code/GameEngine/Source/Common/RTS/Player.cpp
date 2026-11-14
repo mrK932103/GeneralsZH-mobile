@@ -743,8 +743,20 @@ void Player::deletePlayerAI()
 //
 void Player::initFromDict(const Dict* d)
 {
+	// The key is optional and absent from all legacy maps and side dictionaries.
+	// Fusion-created Skirmish sides carry it to select the correct faction source.
+	initFromDict(d, d->getAsciiString(NAMEKEY("playerFusionSource")));
+}
+
+//=============================================================================
+// Fusion entry point. The source ID is supplied by the Skirmish slot/launcher;
+// an empty ID preserves the exact legacy faction lookup behavior.
+void Player::initFromDict(const Dict* d, const AsciiString& fusionSourceId)
+{
 	AsciiString tmplname = d->getAsciiString(TheKey_playerFaction);
-	const PlayerTemplate* pt = ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(tmplname));
+	const PlayerTemplate* pt = fusionSourceId.isNotEmpty()
+		? ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(tmplname), fusionSourceId)
+		: ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(tmplname));
 	DEBUG_ASSERTCRASH(pt != nullptr, ("PlayerTemplate %s not found -- this is an obsolete map (please open and resave in WB)",tmplname.str()));
 
 	init(pt);
@@ -759,6 +771,7 @@ void Player::initFromDict(const Dict* d)
 	Bool forceHuman = false;
 	// GeneralsX @bugfix Copilot 22/03/2026 Initialize multiplayer start index before any skirmish name/script qualification.
 	m_mpStartIndex = d->getInt(TheKey_multiplayerStartIndex, &exists);
+	const AsciiString playerFusionSourceId = getFusionSourceId();
 	if (d->getBool(TheKey_playerIsSkirmish, &exists))
 	{
 
@@ -768,9 +781,13 @@ void Player::initFromDict(const Dict* d)
 		// really work, but it's better than crashing.
 		for (Int spIdx = 0; spIdx < TheSidesList->getNumSkirmishSides(); ++spIdx)
 		{
-			AsciiString spTemplateName = TheSidesList->getSkirmishSideInfo(spIdx)->getDict()->getAsciiString(TheKey_playerFaction);
-			const PlayerTemplate* spt = ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(spTemplateName));
-			if (spt && spt->getSide() == getSide())
+			const Dict* skirmishDict = TheSidesList->getSkirmishSideInfo(spIdx)->getDict();
+			AsciiString spTemplateName = skirmishDict->getAsciiString(TheKey_playerFaction);
+			AsciiString spSourceId = skirmishDict->getAsciiString(NAMEKEY("playerFusionSource"));
+			const PlayerTemplate* spt = spSourceId.isNotEmpty()
+				? ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(spTemplateName), spSourceId)
+				: ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(spTemplateName));
+			if (spt && spt->getFusionSourceId().compareNoCase(playerFusionSourceId) == 0 && spt->getSide() == getSide())
 			{
 				skirmish = true;
 				break;
@@ -797,9 +814,13 @@ void Player::initFromDict(const Dict* d)
 			Bool found = false;
 			AsciiString  qualTemplatePlayerName;
 			for (i=0; i<TheSidesList->getNumSkirmishSides(); i++) {
-				AsciiString templateName = TheSidesList->getSkirmishSideInfo(i)->getDict()->getAsciiString(TheKey_playerFaction);
-				pt = ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(templateName));
-				if (pt && pt->getSide() == mySide) {
+				const Dict* skirmishDict = TheSidesList->getSkirmishSideInfo(i)->getDict();
+				AsciiString templateName = skirmishDict->getAsciiString(TheKey_playerFaction);
+				AsciiString sideSourceId = skirmishDict->getAsciiString(NAMEKEY("playerFusionSource"));
+				pt = sideSourceId.isNotEmpty()
+					? ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(templateName), sideSourceId)
+					: ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(templateName));
+				if (pt && pt->getFusionSourceId().compareNoCase(playerFusionSourceId) == 0 && pt->getSide() == mySide) {
 					qualTemplatePlayerName.format("%s%d", TheSidesList->getSkirmishSideInfo(i)->getDict()->getAsciiString(TheKey_playerName).str(), m_mpStartIndex);
 					found = true;
 					break;
@@ -834,9 +855,13 @@ void Player::initFromDict(const Dict* d)
 		Bool found = false;
 		AsciiString  qualTemplatePlayerName;
 		for (skirmishNdx=0; skirmishNdx<TheSidesList->getNumSkirmishSides(); skirmishNdx++) {
-			AsciiString templateName = TheSidesList->getSkirmishSideInfo(skirmishNdx)->getDict()->getAsciiString(TheKey_playerFaction);
-			pt = ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(templateName));
-			if (pt && pt->getSide() == mySide) {
+			const Dict* skirmishDict = TheSidesList->getSkirmishSideInfo(skirmishNdx)->getDict();
+			AsciiString templateName = skirmishDict->getAsciiString(TheKey_playerFaction);
+			AsciiString sideSourceId = skirmishDict->getAsciiString(NAMEKEY("playerFusionSource"));
+			pt = sideSourceId.isNotEmpty()
+				? ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(templateName), sideSourceId)
+				: ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(templateName));
+			if (pt && pt->getFusionSourceId().compareNoCase(playerFusionSourceId) == 0 && pt->getSide() == mySide) {
 				qualTemplatePlayerName.format("%s%d", TheSidesList->getSkirmishSideInfo(skirmishNdx)->getDict()->getAsciiString(TheKey_playerName).str(), m_mpStartIndex);
 				found = true;
 				break;
@@ -3830,6 +3855,14 @@ Bool Player::isPlayableSide() const
 // ------------------------------------------------------------------------------------------------
 void Player::crc( Xfer *xfer )
 {
+	// Distinguish same-named factions selected from different Fusion sources.
+	// Keep the legacy CRC stream unchanged for ordinary untagged PlayerTemplates.
+	if (m_playerTemplate && m_playerTemplate->getFusionSourceId().isNotEmpty())
+	{
+		AsciiString fusionSourceId = m_playerTemplate->getFusionSourceId();
+		xfer->xferAsciiString(&fusionSourceId);
+	}
+
 	// Player battle plan bonuses
 	Bool battlePlanBonus = m_battlePlanBonuses != nullptr;
 	xfer->xferBool( &battlePlanBonus );

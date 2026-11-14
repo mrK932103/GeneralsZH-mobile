@@ -418,7 +418,9 @@ void WeaponTemplate::postProcessLoad()
 	}
 	else
 	{
-		m_projectileTmpl = TheThingFactory->findTemplate(m_projectileName);
+		m_projectileTmpl = m_fusionSourceId.isNotEmpty()
+			? TheThingFactory->findTemplate(m_projectileName, m_fusionSourceId, FALSE)
+			: TheThingFactory->findTemplate(m_projectileName);
 		DEBUG_ASSERTCRASH(m_projectileTmpl, ("projectile %s not found!",m_projectileName.str()));
 	}
 
@@ -431,7 +433,7 @@ void WeaponTemplate::postProcessLoad()
 		}
 		else
 		{
-			m_fireOCLs[i] = TheObjectCreationListStore->findObjectCreationList(m_fireOCLNames[i].str() );
+			m_fireOCLs[i] = TheObjectCreationListStore->findObjectCreationList(m_fireOCLNames[i].str(), m_fusionSourceId, TRUE);
 			DEBUG_ASSERTCRASH(m_fireOCLs[i], ("OCL %s not found in a weapon!",m_fireOCLNames[i].str()));
 		}
 		m_fireOCLNames[i].clear();
@@ -443,7 +445,7 @@ void WeaponTemplate::postProcessLoad()
 		}
 		else
 		{
-			m_projectileDetonationOCLs[i] = TheObjectCreationListStore->findObjectCreationList(m_projectileDetonationOCLNames[i].str() );
+			m_projectileDetonationOCLs[i] = TheObjectCreationListStore->findObjectCreationList(m_projectileDetonationOCLNames[i].str(), m_fusionSourceId, TRUE);
 			DEBUG_ASSERTCRASH(m_projectileDetonationOCLs[i], ("OCL %s not found in a weapon!",m_projectileDetonationOCLNames[i].str()));
 		}
 		m_projectileDetonationOCLNames[i].clear();
@@ -1662,6 +1664,39 @@ const WeaponTemplate *WeaponStore::findWeaponTemplate( const AsciiString& name )
 }
 
 //-------------------------------------------------------------------------------------------------
+const WeaponTemplate *WeaponStore::findWeaponTemplate( const AsciiString& name, const AsciiString& sourceId ) const
+{
+	if (sourceId.isEmpty())
+		return findWeaponTemplate(name);
+
+	if (name.compareNoCase("None") == 0)
+		return nullptr;
+
+	const NameKeyType key = TheNameKeyGenerator->nameToKey(name);
+	for (std::vector<WeaponTemplate*>::const_iterator it = m_weaponTemplateVector.begin();
+		it != m_weaponTemplateVector.end(); ++it)
+	{
+		const WeaponTemplate *weapon = *it;
+		if (weapon->getNameKey() == key &&
+			weapon->getFusionSourceId().compareNoCase(sourceId) == 0)
+			return weapon;
+	}
+	return nullptr;
+}
+
+//-------------------------------------------------------------------------------------------------
+const WeaponTemplate *WeaponStore::findWeaponTemplate( const AsciiString& name, const AsciiString& sourceId, Bool allowBaseFallback ) const
+{
+	const WeaponTemplate *weapon = findWeaponTemplate(name, sourceId);
+	if (weapon || !allowBaseFallback || sourceId.isEmpty())
+		return weapon;
+
+	// A Fusion weapon may intentionally refer to a shared base-game weapon.
+	// Never fall back to another Fusion source.
+	return findWeaponTemplate(name);
+}
+
+//-------------------------------------------------------------------------------------------------
 const WeaponTemplate *WeaponStore::findWeaponTemplate( const char* name ) const
 {
 	if (stricmp(name, "None") == 0)
@@ -1684,7 +1719,7 @@ WeaponTemplate *WeaponStore::findWeaponTemplatePrivate( NameKeyType key ) const
 }
 
 //-------------------------------------------------------------------------------------------------
-WeaponTemplate *WeaponStore::newWeaponTemplate(AsciiString name)
+WeaponTemplate *WeaponStore::newWeaponTemplate(AsciiString name, const AsciiString& sourceId)
 {
 
 	// sanity
@@ -1695,6 +1730,7 @@ WeaponTemplate *WeaponStore::newWeaponTemplate(AsciiString name)
 	WeaponTemplate *wt = newInstance(WeaponTemplate);
 	wt->m_name = name;
 	wt->m_nameKey = TheNameKeyGenerator->nameToKey( name );
+	wt->setFusionSourceId(sourceId);
 
 	// GeneralsX @bugfix Android port 20/09/2026 Present in the GeneralsOnline PC
 	// client and missing here. SupW_AuroraFuelBombWeapon does not set
@@ -1709,7 +1745,10 @@ WeaponTemplate *WeaponStore::newWeaponTemplate(AsciiString name)
 		wt->m_dieOnDetonate = TRUE;
 	}
 	m_weaponTemplateVector.push_back(wt);
-	m_weaponTemplateHashMap[wt->m_nameKey] = wt;
+	// Keep legacy lookup unchanged for Fusion-owned definitions.
+	// Source-aware callers scan the vector and match the owning source.
+	if (sourceId.isEmpty())
+		m_weaponTemplateHashMap[wt->m_nameKey] = wt;
 
 	return wt;
 }
@@ -1825,8 +1864,12 @@ void WeaponStore::postProcessLoad()
 	const char* c = ini->getNextToken();
 	name.set(c);
 
-	// find existing item if present
-	WeaponTemplate *weapon = TheWeaponStore->findWeaponTemplatePrivate( TheNameKeyGenerator->nameToKey( name ) );
+	// Find an existing definition only inside the owning source. A same-named
+	// weapon in another selected mod is a separate definition, not an override.
+	const AsciiString sourceId = ini->getSourceId();
+	WeaponTemplate *weapon = const_cast<WeaponTemplate*>(sourceId.isNotEmpty()
+		? TheWeaponStore->findWeaponTemplate(name, sourceId)
+		: TheWeaponStore->findWeaponTemplatePrivate(TheNameKeyGenerator->nameToKey(name)));
 	if (weapon)
 	{
 		if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES)
@@ -1841,7 +1884,7 @@ void WeaponStore::postProcessLoad()
 	else
 	{
 		// no item is present, create a new one
-		weapon = TheWeaponStore->newWeaponTemplate(name);
+		weapon = TheWeaponStore->newWeaponTemplate(name, sourceId);
 	}
 
 	// parse the ini weapon definition

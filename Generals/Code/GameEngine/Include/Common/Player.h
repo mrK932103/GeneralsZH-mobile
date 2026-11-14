@@ -217,6 +217,8 @@ public:
 
 	void init(const PlayerTemplate* pt);
 	void initFromDict(const Dict* d);
+	// Fusion entry point: resolve the faction name inside its selected source namespace.
+	void initFromDict(const Dict* d, const AsciiString& fusionSourceId);
 	void setDefaultTeam();
 
 	void deletePlayerAI();
@@ -224,6 +226,11 @@ public:
 	UnicodeString getPlayerDisplayName() { return m_playerDisplayName; }
 	// GeneralsX @bugfix felipebraz 11/05/2026 Expose the raw ASCII player name so lookup fallbacks can match qualified skirmish owners.
 	AsciiString getPlayerName() const { return m_playerName; }
+	// Runtime source identity for Fusion-owned factions; empty for legacy players.
+	AsciiString getFusionSourceId() const
+	{
+		return m_playerTemplate ? m_playerTemplate->getFusionSourceId() : AsciiString::TheEmptyString;
+	}
 	NameKeyType getPlayerNameKey() const { return m_playerNameKey; }
 
 	AsciiString getSide() const { return m_side; }

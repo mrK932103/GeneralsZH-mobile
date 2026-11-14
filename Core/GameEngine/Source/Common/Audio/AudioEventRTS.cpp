@@ -219,6 +219,7 @@ AudioEventRTS::AudioEventRTS( const AudioEventRTS& right )
 	m_playingHandle				= right.m_playingHandle;
 	m_killThisHandle			= right.m_killThisHandle;
 	m_eventName						= right.m_eventName;
+	m_fusionSourceId		= right.m_fusionSourceId;
 	m_priority						= right.m_priority;
 	m_volume							= right.m_volume;
 	m_timeOfDay						= right.m_timeOfDay;
@@ -260,6 +261,7 @@ AudioEventRTS& AudioEventRTS::operator=( const AudioEventRTS& right )
 	m_playingHandle				= right.m_playingHandle;
 	m_killThisHandle			= right.m_killThisHandle;
 	m_eventName						= right.m_eventName;
+	m_fusionSourceId		= right.m_fusionSourceId;
 	m_priority						= right.m_priority;
 	m_volume							= right.m_volume;
 	m_timeOfDay						= right.m_timeOfDay;
@@ -523,7 +525,11 @@ void AudioEventRTS::setAudioEventInfo( const AudioEventInfo *eventInfo ) const
 const AudioEventInfo *AudioEventRTS::getAudioEventInfo() const
 {
 	if (m_eventInfo) {
-		if (m_eventInfo->m_audioName == m_eventName) {
+		// A matching event name is not sufficient for Fusion: two mods may
+		// define the same audio event name with different sound lists.
+		// Never reuse cached metadata owned by another source.
+		if (m_eventInfo->m_audioName == m_eventName
+			&& m_eventInfo->m_fusionSourceId == m_fusionSourceId) {
 			return m_eventInfo;
 		} else {
 			m_eventInfo = nullptr;
@@ -796,6 +802,15 @@ AsciiString AudioEventRTS::generateFilenameExtension( AudioType audioTypeToPlay 
 //-------------------------------------------------------------------------------------------------
 void AudioEventRTS::adjustForLocalization(AsciiString &strToAdjust)
 {
+	// The legacy localization probe searches the merged global filesystem.
+	// For Fusion events that can select a localized file belonging to a
+	// different mod when two archives contain the same relative path.
+	// Keep the source event's non-localized path until the archive layer can
+	// resolve localized files by FusionSourceId as well.
+	if (m_fusionSourceId.isNotEmpty()) {
+		return;
+	}
+
 	const char *filename = strToAdjust.reverseFind('\\');
 	if (filename) {
 		filename += 1;

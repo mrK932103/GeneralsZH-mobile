@@ -231,23 +231,40 @@ Int SkirmishPreferences::getPreferredColor()
 
 Int SkirmishPreferences::getPreferredFaction()
 {
+	// Prefer the stable faction name + source pair. The numeric index remains as
+	// a backwards-compatible fallback for older Skirmish.ini files.
+	SkirmishPreferences::const_iterator nameIt = find("PlayerTemplateName");
+	if (nameIt != end() && nameIt->second.isNotEmpty())
+	{
+		AsciiString sourceId;
+		SkirmishPreferences::const_iterator sourceIt = find("PlayerTemplateSource");
+		if (sourceIt != end())
+			sourceId = sourceIt->second;
+
+		const PlayerTemplate *savedFaction = ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(nameIt->second.str()), sourceId);
+		if (savedFaction && !savedFaction->getStartingBuilding().isEmpty())
+		{
+			for (Int i = 0; i < ThePlayerTemplateStore->getSelectablePlayerTemplateCount(); ++i)
+			{
+				if (ThePlayerTemplateStore->getNthSelectablePlayerTemplate(i) == savedFaction)
+					return i;
+			}
+		}
+	}
+
 	Int ret;
 	SkirmishPreferences::const_iterator it = find("PlayerTemplate");
 	if (it == end())
-	{
 		return PLAYERTEMPLATE_RANDOM;
-	}
 
 	ret = atoi(it->second.str());
-	if (ret < PLAYERTEMPLATE_MIN || ret >= ThePlayerTemplateStore->getPlayerTemplateCount())
+	if (ret < PLAYERTEMPLATE_MIN || ret >= ThePlayerTemplateStore->getSelectablePlayerTemplateCount())
 		ret = PLAYERTEMPLATE_RANDOM;
 
 	if (ret >= 0)
 	{
-		const PlayerTemplate *fac = ThePlayerTemplateStore->getNthPlayerTemplate(ret);
-		if (!fac)
-			ret = PLAYERTEMPLATE_RANDOM;
-		else if (fac->getStartingBuilding().isEmpty())
+		const PlayerTemplate *fac = ThePlayerTemplateStore->getNthSelectablePlayerTemplate(ret);
+		if (!fac || fac->getStartingBuilding().isEmpty())
 			ret = PLAYERTEMPLATE_RANDOM;
 	}
 
@@ -343,6 +360,21 @@ Bool SkirmishPreferences::write()
 
 	tmp.format("%d", TheSkirmishGameInfo->getConstSlot(0)->getPlayerTemplate());
 	(*this)["PlayerTemplate"] = tmp;
+
+	const Int preferredFactionIndex = TheSkirmishGameInfo->getConstSlot(0)->getPlayerTemplate();
+	const PlayerTemplate *preferredFaction = preferredFactionIndex >= 0
+		? ThePlayerTemplateStore->getNthSelectablePlayerTemplate(preferredFactionIndex)
+		: nullptr;
+	if (preferredFaction)
+	{
+		(*this)["PlayerTemplateName"] = KEYNAME(preferredFaction->getNameKey());
+		(*this)["PlayerTemplateSource"] = preferredFaction->getFusionSourceId();
+	}
+	else
+	{
+		(*this)["PlayerTemplateName"] = AsciiString::TheEmptyString;
+		(*this)["PlayerTemplateSource"] = AsciiString::TheEmptyString;
+	}
 
 	(*this)["Map"] = TheSkirmishGameInfo->getMap();
 
@@ -1076,7 +1108,7 @@ void InitSkirmishGameGadgets()
 	{
 		PopulateColorComboBox(i, comboBoxColor, TheSkirmishGameInfo );
 		GadgetComboBoxSetSelectedPos(comboBoxColor[i], 0);
-		PopulatePlayerTemplateComboBox(i, comboBoxPlayerTemplate, TheSkirmishGameInfo, FALSE );
+		PopulatePlayerTemplateComboBox(i, comboBoxPlayerTemplate, TheSkirmishGameInfo, FALSE, TRUE );
 		PopulateTeamComboBox(i, comboBoxTeam, TheSkirmishGameInfo );
 
 //		if (buttonStartPosition[i])
