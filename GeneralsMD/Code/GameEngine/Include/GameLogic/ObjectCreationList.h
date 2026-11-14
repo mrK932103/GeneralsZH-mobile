@@ -198,6 +198,8 @@ public:
 		return nullptr if no such ObjectCreationList exists.
 	*/
 	const ObjectCreationList *findObjectCreationList(const char* name) const;
+	// Fusion references resolve in their owning source first, then in untagged base-game data.
+	const ObjectCreationList *findObjectCreationList(const char* name, const AsciiString& sourceId, Bool allowBaseFallback = TRUE) const;
 
 	static void parseObjectCreationListDefinition(INI* ini);
 
@@ -207,6 +209,10 @@ private:
 
 	typedef std::map< NameKeyType, ObjectCreationList, std::less<NameKeyType>/**/> ObjectCreationListMap;
 	ObjectCreationListMap m_ocls;
+
+	// Fusion OCLs are isolated by source identity; legacy map remains base-game only.
+	typedef std::map< AsciiString, ObjectCreationList, std::less<AsciiString> > FusionObjectCreationListMap;
+	FusionObjectCreationListMap m_fusionOcls;
 
 	// note, this list doesn't own the nuggets; all nuggets are owned by the Store.
 	typedef std::vector<ObjectCreationNugget*> ObjectCreationNuggetVector;
