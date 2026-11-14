@@ -1643,8 +1643,8 @@ const ObjectCreationList *ObjectCreationListStore::findObjectCreationList(const 
 
 	if (sourceId.isNotEmpty())
 	{
-		AsciiString key = makeFusionObjectCreationListKey(AsciiString(name), sourceId);
-		FusionObjectCreationListMap::const_iterator it = m_fusionOcls.find(key);
+		NameKeyType key = TheNameKeyGenerator->nameToKey(makeFusionObjectCreationListKey(AsciiString(name), sourceId).str());
+		ObjectCreationListMap::const_iterator it = m_fusionOcls.find(key);
 		if (it != m_fusionOcls.end())
 			return &it->second;
 	}
@@ -1667,7 +1667,7 @@ void ObjectCreationListStore::addObjectCreationNugget(ObjectCreationNugget* nugg
 	ObjectCreationList* ocl = nullptr;
 	if (sourceId.isNotEmpty())
 	{
-		AsciiString key = makeFusionObjectCreationListKey(AsciiString(c), sourceId);
+		NameKeyType key = TheNameKeyGenerator->nameToKey(makeFusionObjectCreationListKey(AsciiString(c), sourceId).str());
 		ocl = &TheObjectCreationListStore->m_fusionOcls[key];
 	}
 	else
