@@ -1685,6 +1685,18 @@ const WeaponTemplate *WeaponStore::findWeaponTemplate( const AsciiString& name, 
 }
 
 //-------------------------------------------------------------------------------------------------
+const WeaponTemplate *WeaponStore::findWeaponTemplate( const AsciiString& name, const AsciiString& sourceId, Bool allowBaseFallback ) const
+{
+	const WeaponTemplate *weapon = findWeaponTemplate(name, sourceId);
+	if (weapon || !allowBaseFallback || sourceId.isEmpty())
+		return weapon;
+
+	// A Fusion weapon may intentionally refer to a shared base-game weapon.
+	// Never fall back to another Fusion source.
+	return findWeaponTemplate(name);
+}
+
+//-------------------------------------------------------------------------------------------------
 const WeaponTemplate *WeaponStore::findWeaponTemplate( const char* name ) const
 {
 	if (stricmp(name, "None") == 0)
