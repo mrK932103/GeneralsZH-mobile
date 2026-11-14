@@ -2896,7 +2896,9 @@ ParticleSystemTemplate::~ParticleSystemTemplate()
 ParticleSystem *ParticleSystemTemplate::createSlaveSystem( Bool createSlaves ) const
 {
 	if (m_slaveTemplate == nullptr && m_slaveSystemName.isEmpty() == false)
-		m_slaveTemplate = TheParticleSystemManager->findTemplate( m_slaveSystemName );
+		m_slaveTemplate = m_fusionSourceId.isNotEmpty()
+			? TheParticleSystemManager->findTemplate(m_slaveSystemName, m_fusionSourceId, TRUE)
+			: TheParticleSystemManager->findTemplate(m_slaveSystemName);
 
 	ParticleSystem *slave = nullptr;
 	if (m_slaveTemplate)
