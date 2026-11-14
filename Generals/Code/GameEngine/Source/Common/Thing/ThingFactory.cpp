@@ -210,7 +210,7 @@ ThingTemplate* ThingFactory::newOverride( ThingTemplate *thingTemplate )
 	DEBUG_ASSERTCRASH( thingTemplate, ("newOverride(): null 'parent' thing template") );
 
 	// sanity just for debugging, the weapon must be in the master list to do overrides
-	DEBUG_ASSERTCRASH( findTemplate( thingTemplate->getName(), thingTemplate->getSourceId(), FALSE ) != nullptr,
+	DEBUG_ASSERTCRASH( findTemplateInSource(thingTemplate->getName(), thingTemplate->getSourceId()) != nullptr,
 										 ("newOverride(): Thing template '%s' not in master list",
 										 thingTemplate->getName().str()) );
 
@@ -353,16 +353,26 @@ ThingTemplate *ThingFactory::findTemplateInternal( const AsciiString& name, Bool
 //-------------------------------------------------------------------------------------------------
 /** Find a template in one Fusion source, then fall back only to untagged/base templates. */
 //-------------------------------------------------------------------------------------------------
+ThingTemplate *ThingFactory::findTemplateInSource(
+	const AsciiString& name, const AsciiString& sourceId )
+{
+	if (sourceId.isEmpty())
+		return findTemplateInternal(name, FALSE);
+
+	AsciiString key = makeFusionThingTemplateKey(name, sourceId);
+	FusionThingTemplateHashMapIt fusionIt = m_fusionTemplateHashMap.find(key);
+	return fusionIt != m_fusionTemplateHashMap.end() ? fusionIt->second : nullptr;
+}
+
+//-------------------------------------------------------------------------------------------------
+/** Find a template in one Fusion source, then fall back only to untagged/base templates. */
+//-------------------------------------------------------------------------------------------------
 ThingTemplate *ThingFactory::findTemplateInternal(
 	const AsciiString& name, const AsciiString& sourceId, Bool check )
 {
-	if (sourceId.isNotEmpty())
-	{
-		AsciiString key = makeFusionThingTemplateKey(name, sourceId);
-		FusionThingTemplateHashMapIt fusionIt = m_fusionTemplateHashMap.find(key);
-		if (fusionIt != m_fusionTemplateHashMap.end())
-			return fusionIt->second;
-	}
+	ThingTemplate *sourceTemplate = findTemplateInSource(name, sourceId);
+	if (sourceTemplate != nullptr)
+		return sourceTemplate;
 
 	ThingTemplate *baseTemplate = findTemplateInternal(name, FALSE);
 	if (baseTemplate != nullptr)
@@ -451,7 +461,7 @@ AsciiString TheThingTemplateBeingParsedName;
 	// find existing item if present
 	const AsciiString sourceId = ini->getSourceId();
 	ThingTemplate *thingTemplate = sourceId.isNotEmpty()
-		? TheThingFactory->findTemplateInternal(name, sourceId, FALSE)
+		? TheThingFactory->findTemplateInSource(name, sourceId)
 		: TheThingFactory->findTemplateInternal(name, FALSE);
 	if( !thingTemplate )
 	{
