@@ -342,6 +342,7 @@ class AudioManager : public SubsystemInterface
 		std::vector<AsciiString> m_musicTracks;
 
 		AudioEventInfoHash m_allAudioEventInfo;
+		AudioEventInfoHash m_fusionAudioEventInfo;
 		AudioHandle theAudioHandlePool;
 		std::list<std::pair<AsciiString, Real>/**/> m_adjustedVolumes;
 
