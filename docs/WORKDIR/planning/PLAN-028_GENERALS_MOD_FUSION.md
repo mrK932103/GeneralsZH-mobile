@@ -536,3 +536,18 @@ The following source inspection was performed against the current Generals nativ
 - FireWeaponOCL and ProjectileDetonationOCL still resolve through the global ObjectCreationListStore; OCL source isolation is not implemented by this change.
 - Projectile exhaust ParticleSystem, weapon FXList pointers, AudioEvent, historic-bonus weapon references, and other nested/delayed links still require source-aware stores and lookup propagation.
 - No C++ compile, Android NDK build, APK build, JUnit run, or device test was performed. This is a code change committed to the feature branch, not proof that mixed-mod Skirmish is playable yet.
+
+
+### Native OCL and ParticleSystem source identity follow-up (14 November 2026)
+
+- Current branch inspection confirms the OCL registry is already source-qualified: Fusion OCL definitions are stored separately under `sourceId::name`, and source-aware lookups resolve exact-source first with optional untagged base-game fallback.
+- `INI::parseObjectCreationList()` passes the active INI source ID. WeaponTemplate post-processing resolves `FireOCL` and `ProjectileDetonationOCL` through the same source-aware OCL lookup. OCL nugget parsers retain their source ID, and Object/ThingTemplate references in delivery/debris nuggets use that source.
+- Added source identity to `ParticleSystemTemplate` and a separate Fusion particle-template registry in the shared ParticleSystemManager. Definition parsing now uses exact-source lookup for ownership, so same-named ParticleSystem definitions from different mods no longer reuse one global template.
+- Added source-aware ParticleSystem lookup with exact-source then optional untagged base-game fallback. OCL particle-system nuggets now resolve their particle template through their own source ID.
+- ParticleSystem attached-system and slave-system references also resolve in the owning template's source namespace, with base-game fallback. This preserves source context for delayed nested particle creation.
+- Applied OCL lookup changes in both `GeneralsMD` and `Generals`; ParticleSystem manager/parser implementation is shared through `Core`, with both platform INI parser copies updated.
+
+**Remaining ParticleSystem limitations**
+- Legacy `findParentTemplate()` and ParticleSystem Xfer/save restoration still use the untagged name-only map. Fusion particle templates therefore are not yet proven save/replay/network-safe; source identity is currently a runtime parsing/resolution slice.
+- ParticleSystem templates may contain additional nested or editor/script references that still require an audit. This change does not isolate AudioEvent, all FXList particle links, or every other global registry.
+- No C++ compilation, Android NDK build, APK build, unit test, or device test was run. These are committed source changes, not a verified playable mixed-mod build.
