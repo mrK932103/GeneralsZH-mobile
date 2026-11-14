@@ -134,7 +134,8 @@ private:
 	ThingTemplate					*m_firstTemplate;			///< head of linked list
 	UnsignedShort					m_nextTemplateID;			///< next available ID for templates
 
-	ThingTemplateHashMap	m_templateHashMap;		///< all thing templates, for fast lookup.
+	ThingTemplateHashMap	m_templateHashMap;		///< untagged/base-game templates, for legacy lookup.
+	FusionThingTemplateHashMap m_fusionTemplateHashMap; ///< templates keyed by Fusion source and name.
 
 };
 
