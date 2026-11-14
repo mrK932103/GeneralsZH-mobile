@@ -576,3 +576,10 @@ The following source inspection was performed against the current Generals nativ
 - Level-specific cleanup and destruction now include the Fusion registry. Audio event enumeration and the music-file availability probe include Fusion entries.
 - This isolates AudioEventInfo records and normal AudioEventRTS lookup. It does not yet isolate audio asset file paths, shared UI/script lookups that call the legacy name-only API directly, or every delayed/script-generated audio event that lacks a source ID. Those paths need explicit source propagation before claiming complete audio isolation.
 - No native compile, Android NDK build, APK build, unit test, or device test was run.
+### Delayed and generated audio source propagation (14 November 2026)
+
+- `INI::parseDynamicAudioEventRTS()` now stamps the dynamic event with the defining INI source before resolving its AudioEventInfo. This prevents dynamic/override audio properties from silently falling back to another mod's same-named event.
+- `SoundFXNugget` stores the source ID from the FXList parser and stamps both positional and object-triggered AudioEventRTS instances before playback.
+- Generic OCL fade-in/fade-out sounds now inherit the owning OCL source in both `GeneralsMD` and desktop `Generals` trees. OCL bounce sounds already use `INI::parseAudioEventRTS()` and preserve the source in the stored AudioEventRTS.
+- These changes close several delayed/generated reference paths. They do not isolate the physical audio asset paths or every script/legacy name-only lookup; VFS/archive namespacing and further call-site audit remain necessary.
+- No native compile, Android NDK build, APK build, unit test, or device test was run.
