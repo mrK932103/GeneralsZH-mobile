@@ -535,6 +535,8 @@ public:
 	// the m_override pointer, it deals only with templates at the "top" level
 	//
 	void friend_setTemplateName( const AsciiString& name ) { m_nameString = name; }
+	void friend_setSourceId( const AsciiString& sourceId ) { m_sourceId = sourceId; }
+	const AsciiString& getSourceId() const { return m_sourceId; }
 	ThingTemplate *friend_getNextTemplate() const { return m_nextThingTemplate; }
 	void friend_setNextTemplate(ThingTemplate *tmplate) { m_nextThingTemplate = tmplate; }
 	void friend_setTemplateID(UnsignedShort id) { m_templateID = id; }
