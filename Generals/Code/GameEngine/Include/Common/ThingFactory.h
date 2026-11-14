@@ -46,6 +46,11 @@ class INI;
 
 typedef std::hash_map<AsciiString, ThingTemplate*, rts::hash<AsciiString>, rts::equal_to<AsciiString>/**/> ThingTemplateHashMap;
 typedef ThingTemplateHashMap::iterator ThingTemplateHashMapIt;
+
+// Fusion templates are keyed by source identity plus the original template name. The legacy
+// name-only table remains reserved for untagged/base-game templates.
+typedef ThingTemplateHashMap FusionThingTemplateHashMap;
+typedef FusionThingTemplateHashMap::iterator FusionThingTemplateHashMapIt;
 //-------------------------------------------------------------------------------------------------
 /** Implementation of the thing manager interface singleton */
 //-------------------------------------------------------------------------------------------------
