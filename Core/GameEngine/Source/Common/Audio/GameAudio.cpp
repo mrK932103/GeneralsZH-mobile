@@ -386,7 +386,7 @@ void AudioManager::getInfoForAudioEvent( const AudioEventRTS *eventToFindAndFill
 		return;
 	}
 
-	eventToFindAndFill->setAudioEventInfo(findAudioEventInfo(eventToFindAndFill->getEventName()));
+	eventToFindAndFill->setAudioEventInfo(findAudioEventInfo(eventToFindAndFill->getEventName(), eventToFindAndFill->getFusionSourceId(), TRUE));
 }
 
 //-------------------------------------------------------------------------------------------------
