@@ -526,7 +526,7 @@ The following source inspection was performed against the current Generals nativ
 
 - Mirrored the source-aware WeaponTemplate implementation into the Android engine tree (GeneralsMD), matching the existing desktop Generals implementation.
 - WeaponTemplate now retains its owning Fusion source ID. Fusion definitions are kept in the template vector but are not inserted into the legacy name-only hash map, so identical weapon names from separate mods do not overwrite the base/global entry.
-- Added findWeaponTemplate(name, sourceId), which matches both the original name key and exact source identity. Empty-source callers continue using the legacy lookup.
+- Added exact-source findWeaponTemplate(name, sourceId) for definition ownership, plus an explicit allowBaseFallback overload for references. Reference resolution checks the owning mod first, then the untagged base-game registry; it never searches another Fusion source. Empty-source callers continue using the legacy lookup.
 - parseWeaponTemplateDefinition() now detects overrides only inside the active source. A same-named weapon in another selected mod is treated as a separate definition.
 - Shared INI::parseWeapon() already uses the source-aware overload, so weapon references parsed from a mod's INI resolve to that mod's definition. The new Android overload closes the corresponding missing declaration/implementation gap in GeneralsMD.
 - Weapon projectile ThingTemplate resolution now passes the weapon's source ID to ThingFactory, allowing the source's projectile object to resolve in its own namespace with base-game fallback.
