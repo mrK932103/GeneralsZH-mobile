@@ -819,6 +819,7 @@ public:
 	*/
 	const WeaponTemplate *findWeaponTemplate(const AsciiString& name) const;
 	const WeaponTemplate *findWeaponTemplate(const AsciiString& name, const AsciiString& sourceId) const;
+	const WeaponTemplate *findWeaponTemplate(const AsciiString& name, const AsciiString& sourceId, Bool allowBaseFallback) const;
 	const WeaponTemplate *findWeaponTemplate(const char* name) const;
 	const WeaponTemplate *findWeaponTemplateByNameKey( NameKeyType key ) const { return findWeaponTemplatePrivate( key ); }
 
