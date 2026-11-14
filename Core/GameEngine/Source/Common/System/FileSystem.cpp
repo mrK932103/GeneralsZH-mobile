@@ -319,6 +319,29 @@ Bool FileSystem::getFileInfo(const AsciiString& filename, FileInfo *fileInfo, Fi
 	return FALSE;
 }
 
+// Resolve a file instance through the public FileSystem layer. Loose files
+// always shadow archive entries, so reserve instance zero for a loose file
+// when one exists and shift the exact archive slot by one.
+Bool FileSystem::getFileInstanceForArchive(const AsciiString& filename, const AsciiString& archiveFilename, FileInstance *instance) const
+{
+	if (instance == nullptr || TheArchiveFileSystem == nullptr)
+		return FALSE;
+
+	FileInstance archiveInstance = 0;
+	if (!TheArchiveFileSystem->getFileInstanceForArchive(filename, archiveFilename, &archiveInstance))
+		return FALSE;
+
+	if (TheLocalFileSystem != nullptr && TheLocalFileSystem->doesFileExist(filename.str()))
+	{
+		if (archiveInstance == ~FileInstance(0))
+			return FALSE;
+		++archiveInstance;
+	}
+
+	*instance = archiveInstance;
+	return TRUE;
+}
+
 //============================================================================
 // FileSystem::createDirectory
 //============================================================================
