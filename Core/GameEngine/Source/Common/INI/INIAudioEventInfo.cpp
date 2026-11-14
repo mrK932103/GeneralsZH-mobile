@@ -57,7 +57,9 @@ void INI::parseMusicTrackDefinition( INI* ini )
 	AudioEventInfo *defaultInfo = TheAudio->findAudioEventInfo("DefaultMusicTrack");
 	if (defaultInfo) {
 		(*track) = (*defaultInfo);
-		TheAudio->addTrackName( name );
+		// Fusion music tracks are source-local; do not mix them into the base playlist.
+		if (ini->getSourceId().isEmpty())
+			TheAudio->addTrackName( name );
 	}
 
 	track->m_audioName = name;
