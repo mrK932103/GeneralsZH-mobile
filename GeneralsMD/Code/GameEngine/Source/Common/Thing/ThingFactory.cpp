@@ -131,8 +131,10 @@ ThingFactory::ThingFactory()
 
 #ifdef USING_STLPORT
 	m_templateHashMap.resize( TEMPLATE_HASH_SIZE );
+	m_fusionTemplateHashMap.resize( TEMPLATE_HASH_SIZE );
 #else
 	m_templateHashMap.reserve( TEMPLATE_HASH_SIZE );
+	m_fusionTemplateHashMap.reserve( TEMPLATE_HASH_SIZE );
 #endif
 }
 
