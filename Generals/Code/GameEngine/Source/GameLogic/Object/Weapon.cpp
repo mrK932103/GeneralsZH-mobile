@@ -403,7 +403,9 @@ void WeaponTemplate::postProcessLoad()
 	}
 	else
 	{
-		m_projectileTmpl = TheThingFactory->findTemplate(m_projectileName);
+		m_projectileTmpl = m_fusionSourceId.isNotEmpty()
+			? TheThingFactory->findTemplate(m_projectileName, m_fusionSourceId, FALSE)
+			: TheThingFactory->findTemplate(m_projectileName);
 		DEBUG_ASSERTCRASH(m_projectileTmpl, ("projectile %s not found!",m_projectileName.str()));
 	}
 
