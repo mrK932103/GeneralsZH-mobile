@@ -219,6 +219,7 @@ AudioEventRTS::AudioEventRTS( const AudioEventRTS& right )
 	m_playingHandle				= right.m_playingHandle;
 	m_killThisHandle			= right.m_killThisHandle;
 	m_eventName						= right.m_eventName;
+	m_fusionSourceId		= right.m_fusionSourceId;
 	m_priority						= right.m_priority;
 	m_volume							= right.m_volume;
 	m_timeOfDay						= right.m_timeOfDay;
