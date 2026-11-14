@@ -1443,6 +1443,7 @@ protected:
 			if (m_fadeIn)
 			{
 				AudioEventRTS fadeAudioEvent(m_fadeSoundName);
+				fadeAudioEvent.setFusionSourceId(getFusionSourceId());
 				fadeAudioEvent.setObjectID(sourceObj->getID());
 				TheAudio->addAudioEvent(&fadeAudioEvent);
 				debris->getDrawable()->fadeIn(m_fadeFrames);
@@ -1451,6 +1452,7 @@ protected:
 			if (m_fadeOut)
 			{
 				AudioEventRTS fadeAudioEvent(m_fadeSoundName);
+				fadeAudioEvent.setFusionSourceId(getFusionSourceId());
 				fadeAudioEvent.setObjectID(sourceObj->getID());
 				TheAudio->addAudioEvent(&fadeAudioEvent);
 				debris->getDrawable()->fadeOut(m_fadeFrames);
