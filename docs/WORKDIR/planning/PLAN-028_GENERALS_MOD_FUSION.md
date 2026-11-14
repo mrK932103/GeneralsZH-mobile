@@ -568,3 +568,11 @@ The following source inspection was performed against the current Generals nativ
 - Fusion audio definitions are included in audio-event enumeration and level-specific cleanup. Fusion music entries are not inserted into the shared base-game music playlist.
 - This covers AudioEventRTS references parsed from source-owned INI definitions, including OCL/FX nuggets that use the common parser. Runtime-created AudioEventRTS instances without an explicit source continue to use the base-game namespace; callers that create such events dynamically must still supply source context in a future integration pass.
 - No C++ compile, Android NDK build, APK build, unit test, or device test was run. This is a committed engine-source change, not proof of playable mixed-mod Skirmish.
+### AudioEvent source-qualified registry slice (14 November 2026)
+
+- Added a separate AudioEventInfo registry keyed by sourceId::eventName; base-game audio definitions remain in the legacy name-only registry.
+- INI AudioEvent, Dialog and MusicTrack definitions now register under INI::getSourceId(). Their default templates still come from the shared/base registry, and the source ID is restored after copying defaults.
+- AudioEventRTS now carries the source ID through copy construction and assignment. INI::parseAudioEventRTS assigns the current source, and AudioManager::getInfoForAudioEvent resolves exact source first, then untagged base-game audio only.
+- Level-specific cleanup and destruction now include the Fusion registry. Audio event enumeration and the music-file availability probe include Fusion entries.
+- This isolates AudioEventInfo records and normal AudioEventRTS lookup. It does not yet isolate audio asset file paths, shared UI/script lookups that call the legacy name-only API directly, or every delayed/script-generated audio event that lacks a source ID. Those paths need explicit source propagation before claiming complete audio isolation.
+- No native compile, Android NDK build, APK build, unit test, or device test was run.
