@@ -1410,6 +1410,9 @@ void INI::parseAudioEventRTS( INI *ini, void * /*instance*/, void *store, const 
 
 	AudioEventRTS *theSound = (AudioEventRTS*)store;
 
+	// Preserve the owning mod so the event is resolved in its own audio namespace.
+	theSound->setFusionSourceId(ini->getSourceId());
+
 	// translate the string into a sound
 	if (stricmp(token, "NoSound") != 0) {
 		theSound->setEventName(AsciiString(token));
