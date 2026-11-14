@@ -99,6 +99,7 @@ public:
 	virtual void doFXPos(const Coord3D *primary, const Matrix3D* /*primaryMtx*/, const Real /*primarySpeed*/, const Coord3D * /*secondary*/, const Real /*overrideRadius*/ ) const override
 	{
 		AudioEventRTS sound(m_soundName);
+		sound.setFusionSourceId(m_fusionSourceId);
 
 		if (primary)
 		{
@@ -111,6 +112,7 @@ public:
 	virtual void doFXObj(const Object* primary, const Object* secondary = nullptr) const override
 	{
 		AudioEventRTS sound(m_soundName);
+		sound.setFusionSourceId(m_fusionSourceId);
 		if (primary)
 		{
 			sound.setPlayerIndex(primary->getControllingPlayer()->getPlayerIndex());
@@ -130,12 +132,14 @@ public:
 		};
 
 		SoundFXNugget* nugget = newInstance(SoundFXNugget);
+		nugget->m_fusionSourceId = ini->getSourceId();
 		ini->initFromINI(nugget, myFieldParse);
 		((FXList*)instance)->addFXNugget(nugget);
 	}
 
 private:
 	AsciiString		m_soundName;
+	AsciiString		m_fusionSourceId;
 };
 EMPTY_DTOR(SoundFXNugget)
 
