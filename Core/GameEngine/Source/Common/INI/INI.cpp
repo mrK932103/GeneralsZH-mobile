@@ -1486,7 +1486,7 @@ void INI::parseWeaponTemplate( INI* ini, void * /*instance*/, void *store, const
 
 	const AsciiString sourceId = ini->getSourceId();
 	const WeaponTemplate *tt = sourceId.isNotEmpty()
-		? TheWeaponStore->findWeaponTemplate(AsciiString(token), sourceId)
+		? TheWeaponStore->findWeaponTemplate(AsciiString(token), sourceId, TRUE)
 		: TheWeaponStore->findWeaponTemplate(token);	// could be null!
 	DEBUG_ASSERTCRASH(tt || stricmp(token, "None") == 0,
 		("WeaponTemplate %s not found in Fusion source '%s'!", token, sourceId.str()));
