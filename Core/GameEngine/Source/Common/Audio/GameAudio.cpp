@@ -934,6 +934,18 @@ void AudioManager::removeLevelSpecificAudioEventInfos()
     it = next;
   }
 
+	AudioEventInfoHash::iterator fusionIt = m_fusionAudioEventInfo.begin();
+	while (fusionIt != m_fusionAudioEventInfo.end())
+	{
+		AudioEventInfoHash::iterator next = fusionIt;
+		++next;
+		if (fusionIt->second->isLevelSpecific())
+		{
+			deleteInstance(fusionIt->second);
+			m_fusionAudioEventInfo.erase(fusionIt);
+		}
+		fusionIt = next;
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
