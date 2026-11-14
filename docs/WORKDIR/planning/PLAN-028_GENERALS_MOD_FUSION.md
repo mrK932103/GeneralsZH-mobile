@@ -513,10 +513,26 @@ The following source inspection was performed against the current Generals nativ
 - Registry cleanup/reset now removes the correct source-qualified key and accounts for both registries when checking template IDs.
 
 **Limitations / not yet complete**
-- This is only the ThingTemplate identity layer. Many other named registries remain global (WeaponTemplate, OCL, ParticleSystem, Armor, Locomotor, Upgrade, Science, SpecialPower, AudioEvent, CommandSet/CommandButton, etc.).
+- This is only the ThingTemplate identity layer plus the WeaponTemplate source-identity slice described below. Many other named registries remain global (OCL, ParticleSystem, Armor, Locomotor, Upgrade, Science, SpecialPower, AudioEvent, CommandSet/CommandButton, etc.).
 - Delayed references outside ThingTemplate's own prerequisites, including weapon projectile/OCL/FX/audio links and nested OCL/FX nuggets, still need source-aware propagation.
 - ProductionPrerequisite now resolves its Object names by source, but the full game runtime still needs an audit for every name-to-template lookup (scripts, AI, reskins/overrides from map.ini, save/replay/network template IDs, and any direct `findTemplate(name)` call).
 - The top-level game loading path must be verified to pass stable source IDs to `loadFileDirectory` / `loadFromFusionSource` for every selected mod. A source-aware registry does nothing for files loaded through the legacy empty-source path.
 - No native Android CMake/NDK build or device test has been run in this session. Treat this as an implementation stage, not a verified playable multi-mod build.
 
 - Follow-up correction in the ThingTemplate vertical slice: definition creation now uses an exact-source-only lookup, so a same-named base-game Object is not mistaken for an already-loaded definition from the selected mod. Base-game fallback is reserved for reference resolution (for example, `parseThingTemplate`, prerequisites, and default-template inheritance), never for choosing which registry owns a new mod definition.
+
+
+### Native WeaponTemplate source identity slice (14 November 2026)
+
+- Mirrored the source-aware WeaponTemplate implementation into the Android engine tree (GeneralsMD), matching the existing desktop Generals implementation.
+- WeaponTemplate now retains its owning Fusion source ID. Fusion definitions are kept in the template vector but are not inserted into the legacy name-only hash map, so identical weapon names from separate mods do not overwrite the base/global entry.
+- Added findWeaponTemplate(name, sourceId), which matches both the original name key and exact source identity. Empty-source callers continue using the legacy lookup.
+- parseWeaponTemplateDefinition() now detects overrides only inside the active source. A same-named weapon in another selected mod is treated as a separate definition.
+- Shared INI::parseWeapon() already uses the source-aware overload, so weapon references parsed from a mod's INI resolve to that mod's definition. The new Android overload closes the corresponding missing declaration/implementation gap in GeneralsMD.
+- Weapon projectile ThingTemplate resolution now passes the weapon's source ID to ThingFactory, allowing the source's projectile object to resolve in its own namespace with base-game fallback.
+- Both Generals and GeneralsMD were updated for projectile lookup behavior.
+
+**Remaining WeaponTemplate limitations**
+- FireWeaponOCL and ProjectileDetonationOCL still resolve through the global ObjectCreationListStore; OCL source isolation is not implemented by this change.
+- Projectile exhaust ParticleSystem, weapon FXList pointers, AudioEvent, historic-bonus weapon references, and other nested/delayed links still require source-aware stores and lookup propagation.
+- No C++ compile, Android NDK build, APK build, JUnit run, or device test was performed. This is a code change committed to the feature branch, not proof that mixed-mod Skirmish is playable yet.
