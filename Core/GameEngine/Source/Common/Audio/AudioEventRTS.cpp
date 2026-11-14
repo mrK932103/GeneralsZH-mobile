@@ -525,7 +525,11 @@ void AudioEventRTS::setAudioEventInfo( const AudioEventInfo *eventInfo ) const
 const AudioEventInfo *AudioEventRTS::getAudioEventInfo() const
 {
 	if (m_eventInfo) {
-		if (m_eventInfo->m_audioName == m_eventName) {
+		// A matching event name is not sufficient for Fusion: two mods may
+		// define the same audio event name with different sound lists.
+		// Never reuse cached metadata owned by another source.
+		if (m_eventInfo->m_audioName == m_eventName
+			&& m_eventInfo->m_fusionSourceId == m_fusionSourceId) {
 			return m_eventInfo;
 		} else {
 			m_eventInfo = nullptr;
