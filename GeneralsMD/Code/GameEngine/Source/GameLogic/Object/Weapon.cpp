@@ -433,7 +433,7 @@ void WeaponTemplate::postProcessLoad()
 		}
 		else
 		{
-			m_fireOCLs[i] = TheObjectCreationListStore->findObjectCreationList(m_fireOCLNames[i].str() );
+			m_fireOCLs[i] = TheObjectCreationListStore->findObjectCreationList(m_fireOCLNames[i].str(), m_fusionSourceId, TRUE);
 			DEBUG_ASSERTCRASH(m_fireOCLs[i], ("OCL %s not found in a weapon!",m_fireOCLNames[i].str()));
 		}
 		m_fireOCLNames[i].clear();
@@ -445,7 +445,7 @@ void WeaponTemplate::postProcessLoad()
 		}
 		else
 		{
-			m_projectileDetonationOCLs[i] = TheObjectCreationListStore->findObjectCreationList(m_projectileDetonationOCLNames[i].str() );
+			m_projectileDetonationOCLs[i] = TheObjectCreationListStore->findObjectCreationList(m_projectileDetonationOCLNames[i].str(), m_fusionSourceId, TRUE);
 			DEBUG_ASSERTCRASH(m_projectileDetonationOCLs[i], ("OCL %s not found in a weapon!",m_projectileDetonationOCLNames[i].str()));
 		}
 		m_projectileDetonationOCLNames[i].clear();
