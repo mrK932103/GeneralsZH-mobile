@@ -1394,6 +1394,7 @@ void INI::parseDynamicAudioEventRTS( INI *ini, void * /*instance*/, void *store,
 	{
 		if (*theSound == nullptr)
 			*theSound = newInstance(DynamicAudioEventRTS);
+		(*theSound)->m_event.setFusionSourceId(ini->getSourceId());
 		(*theSound)->m_event.setEventName(AsciiString(token));
 	}
 
