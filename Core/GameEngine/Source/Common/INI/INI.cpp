@@ -1566,7 +1566,7 @@ void INI::parseObjectCreationList( INI* ini, void * /*instance*/, void *store, c
 	typedef const ObjectCreationList *ConstObjectCreationListPtr;
 	ConstObjectCreationListPtr* theObjectCreationList = (ConstObjectCreationListPtr*)store;
 
-	const ObjectCreationList *ocl = TheObjectCreationListStore->findObjectCreationList(token);	// could be null!
+	const ObjectCreationList *ocl = TheObjectCreationListStore->findObjectCreationList(token, ini->getSourceId(), TRUE);	// could be null!
 	DEBUG_ASSERTCRASH(ocl || stricmp(token, "None") == 0, ("ObjectCreationList %s not found!",token));
 	// assign it, even if null!
 	*theObjectCreationList = ocl;
