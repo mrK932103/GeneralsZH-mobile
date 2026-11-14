@@ -501,3 +501,20 @@ The following source inspection was performed against the current Generals nativ
 - The Fusion preflight screen now displays each faction's source mod, local dependency count, and cross-source/unresolved dependency warnings.
 - Added unit fixtures for same-mod multi-archive resolution and cross-mod name collisions.
 - This is a source-aware analysis/manifest stage only. It does not yet rewrite INI references, build the final package, or change the native runtime lookup tables. Android/JUnit compilation and device validation remain outstanding.
+
+### Native ThingTemplate source registry vertical slice (14 November 2026)
+
+- Added a dedicated Fusion ThingTemplate registry keyed by `sourceId::originalTemplateName`; the legacy name-only registry remains reserved for untagged/base-game templates.
+- `ThingTemplate` now retains its owning Fusion source identity. Template copies/reskins preserve the destination template's source identity.
+- `ThingFactory::parseObjectDefinition` creates and finds Object templates in the active `INI::getSourceId()` namespace. Same-named objects from two Fusion sources can coexist without replacing one another in the legacy table.
+- Added source-aware lookup with strict resolution order: exact selected source first, then untagged/base-game template. It never searches another Fusion source as an implicit fallback.
+- Source context is also used for ObjectReskin parents, BuildVariations, and ProductionPrerequisite unit references resolved during ThingTemplate post-processing.
+- Applied the native change to both `Generals` and `GeneralsMD` engine trees; Android's build workflow compiles the `GeneralsMD` target, so the mobile target is included. Shared `Core/GameEngine/Source/Common/INI/INI.cpp` now calls the source-aware lookup for ThingTemplate fields.
+- Registry cleanup/reset now removes the correct source-qualified key and accounts for both registries when checking template IDs.
+
+**Limitations / not yet complete**
+- This is only the ThingTemplate identity layer. Many other named registries remain global (WeaponTemplate, OCL, ParticleSystem, Armor, Locomotor, Upgrade, Science, SpecialPower, AudioEvent, CommandSet/CommandButton, etc.).
+- Delayed references outside ThingTemplate's own prerequisites, including weapon projectile/OCL/FX/audio links and nested OCL/FX nuggets, still need source-aware propagation.
+- ProductionPrerequisite now resolves its Object names by source, but the full game runtime still needs an audit for every name-to-template lookup (scripts, AI, reskins/overrides from map.ini, save/replay/network template IDs, and any direct `findTemplate(name)` call).
+- The top-level game loading path must be verified to pass stable source IDs to `loadFileDirectory` / `loadFromFusionSource` for every selected mod. A source-aware registry does nothing for files loaded through the legacy empty-source path.
+- No native Android CMake/NDK build or device test has been run in this session. Treat this as an implementation stage, not a verified playable multi-mod build.
