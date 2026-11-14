@@ -1522,7 +1522,10 @@ void INI::parseParticleSystemTemplate( INI *ini, void * /*instance*/, void *stor
 {
 	const char *token = ini->getNextToken();
 
-	const ParticleSystemTemplate *pSystemT = TheParticleSystemManager->findTemplate( AsciiString( token ) );
+	const AsciiString sourceId = ini->getSourceId();
+	const ParticleSystemTemplate *pSystemT = sourceId.isNotEmpty()
+		? TheParticleSystemManager->findTemplate( AsciiString( token ), sourceId, TRUE )
+		: TheParticleSystemManager->findTemplate( AsciiString( token ) );
 	DEBUG_ASSERTCRASH( pSystemT || stricmp( token, "None" ) == 0, ("ParticleSystem %s not found!",token) );
 
 	typedef const ParticleSystemTemplate* ConstParticleSystemTemplatePtr;
