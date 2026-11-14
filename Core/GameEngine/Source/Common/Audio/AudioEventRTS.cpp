@@ -802,6 +802,15 @@ AsciiString AudioEventRTS::generateFilenameExtension( AudioType audioTypeToPlay 
 //-------------------------------------------------------------------------------------------------
 void AudioEventRTS::adjustForLocalization(AsciiString &strToAdjust)
 {
+	// The legacy localization probe searches the merged global filesystem.
+	// For Fusion events that can select a localized file belonging to a
+	// different mod when two archives contain the same relative path.
+	// Keep the source event's non-localized path until the archive layer can
+	// resolve localized files by FusionSourceId as well.
+	if (m_fusionSourceId.isNotEmpty()) {
+		return;
+	}
+
 	const char *filename = strToAdjust.reverseFind('\\');
 	if (filename) {
 		filename += 1;
