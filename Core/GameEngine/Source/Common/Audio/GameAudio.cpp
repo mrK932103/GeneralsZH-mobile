@@ -1054,6 +1054,13 @@ void AudioManager::findAllAudioEventsOfType( AudioType audioType, std::vector<Au
 			allEvents.push_back(aud);
 		}
 	}
+
+	AudioEventInfoHash::const_iterator fusionIt;
+	for (fusionIt = m_fusionAudioEventInfo.begin(); fusionIt != m_fusionAudioEventInfo.end(); ++fusionIt) {
+		AudioEventInfo *aud = fusionIt->second;
+		if (aud->m_soundType == audioType)
+			allEvents.push_back(aud);
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
