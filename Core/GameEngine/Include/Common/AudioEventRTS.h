@@ -74,6 +74,8 @@ public:
 
 	void setEventName( AsciiString name );
 	const AsciiString& getEventName() const { return m_eventName; }
+	void setFusionSourceId(const AsciiString& sourceId) { m_fusionSourceId = sourceId; m_eventInfo = nullptr; }
+	const AsciiString& getFusionSourceId() const { return m_fusionSourceId; }
 
 	// generateFilename is separate from generatePlayInfo because generatePlayInfo should only be called once
 	// per triggered event. generateFilename will be called once per loop, or once to get each filename if 'all' is
