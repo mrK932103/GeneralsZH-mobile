@@ -1440,7 +1440,9 @@ void INI::parseThingTemplate( INI* ini, void * /*instance*/, void *store, const 
 	}
 	else
 	{
-		const ThingTemplate *tt = TheThingFactory->findTemplate(token);	// could be null!
+		const ThingTemplate *tt = ini->getSourceId().isNotEmpty()
+			? TheThingFactory->findTemplate(token, ini->getSourceId(), FALSE)
+			: TheThingFactory->findTemplate(token);	// could be null!
 		DEBUG_ASSERTCRASH(tt, ("ThingTemplate %s not found!",token));
 		// assign it, even if null!
 		*theThingTemplate = tt;
