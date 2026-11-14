@@ -46,6 +46,11 @@ class INI;
 
 typedef std::hash_map<AsciiString, ThingTemplate*, rts::hash<AsciiString>, rts::equal_to<AsciiString>/**/> ThingTemplateHashMap;
 typedef ThingTemplateHashMap::iterator ThingTemplateHashMapIt;
+
+// Fusion templates are keyed by source identity plus the original INI name. The legacy
+// name-only table remains reserved for untagged/base-game templates.
+typedef ThingTemplateHashMap FusionThingTemplateHashMap;
+typedef FusionThingTemplateHashMap::iterator FusionThingTemplateHashMapIt;
 //-------------------------------------------------------------------------------------------------
 /** Implementation of the thing manager interface singleton */
 //-------------------------------------------------------------------------------------------------
@@ -65,6 +70,7 @@ public:
 
 	/// create a new template with name 'name' and add to template list
 	ThingTemplate *newTemplate( const AsciiString& name );
+	ThingTemplate *newTemplate( const AsciiString& name, const AsciiString& sourceId );
 
 	// get the first template in our list
 	const ThingTemplate *firstTemplate() { return m_firstTemplate; }
@@ -74,6 +80,8 @@ public:
 		note, this is now substantially faster (does a hash-table lookup)
 	*/
 	const ThingTemplate *findTemplate( const AsciiString& name, Bool check = TRUE ) { return findTemplateInternal( name, check ); }
+	const ThingTemplate *findTemplate( const AsciiString& name, const AsciiString& sourceId, Bool check = TRUE )
+		{ return findTemplateInternal( name, sourceId, check ); }
 
 	/**
 		get a template given ID. return null if not found.
@@ -121,11 +129,13 @@ private:
 		folks outside of the template system itself shouldn't get access...
 	*/
 	ThingTemplate *findTemplateInternal( const AsciiString& name, Bool check = TRUE );
+	ThingTemplate *findTemplateInternal( const AsciiString& name, const AsciiString& sourceId, Bool check );
 
 	ThingTemplate					*m_firstTemplate;			///< head of linked list
 	UnsignedShort					m_nextTemplateID;			///< next available ID for templates
 
-	ThingTemplateHashMap	m_templateHashMap;		///< all thing templates, for fast lookup.
+	ThingTemplateHashMap	m_templateHashMap;		///< untagged/base-game templates, for legacy lookup.
+	FusionThingTemplateHashMap m_fusionTemplateHashMap; ///< templates keyed by Fusion source and name.
 
 };
 
