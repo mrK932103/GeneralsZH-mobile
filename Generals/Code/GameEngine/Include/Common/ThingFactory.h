@@ -129,6 +129,7 @@ private:
 		folks outside of the template system itself shouldn't get access...
 	*/
 	ThingTemplate *findTemplateInternal( const AsciiString& name, Bool check = TRUE );
+	ThingTemplate *findTemplateInternal( const AsciiString& name, const AsciiString& sourceId, Bool check );
 
 	ThingTemplate					*m_firstTemplate;			///< head of linked list
 	UnsignedShort					m_nextTemplateID;			///< next available ID for templates
