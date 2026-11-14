@@ -47,6 +47,15 @@
 
 #include "Common/AudioAffect.h"
 #include "Common/AudioEventInfo.h"
+
+// Keep Fusion audio definitions in a source-qualified namespace.
+static AsciiString makeFusionAudioEventKey(const AsciiString& eventName, const AsciiString& sourceId)
+{
+	AsciiString key = sourceId;
+	key.concat("::");
+	key.concat(eventName);
+	return key;
+}
 #include "Common/AudioEventRTS.h"
 #include "Common/AudioHandleSpecialValues.h"
 #include "Common/AudioRequest.h"
