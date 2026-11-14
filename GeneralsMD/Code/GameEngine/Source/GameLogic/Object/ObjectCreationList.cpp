@@ -80,6 +80,15 @@
 
 ObjectCreationListStore *TheObjectCreationListStore = nullptr;					///< the ObjectCreationList store definition
 
+// Keep a Fusion OCL's identity separate from its original INI name.
+static AsciiString makeFusionObjectCreationListKey(const AsciiString& name, const AsciiString& sourceId)
+{
+	AsciiString key = sourceId;
+	key.concat("::");
+	key.concat(name);
+	return key;
+}
+
 //-------------------------------------------------------------------------------------------------
 static void adjustVector(Coord3D *vec, const Matrix3D* mtx)
 {
@@ -1622,15 +1631,25 @@ const ObjectCreationList *ObjectCreationListStore::findObjectCreationList(const 
 	if (stricmp(name, "None") == 0)
 		return nullptr;
 
-  ObjectCreationListMap::const_iterator it = m_ocls.find(NAMEKEY(name));
-  if (it == m_ocls.end())
-	{
+	ObjectCreationListMap::const_iterator it = m_ocls.find(NAMEKEY(name));
+	return it == m_ocls.end() ? nullptr : &it->second;
+}
+
+//-------------------------------------------------------------------------------------------------
+const ObjectCreationList *ObjectCreationListStore::findObjectCreationList(const char* name, const AsciiString& sourceId, Bool allowBaseFallback) const
+{
+	if (stricmp(name, "None") == 0)
 		return nullptr;
-	}
-	else
+
+	if (sourceId.isNotEmpty())
 	{
-		return &(*it).second;
+		AsciiString key = makeFusionObjectCreationListKey(AsciiString(name), sourceId);
+		FusionObjectCreationListMap::const_iterator it = m_fusionOcls.find(key);
+		if (it != m_fusionOcls.end())
+			return &it->second;
 	}
+
+	return allowBaseFallback ? findObjectCreationList(name) : nullptr;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1644,10 +1663,20 @@ void ObjectCreationListStore::addObjectCreationNugget(ObjectCreationNugget* nugg
 {
 	// read the ObjectCreationList name
 	const char *c = ini->getNextToken();
-	NameKeyType key = TheNameKeyGenerator->nameToKey(c);
-	ObjectCreationList& ocl = TheObjectCreationListStore->m_ocls[key];
-	ocl.clear();
-	ini->initFromINI(&ocl, TheObjectCreationListFieldParse);
+	const AsciiString sourceId = ini->getSourceId();
+	ObjectCreationList* ocl = nullptr;
+	if (sourceId.isNotEmpty())
+	{
+		AsciiString key = makeFusionObjectCreationListKey(AsciiString(c), sourceId);
+		ocl = &TheObjectCreationListStore->m_fusionOcls[key];
+	}
+	else
+	{
+		NameKeyType key = TheNameKeyGenerator->nameToKey(c);
+		ocl = &TheObjectCreationListStore->m_ocls[key];
+	}
+	ocl->clear();
+	ini->initFromINI(ocl, TheObjectCreationListFieldParse);
 }
 
 //-------------------------------------------------------------------------------------------------
