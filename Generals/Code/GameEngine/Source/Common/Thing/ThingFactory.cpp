@@ -263,6 +263,7 @@ void ThingFactory::reset()
 		// hash map, to prevent any crashes.
 
 		AsciiString templateName = t->getName();
+		AsciiString templateSourceId = t->getSourceId();
 
 		Overridable *stillValid = t->deleteOverrides();
 		if (stillValid == nullptr && possibleAdjustment) {
@@ -271,8 +272,8 @@ void ThingFactory::reset()
 
 		if (stillValid == nullptr) {
 			// Also needs to be removed from the Hash map.
-			if (t->getSourceId().isNotEmpty())
-				m_fusionTemplateHashMap.erase(makeFusionThingTemplateKey(templateName, t->getSourceId()));
+			if (templateSourceId.isNotEmpty())
+				m_fusionTemplateHashMap.erase(makeFusionThingTemplateKey(templateName, templateSourceId));
 			else
 				m_templateHashMap.erase(templateName);
 		}
