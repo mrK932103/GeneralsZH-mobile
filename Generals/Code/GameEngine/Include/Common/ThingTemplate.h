@@ -654,6 +654,7 @@ private:
 	// ---- Strings
 	UnicodeString			m_displayName;			///< UI display for onscreen display
 	AsciiString				m_nameString;					///< name of this thing template
+	AsciiString				m_sourceId;					///< Fusion source identity; empty for legacy templates
 	AsciiString				m_defaultOwningSide;	///< default owning side (owning player is inferred)
 	AsciiString				m_commandSetString;
 	AsciiString				m_selectedPortraitImageName;
