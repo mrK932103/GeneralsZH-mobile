@@ -70,6 +70,7 @@ public:
 
 	/// create a new template with name 'name' and add to template list
 	ThingTemplate *newTemplate( const AsciiString& name );
+	ThingTemplate *newTemplate( const AsciiString& name, const AsciiString& sourceId );
 
 	// get the first template in our list
 	const ThingTemplate *firstTemplate() { return m_firstTemplate; }
