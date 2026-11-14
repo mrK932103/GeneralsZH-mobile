@@ -211,8 +211,7 @@ private:
 	ObjectCreationListMap m_ocls;
 
 	// Fusion OCLs are isolated by source identity; legacy map remains base-game only.
-	typedef std::map< AsciiString, ObjectCreationList, std::less<AsciiString> > FusionObjectCreationListMap;
-	FusionObjectCreationListMap m_fusionOcls;
+	ObjectCreationListMap m_fusionOcls;
 
 	// note, this list doesn't own the nuggets; all nuggets are owned by the Store.
 	typedef std::vector<ObjectCreationNugget*> ObjectCreationNuggetVector;
