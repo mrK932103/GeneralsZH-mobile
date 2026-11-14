@@ -263,8 +263,10 @@ class AudioManager : public SubsystemInterface
 		virtual void processRequestList();
 
 		virtual AudioEventInfo *newAudioEventInfo( AsciiString newEventName );
+		virtual AudioEventInfo *newAudioEventInfo( AsciiString newEventName, const AsciiString& sourceId );
     virtual void addAudioEventInfo( AudioEventInfo * newEventInfo );
 		virtual AudioEventInfo *findAudioEventInfo( AsciiString eventName ) const;
+		virtual AudioEventInfo *findAudioEventInfo( AsciiString eventName, const AsciiString& sourceId, Bool allowBaseFallback = TRUE ) const;
 
 		const AudioSettings *getAudioSettings() const;
 		const MiscAudio *getMiscAudio() const;
