@@ -1019,6 +1019,12 @@ Bool AudioManager::isMusicAlreadyLoaded() const
 		}
 	}
 
+	// Fusion mods keep music definitions in their own source-qualified registry.
+	for (it = m_fusionAudioEventInfo.begin(); it != m_fusionAudioEventInfo.end(); ++it) {
+		if (it->second && it->second->m_soundType == AT_Music)
+			musicToLoad = it->second;
+	}
+
 	if (!musicToLoad) {
 		// GeneralsX @diag Android port 06/09/2026 A FALSE from this function makes
 		// GameEngine::init() set the quit flag, so the game reaches the main menu
