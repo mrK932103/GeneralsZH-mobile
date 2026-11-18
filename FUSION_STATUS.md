@@ -44,7 +44,7 @@ A buildable APK alone is not acceptance. Completion requires a successful Androi
 
 Science IDs are now generated from the source-qualified key `sourceId::scienceName` for Fusion sources; base-game entries retain their legacy unqualified key. INI single-science fields and science vectors pass the active INI source into the resolver, so prerequisite references and fields such as `RequiredScience` resolve to the correct mod namespace. `ScienceInfo` stores source ID and original internal name; duplicate/override matching is source-local. Player science state, acquisition, prerequisite checks, purchasing, and existing save vectors store the resulting `ScienceType`, so the qualified ID is carried through those paths without changing the save-vector layout. The API also has a source-aware `getScienceFromInternalName` overload. Mirrored in Generals and GeneralsMD.
 
-Known limitation: the engine's `ScienceType` remains a NameKey hash value, so a theoretical hash collision is still possible. Build, save/load, multiplayer synchronization, UI selection and mixed-mod match tests are not verified.
+Known limitation: the engine's `ScienceType` remains a NameKey hash value, so a theoretical hash collision is still possible. Build, save/load, multiplayer synchronization, UI selection and mixed-mod match tests are not verified. Source-first/base fallback is implemented in both Generals and GeneralsMD.
 
 
 ## Critical known gap
