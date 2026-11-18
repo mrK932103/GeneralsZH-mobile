@@ -433,7 +433,7 @@ void INI::prepFile( AsciiString filename, INILoadType loadType )
 		std::string source(m_sourceId.str());
 		const std::string::size_type separator = source.find('!');
 		if (separator == std::string::npos || separator == 0)
-			throw INIException("Fusion source identity must contain an exact archive path and entry path");
+			throw INIException("Fusion source identity must contain a mod folder path and entry path");
 
 		const AsciiString modFolder(source.substr(0, separator).c_str());
 		FileInstance instance = 0;
