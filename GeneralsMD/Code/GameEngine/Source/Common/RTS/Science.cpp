@@ -115,8 +115,7 @@ std::vector<AsciiString> ScienceStore::friend_getScienceNames() const
 	for (ScienceInfoVec::const_iterator it = m_sciences.begin(); it != m_sciences.end(); ++it)
 	{
 		const ScienceInfo* si = (const ScienceInfo*)(*it)->getFinalOverride();
-		NameKeyType nk = (NameKeyType)(si->m_science);
-		v.push_back(TheNameKeyGenerator->keyToName(nk));
+		v.push_back(si->m_internalName);
 	}
 	return v;
 }
@@ -161,10 +160,11 @@ const ScienceInfo* ScienceStore::findScienceInfo(ScienceType st) const
 /*static*/ void ScienceStore::friend_parseScienceDefinition( INI* ini )
 {
 	const char* c = ini->getNextToken();
+	if (!TheScienceStore)
+		return;
 	const AsciiString sourceId = ini->getSourceId();
 	ScienceType st = TheScienceStore->friend_getScienceType(c, sourceId);
 
-	if (TheScienceStore)
 	{
 
 		static const FieldParse myFieldParse[] =
