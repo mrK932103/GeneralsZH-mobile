@@ -2,7 +2,7 @@
 
 Last updated: 2026-11-18
 
-Latest implementation change: Fusion source identity now represents the selected mod folder (absolute path) rather than one `.big` archive. The native filesystem resolves a requested virtual file to the highest-priority matching archive whose full path is inside that mod folder, while preserving loose-file precedence. INI single-file opens and directory membership checks use this mod-folder lookup; directory scans are filtered to files from that selected mod. Android preflight now tags INI definitions with the selected mod-folder identity, so sibling `.big` archives share one faction namespace. These changes are foundational only; they are not yet compiled or tested, and non-INI runtime registries/assets remain incomplete.
+Latest implementation change: FXList now carries its owning Fusion source ID into each FX nugget. Tracer and ray-effect ThingTemplate references and particle-system references resolve through that source namespace (with the existing explicit base-game fallback), rather than using unqualified global lookups. This closes three concrete cross-mod collision paths inside FX execution. The mod-folder-aware INI lookup remains the previous foundational change. The native filesystem resolves a requested virtual file to the highest-priority matching archive whose full path is inside that mod folder, while preserving loose-file precedence. INI single-file opens and directory membership checks use this mod-folder lookup; directory scans are filtered to files from that selected mod. Android preflight now tags INI definitions with the selected mod-folder identity, so sibling `.big` archives share one faction namespace. These changes are foundational only; they are not yet compiled or tested, and non-INI runtime registries/assets remain incomplete.
 
 ## Goal (acceptance criteria)
 
@@ -21,6 +21,8 @@ A buildable APK alone is not acceptance. Completion requires a successful Androi
 - Last known code head before this status file: `ab7c28a8b1a780f5e8bb6ce0415b7ae507084afb`
 
 ## Implemented in the branch (not equivalent to end-to-end completion)
+
+- FXList now propagates its source ID into every FXNugget. TracerName, RayEffect template references and ParticleSystem nugget references use source-qualified registries, preventing same-named effects from another selected mod from being substituted at runtime.
 
 - Android-side multi-mod selection and read-only BIGF/INI preflight work.
 - INI declaration/reference inventory and conservative dependency tracing.
