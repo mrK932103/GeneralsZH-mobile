@@ -108,10 +108,11 @@ static_assert(ARRAY_SIZE(SpecialPowerMaskType::s_bitNameList) == SpecialPowerMas
 //-------------------------------------------------------------------------------------------------
 void SpecialPowerStore::parseSpecialPowerDefinition( INI *ini )
 {
+	const AsciiString sourceId = ini->getSourceId();
 	// read the name
 	AsciiString name = ini->getNextToken();
 
-	SpecialPowerTemplate* specialPower = TheSpecialPowerStore->findSpecialPowerTemplatePrivate( name );
+	SpecialPowerTemplate* specialPower = TheSpecialPowerStore->findSpecialPowerTemplatePrivate( name, sourceId );
 
 	if ( ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES )
 	{
@@ -127,10 +128,11 @@ void SpecialPowerStore::parseSpecialPowerDefinition( INI *ini )
 		else
 		{
 			specialPower = newInstance(SpecialPowerTemplate);
-			const SpecialPowerTemplate *defaultTemplate = TheSpecialPowerStore->findSpecialPowerTemplate( "DefaultSpecialPower" );
+			const SpecialPowerTemplate *defaultTemplate = TheSpecialPowerStore->findSpecialPowerTemplate( "DefaultSpecialPower", sourceId );
 			if( defaultTemplate )
 				*specialPower = *defaultTemplate;
 			specialPower->friend_setNameAndID(name, ++TheSpecialPowerStore->m_nextSpecialPowerID);
+			specialPower->friend_setFusionSourceId(sourceId);
 			specialPower->markAsOverride();
 			TheSpecialPowerStore->m_specialPowerTemplates.push_back(specialPower);
 		}
@@ -241,11 +243,31 @@ SpecialPowerTemplate* SpecialPowerStore::findSpecialPowerTemplatePrivate( AsciiS
 
 	// search the template list for matching name
 	for( size_t i = 0; i < m_specialPowerTemplates.size(); ++i )
-		if( m_specialPowerTemplates[ i ]->getName() == name )
+		if( m_specialPowerTemplates[ i ]->getName() == name && m_specialPowerTemplates[ i ]->getFusionSourceId().isEmpty() )
 			return m_specialPowerTemplates[ i ];
 
 	return nullptr;  // not found
 
+}
+
+//-------------------------------------------------------------------------------------------------
+SpecialPowerTemplate* SpecialPowerStore::findSpecialPowerTemplatePrivate( AsciiString name, const AsciiString& sourceId )
+{
+	if (sourceId.isNotEmpty())
+	{
+		for (size_t i = 0; i < m_specialPowerTemplates.size(); ++i)
+		{
+			SpecialPowerTemplate *candidate = m_specialPowerTemplates[i];
+			if (candidate->getName() == name && candidate->getFusionSourceId() == sourceId)
+				return candidate;
+		}
+	}
+	return findSpecialPowerTemplatePrivate(name);
+}
+
+const SpecialPowerTemplate *SpecialPowerStore::findSpecialPowerTemplate( AsciiString name, const AsciiString& sourceId )
+{
+	return findSpecialPowerTemplatePrivate(name, sourceId);
 }
 
 //-------------------------------------------------------------------------------------------------
