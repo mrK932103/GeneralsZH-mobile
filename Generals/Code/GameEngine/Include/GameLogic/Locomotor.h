@@ -140,6 +140,7 @@ public:
 	// Fusion source identity keeps same-named locomotors from different mods separate.
 	void setFusionSourceId(const AsciiString& sourceId) { m_fusionSourceId = sourceId; }
 	const AsciiString& getFusionSourceId() const { return m_fusionSourceId; }
+	const AsciiString& getName() const { return m_name; }
 
 protected:
 
