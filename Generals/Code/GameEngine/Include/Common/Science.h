@@ -116,6 +116,7 @@ public:
 	// this is intended ONLY for use by INI::scanScience.
 	// Don't use it anywhere else. In particular, never, ever, ever
 	// call this with a hardcoded science name. (srj)
+	ScienceType friend_getScienceType(const char* scienceName, const AsciiString& sourceId) const;
 	ScienceType friend_lookupScience(const char* scienceName, const AsciiString& sourceId = AsciiString::TheEmptyString) const;
 	static void friend_parseScienceDefinition(INI* ini);
 
