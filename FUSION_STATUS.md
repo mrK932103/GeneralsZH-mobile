@@ -126,3 +126,22 @@ Files changed:
 - `GeneralsMD/Code/GameEngine/Source/GameLogic/Object/Locomotor.cpp`
 
 This is source-level implementation and compatibility inspection only. No native build, save/load test, network test, or mixed-mod Skirmish has been run. The LocomotorSet source identity is now preserved on its transfer path; continue auditing other snapshot/reference paths and then proceed to the next runtime registry.
+
+## Continuation — source-qualified CommandSet and CommandButton namespaces
+
+The shared ControlBar layer now gives each parsed CommandButton and CommandSet a Fusion source ID. Parsing uses the active INI source to find/create definitions in that source namespace; same-named buttons/sets from sibling mods no longer override one another. CommandSet entries resolve their referenced CommandButtons using the owning CommandSet's source ID, with an explicit base-game fallback and no sibling-mod fallback. New source-aware ControlBar lookup overloads are available while legacy name-only APIs remain intact for unconverted callers.
+
+Runtime call sites now use the source-aware lookup for:
+- Object command sets used by ControlBar's special-power availability scan, using the owning ThingTemplate source ID.
+- Player-template science-purchase and special-power-shortcut command sets, using PlayerTemplate's Fusion source ID.
+- CommandButtonHuntUpdate's owning object and target object command sets in both Generals and GeneralsMD.
+
+Files changed:
+- `Core/GameEngine/Include/GameClient/ControlBar.h`
+- `Core/GameEngine/Source/GameClient/GUI/ControlBar/ControlBar.cpp`
+- `Generals/Code/GameEngine/Source/Common/INI/INICommandButton.cpp`
+- `GeneralsMD/Code/GameEngine/Source/Common/INI/INICommandButton.cpp`
+- `Generals/Code/GameEngine/Source/GameLogic/Object/Update/CommandButtonHuntUpdate.cpp`
+- `GeneralsMD/Code/GameEngine/Source/GameLogic/Object/Update/CommandButtonHuntUpdate.cpp`
+
+Important remaining work: audit every other ControlBar and gameplay caller that obtains a CommandSet or CommandButton by name, plus the CommandButton field references (ThingTemplate, UpgradeTemplate, SpecialPowerTemplate, weapon/science/asset references) to ensure each reference resolves from its owning source. This change is source-level only; no native build or mixed-mod UI/gameplay test has been run.
