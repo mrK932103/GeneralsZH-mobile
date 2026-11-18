@@ -342,6 +342,28 @@ Bool FileSystem::getFileInstanceForArchive(const AsciiString& filename, const As
 	return TRUE;
 }
 
+// Resolve a file from any archive belonging to one selected mod folder.
+// Preserve loose-file precedence exactly as openFile() does.
+Bool FileSystem::getFileInstanceForMod(const AsciiString& filename, const AsciiString& modFolder, FileInstance *instance) const
+{
+	if (instance == nullptr || TheArchiveFileSystem == nullptr)
+		return FALSE;
+
+	FileInstance archiveInstance = 0;
+	if (!TheArchiveFileSystem->getFileInstanceForMod(filename, modFolder, &archiveInstance))
+		return FALSE;
+
+	if (TheLocalFileSystem != nullptr && TheLocalFileSystem->doesFileExist(filename.str()))
+	{
+		if (archiveInstance == ~FileInstance(0))
+			return FALSE;
+		++archiveInstance;
+	}
+
+	*instance = archiveInstance;
+	return TRUE;
+}
+
 //============================================================================
 // FileSystem::createDirectory
 //============================================================================
