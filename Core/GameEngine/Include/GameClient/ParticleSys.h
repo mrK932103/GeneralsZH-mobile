@@ -763,6 +763,8 @@ public:
 	// Fusion lookups are source-local, with an optional fallback to untagged base-game data.
 	ParticleSystemTemplate *findTemplate( const AsciiString &name, const AsciiString& sourceId, Bool allowBaseFallback = TRUE ) const;
 	ParticleSystemTemplate *findParentTemplate( const AsciiString &name, int parentNum ) const;
+	// Resolve a slave/parent particle template only inside the owning Fusion mod.
+	ParticleSystemTemplate *findParentTemplate( const AsciiString &name, int parentNum, const AsciiString& sourceId ) const;
 	ParticleSystemTemplate *newTemplate( const AsciiString &name );
 	ParticleSystemTemplate *newTemplate( const AsciiString &name, const AsciiString& sourceId );
 
