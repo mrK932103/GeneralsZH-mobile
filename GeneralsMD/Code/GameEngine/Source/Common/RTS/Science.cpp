@@ -162,7 +162,7 @@ const ScienceInfo* ScienceStore::findScienceInfo(ScienceType st) const
 {
 	const char* c = ini->getNextToken();
 	const AsciiString sourceId = ini->getSourceId();
-	ScienceType st = TheScienceStore->friend_lookupScience(c, sourceId);
+	ScienceType st = TheScienceStore->friend_getScienceType(c, sourceId);
 
 	if (TheScienceStore)
 	{
@@ -357,32 +357,23 @@ void ScienceStore::getPurchasableSciences(const Player* player, ScienceVec& purc
 // this is intended ONLY for use by INI::scanScience.
 // Don't use it anywhere else. In particular, never, ever, ever
 // call this with a hardcoded science name. (srj)
-ScienceType ScienceStore::friend_lookupScience(const char* scienceName, const AsciiString& sourceId) const
+ScienceType ScienceStore::friend_getScienceType(const char* scienceName, const AsciiString& sourceId) const
 {
 	AsciiString qualifiedName;
 	if (sourceId.isNotEmpty())
 		qualifiedName.format("%s::%s", sourceId.str(), scienceName);
 	else
 		qualifiedName = scienceName;
-	NameKeyType nkt = TheNameKeyGenerator->nameToKey(qualifiedName);
-	ScienceType st = (ScienceType)nkt;
+	return (ScienceType)TheNameKeyGenerator->nameToKey(qualifiedName);
+}
+
+ScienceType ScienceStore::friend_lookupScience(const char* scienceName, const AsciiString& sourceId) const
+{
+	ScienceType st = friend_getScienceType(scienceName, sourceId);
 	if (!isValidScience(st))
 	{
-		// GeneralsX @bugfix Android port 13/07/2026 - A real-device log
-		// (GitHub issue #2, stock/patched retail data) showed this throw
-		// firing for airforcegeneral.ini's RequiredScience field (multiple
-		// direct `{ "RequiredScience", INI::parseScience, ... }`
-		// registrations across SpecialPower.cpp, SpectreGunshipDeploymentUpdate.cpp,
-		// W3DScienceModelDraw.cpp, none of which wrap the call), which --
-		// same as every other unresolved-reference crash in this file --
-		// takes down the entire INI load over one field. This function's
-		// sibling parsers in INI.cpp (parseSpecialPowerTemplate, etc.)
-		// already treat an unresolved name as a warning, not a fatal error;
-		// bring this one in line instead of throwing.
 		DEBUG_CRASH(("Science name %s from source %s not known! (Did you define it in Science.ini?)",scienceName,sourceId.str()));
-		fprintf(stderr, "WARNING: Science '%s' not recognized -- defaulting to SCIENCE_INVALID\n", scienceName);
-		fflush(stderr);
-		return SCIENCE_INVALID;
+		throw INI_INVALID_DATA;
 	}
 	return st;
 }
