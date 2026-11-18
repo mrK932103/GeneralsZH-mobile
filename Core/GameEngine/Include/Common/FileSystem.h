@@ -155,6 +155,7 @@ public:
 	void getFileListInDirectory(const AsciiString& directory, const AsciiString& searchName, FilenameList &filenameList, Bool searchSubdirectories) const; ///< search the given directory for files matching the searchName (egs. *.ini, *.rep).  Possibly search subdirectories.
 	Bool getFileInfo(const AsciiString& filename, FileInfo *fileInfo, FileInstance instance = 0) const; ///< fills in the FileInfo struct for the file given
 	Bool getFileInstanceForArchive(const AsciiString& filename, const AsciiString& archiveFilename, FileInstance *instance) const; ///< resolve a file instance for one exact archive, accounting for loose-file precedence. returns TRUE if successful.
+	Bool getFileInstanceForMod(const AsciiString& filename, const AsciiString& modFolder, FileInstance *instance) const; ///< resolve a file instance from any archive under one mod folder.
 
 	Bool createDirectory(AsciiString directory); ///< create a directory of the given name.
 
