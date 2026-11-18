@@ -171,6 +171,8 @@ public:
 
 	// field access
 	void setUpgradeName( const AsciiString& name ) { m_name = name; }
+	void setFusionSourceId( const AsciiString& sourceId ) { m_fusionSourceId = sourceId; }
+	const AsciiString& getFusionSourceId() const { return m_fusionSourceId; }
 	const AsciiString& getUpgradeName() const { return m_name; }
 	void setUpgradeNameKey( NameKeyType key ) { m_nameKey = key; }
 	NameKeyType getUpgradeNameKey() const { return m_nameKey; }
@@ -202,6 +204,7 @@ protected:
 
 	UpgradeType m_type;									///< upgrade type (PLAYER or OBJECT)
 	AsciiString m_name;									///< upgrade name
+	AsciiString m_fusionSourceId;				///< Fusion source identity; empty for legacy upgrades
 	NameKeyType m_nameKey;							///< name key
 	AsciiString m_displayNameLabel;			///< String manager label for UI display name
 	Real m_buildTime;										///< database # for how long it takes to "build" this
@@ -240,10 +243,12 @@ public:
 	UpgradeTemplate *firstUpgradeTemplate(); ///< return the first upgrade template
 	const UpgradeTemplate *findUpgradeByKey( NameKeyType key ) const; ///< find upgrade by name key
 	const UpgradeTemplate *findUpgrade( const AsciiString& name ) const; ///< find and return upgrade by name
+	const UpgradeTemplate *findUpgrade( const AsciiString& name, const AsciiString& sourceId ) const;
 	const UpgradeTemplate *findUpgrade( const char* name ) const; ///< find and return upgrade by name
 	const UpgradeTemplate *findVeterancyUpgrade(VeterancyLevel level) const; ///< find and return upgrade by veterancy level
 
-	UpgradeTemplate *newUpgrade( const AsciiString& name );				///< allocate, link, and return new upgrade
+	UpgradeTemplate *newUpgrade( const AsciiString& name );
+	UpgradeTemplate *newUpgrade( const AsciiString& name, const AsciiString& sourceId );				///< allocate, link, and return new upgrade
 
 	/// does this player have all the necessary things to make this upgrade
 	Bool canAffordUpgrade( Player *player, const UpgradeTemplate *upgradeTemplate, Bool displayReason = FALSE ) const;
@@ -253,7 +258,8 @@ public:
 
 protected:
 
-	UpgradeTemplate *findNonConstUpgradeByKey( NameKeyType key );		///< find upgrade by name key
+	UpgradeTemplate *findNonConstUpgradeByKey( NameKeyType key );
+	UpgradeTemplate *findNonConstUpgradeByKey( NameKeyType key, const AsciiString& sourceId );		///< find upgrade by name key
 
 	void linkUpgrade( UpgradeTemplate *upgrade );			///< link upgrade to list
 	void unlinkUpgrade( UpgradeTemplate *upgrade );		///< remove upgrade from list
