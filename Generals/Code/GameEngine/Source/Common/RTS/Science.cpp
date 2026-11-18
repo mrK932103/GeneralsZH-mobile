@@ -369,13 +369,21 @@ ScienceType ScienceStore::friend_getScienceType(const char* scienceName, const A
 
 ScienceType ScienceStore::friend_lookupScience(const char* scienceName, const AsciiString& sourceId) const
 {
+	// Prefer the owning mod's definition. Shared base-game sciences remain
+	// available when the mod does not provide a source-local definition.
 	ScienceType st = friend_getScienceType(scienceName, sourceId);
-	if (!isValidScience(st))
+	if (isValidScience(st))
+		return st;
+
+	if (sourceId.isNotEmpty())
 	{
-		DEBUG_CRASH(("Science name %s from source %s not known! (Did you define it in Science.ini?)",scienceName,sourceId.str()));
-		throw INI_INVALID_DATA;
+		ScienceType baseScience = friend_getScienceType(scienceName, AsciiString::TheEmptyString);
+		if (isValidScience(baseScience))
+			return baseScience;
 	}
-	return st;
+
+	DEBUG_CRASH(("Science name %s from source %s not known! (Did you define it in Science.ini?)",scienceName,sourceId.str()));
+	throw INI_INVALID_DATA;
 }
 
 //-----------------------------------------------------------------------------
