@@ -2744,12 +2744,13 @@ void LocomotorSet::crc( Xfer *xfer )
 // ------------------------------------------------------------------------------------------------
 /** Xfer method
 	* Version Info:
-	* 1: Initial version */
+	* 1: Initial version
+	* 2: Store Fusion source ID for each Locomotor template */
 // ------------------------------------------------------------------------------------------------
 void LocomotorSet::xfer( Xfer *xfer )
 {
 	// version
-	const XferVersion currentVersion = 1;
+	const XferVersion currentVersion = 2;
 	XferVersion version = currentVersion;
 	xfer->xferVersion( &version, currentVersion );
 
@@ -2765,6 +2766,8 @@ void LocomotorSet::xfer( Xfer *xfer )
 			Locomotor* loco = *it;
 			AsciiString name = loco->getTemplateName();
 			xfer->xferAsciiString(&name);
+			AsciiString sourceId = loco->getTemplateSourceId();
+			xfer->xferAsciiString(&sourceId);
 			xfer->xferSnapshot(loco);
 		}
 	}
@@ -2782,7 +2785,13 @@ void LocomotorSet::xfer( Xfer *xfer )
 			AsciiString name;
 			xfer->xferAsciiString(&name);
 
-			const LocomotorTemplate* lt = TheLocomotorStore->findLocomotorTemplate(NAMEKEY(name));
+			AsciiString sourceId;
+			if (version >= 2)
+				xfer->xferAsciiString(&sourceId);
+
+			const LocomotorTemplate* lt = sourceId.isEmpty()
+				? TheLocomotorStore->findLocomotorTemplate(NAMEKEY(name))
+				: TheLocomotorStore->findLocomotorTemplate(name, sourceId);
 			if (lt == nullptr)
 			{
 				DEBUG_CRASH(( "LocomotorSet::xfer - template %s not found", name.str() ));
