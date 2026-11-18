@@ -636,7 +636,20 @@ Bool ArchiveFileSystem::getFileInstanceForArchive(const AsciiString& filename, c
 	FileInstance index = 0;
 	for (ArchivedFileLocationMap::const_iterator it = range.begin; it != range.end; ++it, ++index)
 	{
-		if (it->second != nullptr && it->second->getName().compareNoCase(archiveFilename) == 0)
+		if (it->second != nullptr)
+		{
+			// Callers may identify an archive by its display name (legacy) or by
+			// the absolute path written by the Android mod launcher. Prefer the
+			// exact path when supplied; keep the name comparison for older callers.
+			const AsciiString archiveName = it->second->getName();
+			const AsciiString archivePath = it->second->getPath();
+			if (archiveName.compareNoCase(archiveFilename) == 0
+				|| archivePath.compareNoCase(archiveFilename) == 0)
+			{
+				*instance = index;
+				return TRUE;
+			}
+		}
 		{
 			*instance = index;
 			return TRUE;
