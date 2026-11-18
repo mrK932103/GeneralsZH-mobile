@@ -1643,7 +1643,10 @@ void INI::parseUpgradeTemplate( INI* ini, void * /*instance*/, void *store, cons
 		throw ERROR_BUG;
 	}
 
-	const UpgradeTemplate *uu = TheUpgradeCenter->findUpgrade( token );
+	const AsciiString sourceId = ini->getSourceId();
+	const UpgradeTemplate *uu = sourceId.isNotEmpty()
+		? TheUpgradeCenter->findUpgrade( AsciiString(token), sourceId )
+		: TheUpgradeCenter->findUpgrade( token );
 	DEBUG_ASSERTCRASH( uu || stricmp( token, "None" ) == 0, ("Upgrade %s not found!",token) );
 
 	typedef const UpgradeTemplate* ConstUpgradeTemplatePtr;
