@@ -665,7 +665,7 @@ Bool ArchiveFileSystem::getFileInstanceForMod(const AsciiString& filename, const
 		return FALSE;
 
 	std::string folder(modFolder.str());
-	if (folder.back() != '/' && folder.back() != '\\\\')
+	if (folder.back() != '/' && folder.back() != '\\')
 		folder += '/';
 
 	ArchivedDirectoryInfoResult result = const_cast<ArchiveFileSystem*>(this)->getArchivedDirectoryInfo(filename.str());
@@ -681,10 +681,8 @@ Bool ArchiveFileSystem::getFileInstanceForMod(const AsciiString& filename, const
 	{
 		if (it->second != nullptr)
 		{
-			const std::string archivePath(it->second->getPath().str());
-			if (archivePath.size() >= folder.size()
-				&& std::equal(folder.begin(), folder.end(), archivePath.begin(),
-					[](char a, char b) { return tolower((unsigned char)a) == tolower((unsigned char)b); }))
+			const AsciiString archivePath = it->second->getPath();
+			if (archivePath.startsWithNoCase(folder.c_str()))
 			{
 				*instance = index;
 				return TRUE;
