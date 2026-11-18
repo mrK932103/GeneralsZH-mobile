@@ -18,13 +18,13 @@ A buildable APK alone is not acceptance. Completion requires a successful Androi
 - Working branch: `claude/generals-mod-fusion`
 - Pull request: https://github.com/mrK932103/GeneralsZH-mobile/pull/1
 - PR status at last known check: open draft; not merged.
-- Latest code commit: `90b947730efc5a4523a46cc7226c9dbb08d0ca26`
+- Latest code commit: `61e4be73b09af28a0a5fd589921aa57a64e0a722`
 
 ## Implemented in the branch (not equivalent to end-to-end completion)
 
 - Particle-system snapshot serialization is version 2: each saved particle system carries its owning Fusion source ID, and load resolves the template in that exact source namespace. Version-1 snapshots remain readable through the legacy name-only path. Destroyed/non-saveable entries write the matching empty source field in version 2 so the stream stays aligned.
 - Particle texture preloading iterates both the base-game template registry and the source-qualified Fusion template registry, so textures declared by selected mods are included in the preload pass.
-- ParticleSystemManager exposes a source-qualified parent/slave-template lookup. The legacy overload is unchanged; the new overload is exact-source only and has not yet been wired into script-engine callers.
+- ParticleSystemManager exposes a source-qualified parent/slave-template lookup. The legacy overload is unchanged; the new overload is exact-source only. Runtime `SlaveSystem` resolution now uses exact-source lookup for Fusion templates, with no cross-mod or base-game fallback.
 
 - FXList now propagates its source ID into every FXNugget. TracerName, RayEffect template references and ParticleSystem nugget references use source-qualified registries, preventing same-named effects from another selected mod from being substituted at runtime.
 
