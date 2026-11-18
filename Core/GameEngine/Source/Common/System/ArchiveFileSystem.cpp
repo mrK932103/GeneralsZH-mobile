@@ -650,10 +650,6 @@ Bool ArchiveFileSystem::getFileInstanceForArchive(const AsciiString& filename, c
 				return TRUE;
 			}
 		}
-		{
-			*instance = index;
-			return TRUE;
-		}
 		if (index == ~FileInstance(0))
 			return FALSE;
 	}
