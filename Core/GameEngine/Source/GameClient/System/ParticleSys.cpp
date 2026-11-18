@@ -107,7 +107,8 @@ void ParticleInfo::crc( Xfer *xfer )
 // ------------------------------------------------------------------------------------------------
 /** Xfer method
 	* Version Info:
-	* 1: Initial version */
+	* 1: Initial version
+	* 2: Preserve Fusion source identity for each saved particle system */
 // ------------------------------------------------------------------------------------------------
 void ParticleInfo::xfer( Xfer *xfer )
 {
@@ -3442,7 +3443,7 @@ void ParticleSystemManager::xfer( Xfer *xfer )
 {
 
 	// version
-	XferVersion currentVersion = 1;
+	XferVersion currentVersion = 2;
 	XferVersion version = currentVersion;
 	xfer->xferVersion( &version, currentVersion );
 
