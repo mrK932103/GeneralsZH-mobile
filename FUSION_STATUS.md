@@ -22,6 +22,8 @@ A buildable APK alone is not acceptance. Completion requires a successful Androi
 
 ## Implemented in the branch (not equivalent to end-to-end completion)
 
+- Particle-system snapshot serialization is now version 2: each saved particle system carries its owning Fusion source ID, and load resolves the template in that exact source namespace. Version-1 snapshots remain readable through the legacy name-only path. Destroyed/non-saveable entries write the matching empty source field in version 2 so the stream stays aligned.
+
 - FXList now propagates its source ID into every FXNugget. TracerName, RayEffect template references and ParticleSystem nugget references use source-qualified registries, preventing same-named effects from another selected mod from being substituted at runtime.
 
 - Android-side multi-mod selection and read-only BIGF/INI preflight work.
@@ -51,7 +53,7 @@ All non-INI runtime resource lookups still need source isolation. A mod-folder-a
 ## Verification status
 
 - Android build: NOT VERIFIED.
-- Native build: NOT VERIFIED.
+- Native build: NOT VERIFIED (including the new particle-system snapshot version-2 change).
 - Automated tests: NOT VERIFIED.
 - Android device/emulator test: NOT VERIFIED.
 - Mixed-mod Skirmish: NOT VERIFIED.
