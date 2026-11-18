@@ -352,6 +352,8 @@ public:
 	Bool isReady(const Object *sourceObj) const;
 
 	const AsciiString& getName() const { return m_name; }
+	void setFusionSourceId(const AsciiString& sourceId) { m_fusionSourceId = sourceId; }
+	const AsciiString& getFusionSourceId() const { return m_fusionSourceId; }
 	const AsciiString& getCursorName() const { return m_cursorName; }
 	const AsciiString& getInvalidCursorName() const { return m_invalidCursorName; }
 	const AsciiString& getTextLabel() const { return m_textLabel; }
@@ -402,6 +404,7 @@ public:
 
 private:
 	AsciiString										m_name;												///< template name
+	AsciiString										m_fusionSourceId;								///< Fusion source identity; empty for legacy buttons
 	GUICommandType								m_command;										///< type of command this button
 	CommandButton*								m_next;
 	UnsignedInt										m_options;										///< command options (see CommandOption enum)
@@ -458,6 +461,8 @@ public:
 	// virtual destructor prototype provided by MemoryPoolObject
 
 	const AsciiString& getName() const { return m_name; }
+	void setFusionSourceId(const AsciiString& sourceId) { m_fusionSourceId = sourceId; }
+	const AsciiString& getFusionSourceId() const { return m_fusionSourceId; }
 	const CommandButton* getCommandButton(Int i) const;
 
 	// only for the control bar.
@@ -470,7 +475,8 @@ private:
 	static const FieldParse m_commandSetFieldParseTable[];		///< the parse table
 	static void parseCommandButton( INI* ini, void *instance, void *store, const void *userData );
 
-	AsciiString m_name;															  ///< name of this command set
+	AsciiString m_name;                                                        ///< name of this command set
+	AsciiString m_fusionSourceId;                                               ///< Fusion source identity; empty for legacy sets
 	const CommandButton *m_command[ MAX_COMMANDS_PER_SET ]; ///< the set of command buttons that make this set
 
 	CommandSet *m_next;
@@ -722,9 +728,11 @@ public:
 
 	/// find existing command button if present
 	const CommandButton *findCommandButton( const AsciiString& name );
+	const CommandButton *findCommandButton( const AsciiString& name, const AsciiString& sourceId );
 
 	/// find existing command set
 	const CommandSet *findCommandSet( const AsciiString& name );
+	const CommandSet *findCommandSet( const AsciiString& name, const AsciiString& sourceId );
 
 	void showPurchaseScience();
 	void hidePurchaseScience();
@@ -831,6 +839,7 @@ protected:
 
 	/// find existing command button if present
 	CommandButton* findNonConstCommandButton( const AsciiString& name );
+	CommandButton* findNonConstCommandButton( const AsciiString& name, const AsciiString& sourceId );
 
 	/// allocate a new command button, link to list, initialize to default, and return
 	CommandButton *newCommandButton( const AsciiString& name );
@@ -1090,6 +1099,7 @@ private:
 
 	/// find existing command set
 	CommandSet *findNonConstCommandSet( const AsciiString& name );
+	CommandSet *findNonConstCommandSet( const AsciiString& name, const AsciiString& sourceId );
 
 	const Image *m_genStarOn;
 	const Image *m_genStarOff;
