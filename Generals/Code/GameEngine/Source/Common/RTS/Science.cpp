@@ -162,7 +162,7 @@ const ScienceInfo* ScienceStore::findScienceInfo(ScienceType st) const
 {
 	const char* c = ini->getNextToken();
 	const AsciiString sourceId = ini->getSourceId();
-	ScienceType st = TheScienceStore->friend_lookupScience(c, sourceId);
+	ScienceType st = TheScienceStore->friend_getScienceType(c, sourceId);
 
 	if (TheScienceStore)
 	{
@@ -357,15 +357,19 @@ void ScienceStore::getPurchasableSciences(const Player* player, ScienceVec& purc
 // this is intended ONLY for use by INI::scanScience.
 // Don't use it anywhere else. In particular, never, ever, ever
 // call this with a hardcoded science name. (srj)
-ScienceType ScienceStore::friend_lookupScience(const char* scienceName, const AsciiString& sourceId) const
+ScienceType ScienceStore::friend_getScienceType(const char* scienceName, const AsciiString& sourceId) const
 {
 	AsciiString qualifiedName;
 	if (sourceId.isNotEmpty())
 		qualifiedName.format("%s::%s", sourceId.str(), scienceName);
 	else
 		qualifiedName = scienceName;
-	NameKeyType nkt = TheNameKeyGenerator->nameToKey(qualifiedName);
-	ScienceType st = (ScienceType)nkt;
+	return (ScienceType)TheNameKeyGenerator->nameToKey(qualifiedName);
+}
+
+ScienceType ScienceStore::friend_lookupScience(const char* scienceName, const AsciiString& sourceId) const
+{
+	ScienceType st = friend_getScienceType(scienceName, sourceId);
 	if (!isValidScience(st))
 	{
 		DEBUG_CRASH(("Science name %s from source %s not known! (Did you define it in Science.ini?)",scienceName,sourceId.str()));
