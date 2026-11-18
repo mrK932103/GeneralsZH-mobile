@@ -364,7 +364,7 @@ public:
 		utility routine that does a sscanf() on the string to get the Science, and throws
 		an exception if not of the right form.
 	*/
-	static ScienceType scanScience(const char* token);
+	static ScienceType scanScience(const char* token, const AsciiString& sourceId = AsciiString::TheEmptyString);
 
 	/**
 		utility routine that does a sscanf() on the string to get the int, and throws
