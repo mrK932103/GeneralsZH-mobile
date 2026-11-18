@@ -114,12 +114,14 @@ Real ArmorTemplate::adjustDamage(DamageType t, Real damage) const
 ArmorStore::ArmorStore()
 {
 	m_armorTemplates.clear();
+	m_fusionArmorTemplates.clear();
 }
 
 //-------------------------------------------------------------------------------------------------
 ArmorStore::~ArmorStore()
 {
 	m_armorTemplates.clear();
+	m_fusionArmorTemplates.clear();
 }
 
 //-------------------------------------------------------------------------------------------------
