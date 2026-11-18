@@ -265,6 +265,7 @@ public:
 	LocomotorSurfaceTypeMask getLegalSurfaces() const { return m_template->m_surfaces; }
 
 	AsciiString getTemplateName() const { return m_template->m_name;}
+	const AsciiString& getTemplateSourceId() const { return m_template->getFusionSourceId(); }
 	Real getMinSpeed() const { return m_template->m_minSpeed;}
 	Real getAccelPitchLimit() const { return m_template->m_accelPitchLimit;}	///< Maximum amount we will pitch up or down under acceleration (including recoil.)
 	Real getDecelPitchLimit() const { return m_template->m_decelPitchLimit;}	///< Maximum amount we will pitch down under deceleration (including recoil.)
