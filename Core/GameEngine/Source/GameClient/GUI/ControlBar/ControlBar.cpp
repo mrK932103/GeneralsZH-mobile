@@ -2308,7 +2308,7 @@ CommandButton *ControlBar::findNonConstCommandButton( const AsciiString& name )
 {
 
 	for( const CommandButton *command = m_commandButtons; command; command = command->getNext() )
-		if( command->getName() == name )
+		if( command->getName() == name && command->getFusionSourceId().isEmpty() )
 			return const_cast<CommandButton*>((const CommandButton*)command->getFinalOverride());
 
 	return nullptr;  // not found
@@ -2430,7 +2430,7 @@ CommandSet* ControlBar::findNonConstCommandSet( const AsciiString& name )
 	CommandSet* set;
 
 	for( set = m_commandSets; set != nullptr; set = set->friend_getNext() )
-		if( set->getName() == name )
+		if( set->getName() == name && set->getFusionSourceId().isEmpty() )
 			return const_cast<CommandSet*>((const CommandSet *) set);
 
 	return nullptr;  // set not found
