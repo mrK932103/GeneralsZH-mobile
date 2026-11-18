@@ -37,6 +37,15 @@
 #include "GameLogic/Damage.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// Fusion armor definitions are isolated by source identity and original INI name.
+static AsciiString makeFusionArmorKey(const AsciiString& name, const AsciiString& sourceId)
+{
+	AsciiString key = sourceId;
+	key.concat("::");
+	key.concat(name);
+	return key;
+}
+
 // PUBLIC DATA ////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ArmorStore* TheArmorStore = nullptr;					///< the ArmorTemplate store definition
@@ -134,6 +143,20 @@ const ArmorTemplate* ArmorStore::findArmorTemplate(const AsciiString& name) cons
 }
 
 //-------------------------------------------------------------------------------------------------
+const ArmorTemplate* ArmorStore::findArmorTemplate(
+	const AsciiString& name, const AsciiString& sourceId) const
+{
+	if (sourceId.isNotEmpty())
+	{
+		FusionArmorTemplateMap::const_iterator fusionIt =
+			m_fusionArmorTemplates.find(makeFusionArmorKey(name, sourceId));
+		if (fusionIt != m_fusionArmorTemplates.end())
+			return &fusionIt->second;
+	}
+	return findArmorTemplate(name);
+}
+
+//-------------------------------------------------------------------------------------------------
 const ArmorTemplate* ArmorStore::findArmorTemplate(const char* name) const
 {
 	return findArmorTemplate(TheNameKeyGenerator->nameToKey(name));
@@ -149,9 +172,14 @@ const ArmorTemplate* ArmorStore::findArmorTemplate(const char* name) const
 
 	const char *c = ini->getNextToken();
 	NameKeyType key = TheNameKeyGenerator->nameToKey(c);
-	ArmorTemplate& armorTmpl = TheArmorStore->m_armorTemplates[key];
-	armorTmpl.clear();
-	ini->initFromINI(&armorTmpl, myFieldParse);
+	const AsciiString sourceId = ini->getSourceId();
+	ArmorTemplate* armorTmpl = nullptr;
+	if (sourceId.isNotEmpty())
+		armorTmpl = &TheArmorStore->m_fusionArmorTemplates[makeFusionArmorKey(AsciiString(c), sourceId)];
+	else
+		armorTmpl = &TheArmorStore->m_armorTemplates[key];
+	armorTmpl->clear();
+	ini->initFromINI(armorTmpl, myFieldParse);
 }
 
 //-------------------------------------------------------------------------------------------------
