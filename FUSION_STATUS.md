@@ -2,6 +2,8 @@
 
 Last updated: 2026-11-18
 
+Latest implementation change: source-qualified INI file opening now resolves the requested virtual path to the exact archive path encoded in the Fusion source identity and fails closed if that archive does not contain the file. Android preflight source identities now use absolute archive paths (plus the existing `!entry` suffix for INI provenance). This is a foundational fix only; end-to-end source-aware loading and all runtime registries are still incomplete.
+
 ## Goal (acceptance criteria)
 
 Generals Mod Fusion is an Android launcher/runtime integration for the Generals Zero Hour mobile port. A player can select multiple compatible mods (including Hypersonic, The End of Days, ROTR, Contra RRD, Project X, JOINT and others), then start one normal Skirmish where factions from the selected mods can fight each other.
@@ -30,7 +32,7 @@ A buildable APK alone is not acceptance. Completion requires a successful Androi
 
 ## Critical known gap
 
-The source-aware INI entry point tags a load with a source ID, but the generic file load path still resolves through the merged virtual filesystem. The archive API exposes `getFileInstanceForArchive(...)`, but the source-aware INI load path has not yet been fully wired to open the exact originating archive. Therefore source IDs do not yet guarantee that each faction reads its own copy of a same-named INI file.
+The source-aware INI entry point now parses the exact archive path from the source identity and opens the requested virtual path using `getFileInstanceForArchive(...)`. It fails closed if that archive does not contain the requested file. Android preflight identities now use absolute archive paths. However, this is not yet wired through every caller: source-specific directory enumeration/includes and all non-INI runtime resource lookups still need source isolation.
 
 The Java-side source labels previously used mod/archive display names and entry paths; they are not yet a proven globally unique mapping to exact archive paths.
 

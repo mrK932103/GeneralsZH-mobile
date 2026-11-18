@@ -29,6 +29,7 @@
 
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
+#include <string>
 #define DEFINE_DEATH_NAMES
 
 #include "Common/INI.h"
@@ -395,14 +396,32 @@ void INI::prepFile( AsciiString filename, INILoadType loadType )
 
 	}
 
-	// open the file
-	File* file = TheFileSystem->openFile(filename.str(), File::READ);
-	if( file == nullptr )
+	// Open from the exact archive selected by Fusion; never fall back to a
+	// different mod's same-named INI file.
+	File* file = nullptr;
+	if (m_sourceId.isNotEmpty())
 	{
+		std::string source(m_sourceId.str());
+		const std::string::size_type separator = source.find('!');
+		if (separator == std::string::npos || separator == 0)
+			throw INIException("Fusion source identity must contain an exact archive path and entry path");
 
+		const AsciiString archivePath(source.substr(0, separator).c_str());
+		FileInstance instance = 0;
+		if (!TheFileSystem->getFileInstanceForArchive(filename, archivePath, &instance))
+			throw INIException("Fusion source archive does not contain the requested INI file");
+
+		file = TheFileSystem->openFile(filename.str(), File::READ, File::BUFFERSIZE, instance);
+	}
+	else
+	{
+		file = TheFileSystem->openFile(filename.str(), File::READ);
+	}
+
+	if (file == nullptr)
+	{
 		DEBUG_CRASH(( "INI::load, cannot open file '%s'", filename.str() ));
 		throw INI_CANT_OPEN_FILE;
-
 	}
 
 	m_readBufferNext = 0;

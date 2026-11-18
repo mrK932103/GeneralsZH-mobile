@@ -304,7 +304,7 @@ final class FusionPreflight {
                     FusionBigArchive.Archive archive = FusionBigArchive.read(archiveFile);
                     for (FusionBigArchive.Entry entry : archive.entries) {
                         entries++;
-                        String source = mod.name + "/" + archiveFile.getName();
+                        String source = archiveFile.getAbsolutePath();
                         String key = entry.normalizedPath;
                         List<String> owners = sources.get(key);
                         if (owners == null) {
