@@ -114,7 +114,7 @@ void ParticleInfo::xfer( Xfer *xfer )
 	Int i;
 
 	// version
-	XferVersion currentVersion = 1;
+	XferVersion currentVersion = 2;
 	XferVersion version = currentVersion;
 	xfer->xferVersion( &version, currentVersion );
 
@@ -3455,6 +3455,7 @@ void ParticleSystemManager::xfer( Xfer *xfer )
 
 	// particle systems data
 	AsciiString systemName;
+	AsciiString systemSourceId;
 	ParticleSystem *system;
 	if( xfer->getXferMode() == XFER_SAVE )
 	{
@@ -3471,12 +3472,16 @@ void ParticleSystemManager::xfer( Xfer *xfer )
 			if( system->isDestroyed() == TRUE || system->isSaveable() == FALSE )	{
 				AsciiString mtString;
 				xfer->xferAsciiString(&mtString); // write null string as key for destroyed system.
+				mtString.clear();
+				xfer->xferAsciiString(&mtString); // keep the version-2 source field aligned.
 				continue;
 			}
 
 			// write template name
 			systemName = system->getTemplate()->getName();
+			systemSourceId = system->getTemplate()->getFusionSourceId();
 			xfer->xferAsciiString( &systemName );
+			xfer->xferAsciiString( &systemSourceId );
 
 			// write system data
 			xfer->xferSnapshot( system );
@@ -3497,10 +3502,15 @@ void ParticleSystemManager::xfer( Xfer *xfer )
 
 			// read system name and find template
 			xfer->xferAsciiString( &systemName );
+			systemSourceId.clear();
+			if (version >= 2)
+				xfer->xferAsciiString( &systemSourceId );
 			if (systemName.isEmpty()) {
 				continue; // destroyed particle system.
 			}
-			systemTemplate = findTemplate( systemName );
+			systemTemplate = systemSourceId.isNotEmpty()
+				? findTemplate( systemName, systemSourceId, FALSE )
+				: findTemplate( systemName );
 
 			// sanity
 			if( systemTemplate == nullptr )
