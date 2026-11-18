@@ -37,6 +37,7 @@ A buildable APK alone is not acceptance. Completion requires a successful Androi
 - ThingFactory has an explicit exact-source lookup API; ThingTemplate BuildVariations and ObjectReskin references now use exact-source resolution for Fusion-owned definitions.
 - ArmorStore has a separate Fusion armor registry keyed by source identity and armor name; INI ArmorSet references resolve against their source mod first, then base-game definitions. Mirrored in Generals and GeneralsMD.
 - UpgradeTemplate carries source identity; UpgradeCenter registers and resolves same-named upgrades within the owning Fusion source, while legacy lookups are restricted to base-game entries. INI Upgrade references use the source-aware lookup. Mirrored in Generals and GeneralsMD.
+- SpecialPowerTemplate carries source identity; same-named powers are registered in separate source namespaces, source-local overrides remain isolated, and INI references prefer the selected source with base-game fallback. Mirrored in Generals and GeneralsMD.
 - Some source-aware validation and script matching.
 
 ## Critical known gap
