@@ -993,7 +993,7 @@ void INI::parseAsciiStringVectorAppend( INI* ini, void * /*instance*/, void *sto
 			asv->clear();
 			return;
 		}
-		asv->push_back(INI::scanScience( token ));
+		asv->push_back(INI::scanScience( token, ini->getSourceId() ));
 	}
 }
 
@@ -1694,7 +1694,7 @@ void INI::parseSpecialPowerTemplate( INI* ini, void * /*instance*/, void *store,
 		throw ERROR_BUG;
 	}
 
-	*((ScienceType *)store) = INI::scanScience(token);
+	*((ScienceType *)store) = INI::scanScience(token, ini->getSourceId());
 
 }
 
@@ -1918,9 +1918,9 @@ void INI::initFromINIMulti( void *what, const MultiIniFieldParse& parseTableList
 }
 
 //-------------------------------------------------------------------------------------------------
-/*static*/ ScienceType INI::scanScience(const char* token)
+/*static*/ ScienceType INI::scanScience(const char* token, const AsciiString& sourceId)
 {
-	return TheScienceStore->friend_lookupScience( token );
+	return TheScienceStore->friend_lookupScience( token, sourceId );
 }
 
 #if USE_STD_FROM_CHARS_PARSING
