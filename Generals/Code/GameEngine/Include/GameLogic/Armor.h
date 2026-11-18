@@ -110,6 +110,8 @@ public:
 		Find the Armor with the given name. If no such Armor exists, return null.
 	*/
 	const ArmorTemplate* findArmorTemplate(const AsciiString& name) const;
+	/** Find a mod-local armor definition, then an untagged base-game definition. */
+	const ArmorTemplate* findArmorTemplate(const AsciiString& name, const AsciiString& sourceId) const;
 	const ArmorTemplate* findArmorTemplate(const char* name) const;
 
 	inline Armor makeArmor(const ArmorTemplate *tmpl) const
@@ -123,6 +125,8 @@ private:
 
 	typedef std::hash_map< NameKeyType, ArmorTemplate, rts::hash<NameKeyType>, rts::equal_to<NameKeyType>/**/> ArmorTemplateMap;
 	ArmorTemplateMap m_armorTemplates;
+	typedef std::hash_map< AsciiString, ArmorTemplate, rts::hash<AsciiString>, rts::equal_to<AsciiString>/**/> FusionArmorTemplateMap;
+	FusionArmorTemplateMap m_fusionArmorTemplates;
 
 };
 
