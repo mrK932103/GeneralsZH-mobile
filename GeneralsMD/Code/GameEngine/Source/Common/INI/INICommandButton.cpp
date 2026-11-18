@@ -52,11 +52,13 @@ void ControlBar::parseCommandButtonDefinition( INI *ini )
 	AsciiString name = ini->getNextToken();
 
 	// find existing item if present
-	CommandButton *button = TheControlBar->findNonConstCommandButton( name );
+	const AsciiString sourceId = ini->getSourceId();
+	CommandButton *button = TheControlBar->findNonConstCommandButton( name, sourceId );
 	if( button == nullptr )
 	{
 		// allocate a new item
 		button = TheControlBar->newCommandButton( name );
+		button->setFusionSourceId(sourceId);
 		if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES)
 		{
 			button->markAsOverride();
