@@ -89,7 +89,7 @@ public:
 	virtual void doFXObj(const Object* primary, const Object* secondary = nullptr) const;
 
 private:
-
+	AsciiString m_fusionSourceId;
 };
 EMPTY_DTOR(FXNugget)
 
@@ -134,9 +134,16 @@ public:
 	/**
 		add a nugget to the list. It belongs to the FXList, who is responsible for freeing it.
 	*/
+	void setFusionSourceId(const AsciiString& sourceId) { m_fusionSourceId = sourceId; }
+	const AsciiString& getFusionSourceId() const { return m_fusionSourceId; }
+
 	void addFXNugget(FXNugget *fxn)
 	{
-		m_nuggets.push_back(fxn);
+		if (fxn)
+		{
+			fxn->setFusionSourceId(m_fusionSourceId);
+			m_nuggets.push_back(fxn);
+		}
 	}
 
 	/// inline convenience method to avoid having to check for null.
@@ -180,6 +187,7 @@ private:
 	typedef std::list< FXNugget* > FXNuggetList;
 
 	FXNuggetList m_nuggets;
+	AsciiString m_fusionSourceId;
 
 };
 
