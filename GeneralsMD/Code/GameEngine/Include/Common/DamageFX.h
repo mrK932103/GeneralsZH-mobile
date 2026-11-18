@@ -150,6 +150,7 @@ public:
 	const DamageFX *findDamageFX( NameKeyType namekey ) const;
 	const DamageFX *findDamageFX( const AsciiString& name ) const;
 	const DamageFX *findDamageFX( const char* name ) const;
+	const DamageFX *findDamageFX( const char* name, const AsciiString& sourceId, Bool allowBaseFallback = TRUE ) const;
 
 	static void parseDamageFXDefinition(INI* ini);
 
@@ -158,6 +159,7 @@ private:
 
 	typedef std::hash_map< NameKeyType, DamageFX, rts::hash<NameKeyType>, rts::equal_to<NameKeyType>/**/> DamageFXMap;
 	DamageFXMap m_dfxmap;
+	DamageFXMap m_fusionDfxmap;
 
 };
 
