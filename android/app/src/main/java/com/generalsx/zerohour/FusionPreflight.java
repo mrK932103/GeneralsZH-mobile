@@ -330,7 +330,8 @@ final class FusionPreflight {
                             }
                             if (!alreadyIndexed) {
                                 knownDigests.add(digest);
-                                String iniSource = source + "!" + entry.path;
+                                // All archives below one selected mod folder share one source namespace.
+                                String iniSource = mod.dir.getAbsolutePath() + "!" + entry.path;
                                 for (FusionIniIndex.Definition definition : FusionIniIndex.scan(bytes,
                                         iniSource)) {
                                     List<FusionIniIndex.Definition> matches = definitions.get(definition.key());
