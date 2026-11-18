@@ -3267,6 +3267,29 @@ ParticleSystemTemplate *ParticleSystemManager::findParentTemplate( const AsciiSt
 }
 
 // ------------------------------------------------------------------------------------------------
+/** Find a parent particle template within one Fusion source namespace */
+// ------------------------------------------------------------------------------------------------
+ParticleSystemTemplate *ParticleSystemManager::findParentTemplate( const AsciiString &name, Int parentNum, const AsciiString& sourceId ) const
+{
+	if (name.isEmpty() || sourceId.isEmpty()) {
+		return nullptr;
+	}
+
+	for (TemplateMap::const_iterator it = m_fusionTemplateMap.begin(); it != m_fusionTemplateMap.end(); ++it) {
+		ParticleSystemTemplate *sysTemplate = (*it).second;
+		if (sysTemplate->getFusionSourceId().compare(sourceId) == 0 &&
+			name.compare(sysTemplate->m_slaveSystemName) == 0) {
+			if (!parentNum--) {
+				return sysTemplate;
+			}
+		}
+	}
+
+	// Deliberately do not fall back to base-game or another mod's templates.
+	return nullptr;
+}
+
+// ------------------------------------------------------------------------------------------------
 /** Destroy any particle systems that are attached to this object */
 // ------------------------------------------------------------------------------------------------
 void ParticleSystemManager::destroyAttachedSystems( Object *obj )
