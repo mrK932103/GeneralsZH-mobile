@@ -195,9 +195,9 @@ void ControlBar::populatePurchaseScience( Player* player )
 			player->getPlayerTemplate()->getPurchaseScienceCommandSetRank3().isEmpty() ||
 			player->getPlayerTemplate()->getPurchaseScienceCommandSetRank8().isEmpty())
 		return;
-	commandSet1 = findCommandSet(player->getPlayerTemplate()->getPurchaseScienceCommandSetRank1()); // TEMP WILL CHANGE TO PROPER WAY ONCE WORKING
-	commandSet3 = findCommandSet(player->getPlayerTemplate()->getPurchaseScienceCommandSetRank3()); // TEMP WILL CHANGE TO PROPER WAY ONCE WORKING
-	commandSet8 = findCommandSet(player->getPlayerTemplate()->getPurchaseScienceCommandSetRank8()); // TEMP WILL CHANGE TO PROPER WAY ONCE WORKING
+	commandSet1 = findCommandSet(player->getPlayerTemplate()->getPurchaseScienceCommandSetRank1(), player->getPlayerTemplate()->getFusionSourceId()); // TEMP WILL CHANGE TO PROPER WAY ONCE WORKING
+	commandSet3 = findCommandSet(player->getPlayerTemplate()->getPurchaseScienceCommandSetRank3(), player->getPlayerTemplate()->getFusionSourceId()); // TEMP WILL CHANGE TO PROPER WAY ONCE WORKING
+	commandSet8 = findCommandSet(player->getPlayerTemplate()->getPurchaseScienceCommandSetRank8(), player->getPlayerTemplate()->getFusionSourceId()); // TEMP WILL CHANGE TO PROPER WAY ONCE WORKING
 
 	for( i = 0; i < MAX_PURCHASE_SCIENCE_RANK_1; i++ )
 		if (m_sciencePurchaseWindowsRank1[i] != nullptr)
@@ -3848,7 +3848,7 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 	// get command set
 	if(player->getPlayerTemplate()->getSpecialPowerShortcutCommandSet().isEmpty() )
 		return;
-	commandSet = findCommandSet(player->getPlayerTemplate()->getSpecialPowerShortcutCommandSet()); // TEMP WILL CHANGE TO PROPER WAY ONCE WORKING
+	commandSet = findCommandSet(player->getPlayerTemplate()->getSpecialPowerShortcutCommandSet(), player->getPlayerTemplate()->getFusionSourceId()); // TEMP WILL CHANGE TO PROPER WAY ONCE WORKING
 	if(!commandSet)
 		return;
 	// populate the button with commands defined
@@ -3952,9 +3952,9 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 							{
 								continue;
 							}
-							commandSet1 = findCommandSet( player->getPlayerTemplate()->getPurchaseScienceCommandSetRank1() );
-							commandSet3 = findCommandSet( player->getPlayerTemplate()->getPurchaseScienceCommandSetRank3() );
-							commandSet8 = findCommandSet( player->getPlayerTemplate()->getPurchaseScienceCommandSetRank8() );
+							commandSet1 = findCommandSet( player->getPlayerTemplate()->getPurchaseScienceCommandSetRank1(), player->getPlayerTemplate()->getFusionSourceId() );
+							commandSet3 = findCommandSet( player->getPlayerTemplate()->getPurchaseScienceCommandSetRank3(), player->getPlayerTemplate()->getFusionSourceId() );
+							commandSet8 = findCommandSet( player->getPlayerTemplate()->getPurchaseScienceCommandSetRank8(), player->getPlayerTemplate()->getFusionSourceId() );
 
 							if( !commandSet1 || !commandSet3 || !commandSet8 )
 							{
@@ -4192,7 +4192,7 @@ void ControlBar::updateSpecialPowerShortcut()
 				{
 					//Ugh... hacky.
 					//Look for a command button for a special power and if so, then get the command availability for it.
-					const CommandSet *commandSet = findCommandSet( obj->getCommandSetString() );
+					const CommandSet *commandSet = findCommandSet( obj->getCommandSetString(), obj->getTemplate()->getSourceId() );
 					if( commandSet )
 					{
 						for( Int commandIndex = 0; commandIndex < MAX_COMMANDS_PER_SET; commandIndex++ )
