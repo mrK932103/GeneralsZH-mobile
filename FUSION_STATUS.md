@@ -2,7 +2,7 @@
 
 Last updated: 2026-11-18
 
-Latest implementation change: source-qualified INI file opening now resolves the requested virtual path to the exact archive path encoded in the Fusion source identity and fails closed if that archive does not contain the file. Android preflight source identities now use absolute archive paths (plus the existing `!entry` suffix for INI provenance). This is a foundational fix only; end-to-end source-aware loading and all runtime registries are still incomplete.
+Latest implementation change: Fusion source identity now represents the selected mod folder (absolute path) rather than one `.big` archive. The native filesystem resolves a requested virtual file to the highest-priority matching archive whose full path is inside that mod folder, while preserving loose-file precedence. INI single-file opens and directory membership checks use this mod-folder lookup; directory scans are filtered to files from that selected mod. Android preflight now tags INI definitions with the selected mod-folder identity, so sibling `.big` archives share one faction namespace. These changes are foundational only; they are not yet compiled or tested, and non-INI runtime registries/assets remain incomplete.
 
 ## Goal (acceptance criteria)
 
@@ -27,19 +27,19 @@ A buildable APK alone is not acceptance. Completion requires a successful Androi
 - Source-qualified faction-root catalog and N-way conflict diagnostics.
 - Deterministic INI namespace planning and virtual asset-path planning.
 - A conservative BIGF builder that refuses unsafe conflicts rather than silently overwriting source data.
-- Native prototype work for source-tagged INI loads, PlayerTemplate source identity, combined Skirmish faction listing/selection, source propagation into player creation, and source-qualified weapon registration/lookup.
+- Native prototype work for source-tagged INI loads, mod-folder-aware archive lookup for INI files, PlayerTemplate source identity, combined Skirmish faction listing/selection, source propagation into player creation, and source-qualified weapon registration/lookup.
 - Some source-aware validation and script matching.
 
 ## Critical known gap
 
-The source-aware INI entry point now parses the exact archive path from the source identity and opens the requested virtual path using `getFileInstanceForArchive(...)`. It fails closed if that archive does not contain the requested file. Android preflight identities now use absolute archive paths. However, this is not yet wired through every caller: source-specific directory enumeration/includes and all non-INI runtime resource lookups still need source isolation.
+The source-aware INI entry point now parses the selected mod-folder path from the source identity and resolves files through `getFileInstanceForMod(...)`. That lookup searches the per-virtual-path archive priority list and accepts only archives whose full archive path is within the selected mod folder. The public FileSystem wrapper accounts for loose-file precedence. INI directory enumeration is still sourced from the merged virtual filesystem, then filtered by the mod-folder lookup before loading. This path has not been compiled or tested; verify path normalization, archive ordering, duplicate files across sibling archives, and missing-file fail-closed behavior.
 
-The Java-side source labels previously used mod/archive display names and entry paths; they are not yet a proven globally unique mapping to exact archive paths.
+All non-INI runtime resource lookups still need source isolation. A mod-folder-aware INI loader does not by itself isolate ThingTemplate, Armor, Science, SpecialPower, Upgrade, Locomotor, CommandSet, CommandButton, projectiles, OCL, FX, particles, AI/build lists, scripts, audio, models or textures.
 
 ## Remaining work — required before calling it complete
 
-1. Define stable source identities mapped to exact absolute mod/archive paths, including duplicate archive names.
-2. Wire every source-tagged INI open/include/reference through exact archive-instance resolution; prevent fallback to another mod's same-named file.
+1. Verify mod-folder source lookup against actual managed archive paths and archive priority ordering; add tests for sibling archives, duplicate paths and loose-file precedence.
+2. Wire every source-tagged INI load path through the mod-folder lookup, including all startup INI entry points; verify missing source files fail safely.
 3. Extend source isolation beyond PlayerTemplate and WeaponTemplate to every runtime registry and lookup used by factions: ThingTemplate, Armor, Science, SpecialPower, Upgrade, Locomotor, CommandSet, CommandButton, projectile/OCL/FX/particle systems, AI/build lists, teams/scripts, audio and model/texture assets.
 4. Make asset/dependency resolution source-aware at runtime, not only in preflight planning.
 5. Add tests with two archives containing the same relative INI/resource paths but different contents; prove each selected source resolves its own content and that missing source assets fail safely rather than falling through to another mod.
