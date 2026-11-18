@@ -3413,13 +3413,27 @@ Int ParticleSystemManager::removeOldestParticles( UnsignedInt count,
 // ------------------------------------------------------------------------------------------------
 void ParticleSystemManager::preloadAssets( TimeOfDay timeOfDay )
 {
-	TemplateMap::iterator begin(m_templateMap.begin());
-	TemplateMap::iterator end(m_templateMap.end());
+	// Preload base-game particle textures.
+	TemplateMap::const_iterator begin(m_templateMap.begin());
+	TemplateMap::const_iterator end(m_templateMap.end());
 
 	for (; begin != end; ++begin) {
 		const ParticleSystemTemplate *tmplate = (*begin).second;
 		if (tmplate->m_particleType == ParticleSystemInfo::PARTICLE &&
-			 	(! tmplate->m_particleTypeName.isEmpty()))
+				(! tmplate->m_particleTypeName.isEmpty()))
+		{
+			TheDisplay->preloadTextureAssets(tmplate->m_particleTypeName);
+		}
+	}
+
+	// Fusion templates live in a separate source-qualified registry and must
+	// participate in the same preload pass.
+	begin = m_fusionTemplateMap.begin();
+	end = m_fusionTemplateMap.end();
+	for (; begin != end; ++begin) {
+		const ParticleSystemTemplate *tmplate = (*begin).second;
+		if (tmplate->m_particleType == ParticleSystemInfo::PARTICLE &&
+				(! tmplate->m_particleTypeName.isEmpty()))
 		{
 			TheDisplay->preloadTextureAssets(tmplate->m_particleTypeName);
 		}
@@ -3437,7 +3451,8 @@ void ParticleSystemManager::crc( Xfer *xfer )
 // ------------------------------------------------------------------------------------------------
 /** Xfer method
 	* Version Info:
-	* 1: Initial version */
+	* 1: Initial version
+	* 2: Preserve Fusion source identity for each saved particle system */
 // ------------------------------------------------------------------------------------------------
 void ParticleSystemManager::xfer( Xfer *xfer )
 {
