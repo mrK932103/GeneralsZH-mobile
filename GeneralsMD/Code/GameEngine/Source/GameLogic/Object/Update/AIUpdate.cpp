@@ -183,8 +183,10 @@ const LocomotorTemplateVector* AIUpdateModuleData::findLocomotorTemplateVector(L
 		if (!*token || stricmp(token, "None") == 0)
 			continue;
 
-		NameKeyType locoKey = NAMEKEY(token);
-		const LocomotorTemplate* lt = TheLocomotorStore->findLocomotorTemplate(locoKey);
+		const AsciiString sourceId = ini->getSourceId();
+		const LocomotorTemplate* lt = sourceId.isEmpty()
+			? TheLocomotorStore->findLocomotorTemplate(NAMEKEY(token))
+			: TheLocomotorStore->findLocomotorTemplate(AsciiString(token), sourceId);
 		if (!lt)
 		{
 			// GeneralsX @bugfix Android port 12/07/2026 - A real-device log
