@@ -1518,7 +1518,9 @@ void INI::parseArmorTemplate( INI* ini, void * /*instance*/, void *store, const 
 	}
 	else
 	{
-		const ArmorTemplate *tt = TheArmorStore->findArmorTemplate(token);	// could be null!
+		const ArmorTemplate *tt = ini->getSourceId().isNotEmpty()
+			? TheArmorStore->findArmorTemplate(AsciiString(token), ini->getSourceId())
+			: TheArmorStore->findArmorTemplate(token);	// could be null!
 		DEBUG_ASSERTCRASH(tt, ("ArmorTemplate %s not found!",token));
 		// assign it, even if null!
 		*theArmorTemplate = tt;
