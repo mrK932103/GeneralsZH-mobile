@@ -112,3 +112,17 @@ Files changed:
 - `GeneralsMD/Code/GameEngine/Source/GameLogic/Object/Update/AIUpdate.cpp`
 
 Next required audit: check LocomotorSet upgrade/replacement and any other runtime paths that resolve locomotor names outside this INI parser; then continue with CommandSet/CommandButton and the remaining source-dependent registries/assets.
+
+## Continuation — preserve Locomotor source identity in snapshots
+
+A second Locomotor cross-mod path was found during the call-site audit: `LocomotorSet::xfer` previously saved only a template name, then restored it through the legacy global name map. That could reconstruct a mixed-mod unit with a sibling mod's same-named Locomotor after save/load or snapshot transfer.
+
+The LocomotorSet transfer format is now version 2 and writes each Locomotor's source ID beside its template name. Version-2 loads use the source-qualified lookup; version-1 data remains readable and uses the legacy name-only lookup because old saves have no Fusion source metadata. `Locomotor` exposes a read-only accessor to its template's source ID for this transfer. Changes are mirrored in Generals and GeneralsMD.
+
+Files changed:
+- `Generals/Code/GameEngine/Include/GameLogic/Locomotor.h`
+- `Generals/Code/GameEngine/Source/GameLogic/Object/Locomotor.cpp`
+- `GeneralsMD/Code/GameEngine/Include/GameLogic/Locomotor.h`
+- `GeneralsMD/Code/GameEngine/Source/GameLogic/Object/Locomotor.cpp`
+
+This is source-level implementation and compatibility inspection only. No native build, save/load test, network test, or mixed-mod Skirmish has been run. The LocomotorSet source identity is now preserved on its transfer path; continue auditing other snapshot/reference paths and then proceed to the next runtime registry.
