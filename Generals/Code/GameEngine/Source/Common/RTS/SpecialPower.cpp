@@ -113,6 +113,8 @@ void SpecialPowerStore::parseSpecialPowerDefinition( INI *ini )
 	AsciiString name = ini->getNextToken();
 
 	SpecialPowerTemplate* specialPower = TheSpecialPowerStore->findSpecialPowerTemplatePrivate( name, sourceId );
+	if (!specialPower && ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES)
+		specialPower = TheSpecialPowerStore->findSpecialPowerTemplatePrivate(name);
 
 	if ( ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES )
 	{
@@ -122,6 +124,7 @@ void SpecialPowerStore::parseSpecialPowerDefinition( INI *ini )
 			specialPower = newInstance(SpecialPowerTemplate);
 			*specialPower = *child;
 			child->setNextOverride(specialPower);
+			specialPower->friend_setFusionSourceId(sourceId);
 			specialPower->markAsOverride();
 			//TheSpecialPowerStore->m_specialPowerTemplates.push_back(specialPower); // nope, do NOT do this
 		}
@@ -262,7 +265,7 @@ SpecialPowerTemplate* SpecialPowerStore::findSpecialPowerTemplatePrivate( AsciiS
 				return candidate;
 		}
 	}
-	return findSpecialPowerTemplatePrivate(name);
+	return nullptr;
 }
 
 const SpecialPowerTemplate *SpecialPowerStore::findSpecialPowerTemplate( AsciiString name, const AsciiString& sourceId )
