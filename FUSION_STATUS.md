@@ -18,7 +18,7 @@ A buildable APK alone is not acceptance. Completion requires a successful Androi
 - Working branch: `claude/generals-mod-fusion`
 - Pull request: https://github.com/mrK932103/GeneralsZH-mobile/pull/1
 - PR status at last known check: open draft; not merged.
-- Latest code commit: `25c6f9407a563444576bc09312746ec68b3ba786`
+- Latest code commit: `49a9264d11142c7c289b0f01bf801498bc246a1b`
 
 ## Implemented in the branch (not equivalent to end-to-end completion)
 
@@ -35,6 +35,7 @@ A buildable APK alone is not acceptance. Completion requires a successful Androi
 - A conservative BIGF builder that refuses unsafe conflicts rather than silently overwriting source data.
 - Native prototype work for source-tagged INI loads, mod-folder-aware archive lookup for INI files, PlayerTemplate source identity, combined Skirmish faction listing/selection, source propagation into player creation, and source-qualified weapon registration/lookup.
 - ThingFactory has an explicit exact-source lookup API; ThingTemplate BuildVariations and ObjectReskin references now use exact-source resolution for Fusion-owned definitions.
+- ArmorStore has a separate Fusion armor registry keyed by source identity and armor name; INI ArmorSet references resolve against their source mod first, then base-game definitions. Mirrored in Generals and GeneralsMD.
 - Some source-aware validation and script matching.
 
 ## Critical known gap
