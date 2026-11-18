@@ -177,7 +177,7 @@ public:
 
 		if (primary && secondary)
 		{
-			Drawable *tracer = TheThingFactory->newDrawable(TheThingFactory->findTemplate(m_tracerName));
+			Drawable *tracer = TheThingFactory->newDrawable(TheThingFactory->findTemplate(m_tracerName, getFusionSourceId()));
 			if(!tracer)
 				return;
 
@@ -270,7 +270,7 @@ public:
 
 	virtual void doFXPos(const Coord3D *primary, const Matrix3D* /*primaryMtx*/, const Real /*primarySpeed*/, const Coord3D * secondary, const Real /*overrideRadius*/ ) const override
 	{
-		const ThingTemplate* tmpl = TheThingFactory->findTemplate(m_templateName);
+		const ThingTemplate* tmpl = TheThingFactory->findTemplate(m_templateName, getFusionSourceId());
 		DEBUG_ASSERTCRASH(tmpl, ("RayEffect %s not found",m_templateName.str()));
 		if (primary && secondary && tmpl)
 		{
@@ -604,7 +604,7 @@ protected:
 			adjustVector(&offset, mtx);
 		}
 
-		const ParticleSystemTemplate *tmp = TheParticleSystemManager->findTemplate(m_name);
+		const ParticleSystemTemplate *tmp = TheParticleSystemManager->findTemplate(m_name, getFusionSourceId(), TRUE);
 		DEBUG_ASSERTCRASH(tmp, ("ParticleSystem %s not found",m_name.str()));
 		if (tmp)
 		{
@@ -915,6 +915,7 @@ const FXList *FXListStore::findFXList(const char* name, const AsciiString& sourc
 		fxl = &TheFXListStore->m_fxmap[key];
 	}
 	fxl->clear();
+	fxl->setFusionSourceId(sourceId);
 	ini->initFromINI(fxl, TheFXListFieldParse);
 }
 
