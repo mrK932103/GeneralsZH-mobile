@@ -657,6 +657,45 @@ Bool ArchiveFileSystem::getFileInstanceForArchive(const AsciiString& filename, c
 	return FALSE;
 }
 
+// Resolve the highest-priority matching file from any archive inside one selected mod folder.
+// The per-file instance is local to this virtual path, so archive ordering for other paths is irrelevant.
+Bool ArchiveFileSystem::getFileInstanceForMod(const AsciiString& filename, const AsciiString& modFolder, FileInstance *instance) const
+{
+	if (instance == nullptr || filename.isEmpty() || modFolder.isEmpty())
+		return FALSE;
+
+	std::string folder(modFolder.str());
+	if (folder.back() != '/' && folder.back() != '\\\\')
+		folder += '/';
+
+	ArchivedDirectoryInfoResult result = const_cast<ArchiveFileSystem*>(this)->getArchivedDirectoryInfo(filename.str());
+	if (!result.valid())
+		return FALSE;
+
+	stl::const_range<ArchivedFileLocationMap> range = stl::get_range(result.dirInfo->m_files, result.lastToken, 0);
+	if (!range.valid())
+		return FALSE;
+
+	FileInstance index = 0;
+	for (ArchivedFileLocationMap::const_iterator it = range.begin; it != range.end; ++it, ++index)
+	{
+		if (it->second != nullptr)
+		{
+			const std::string archivePath(it->second->getPath().str());
+			if (archivePath.size() >= folder.size()
+				&& std::equal(folder.begin(), folder.end(), archivePath.begin(),
+					[](char a, char b) { return tolower((unsigned char)a) == tolower((unsigned char)b); }))
+			{
+				*instance = index;
+				return TRUE;
+			}
+		}
+		if (index == ~FileInstance(0))
+			return FALSE;
+	}
+	return FALSE;
+}
+
 void ArchiveFileSystem::getFileListInDirectory(const AsciiString& currentDirectory, const AsciiString& originalDirectory, const AsciiString& searchName, FilenameList &filenameList, Bool searchSubdirectories) const
 {
 	ArchiveFileMap::const_iterator it = m_archiveFileMap.begin();
