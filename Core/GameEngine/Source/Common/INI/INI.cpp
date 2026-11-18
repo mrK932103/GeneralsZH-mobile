@@ -1667,7 +1667,10 @@ void INI::parseSpecialPowerTemplate( INI* ini, void * /*instance*/, void *store,
 		throw ERROR_BUG;
 	}
 
-	const SpecialPowerTemplate *sPowerT = TheSpecialPowerStore->findSpecialPowerTemplate( AsciiString( token ) );
+	const AsciiString sourceId = ini->getSourceId();
+	const SpecialPowerTemplate *sPowerT = sourceId.isNotEmpty()
+		? TheSpecialPowerStore->findSpecialPowerTemplate( AsciiString(token), sourceId )
+		: TheSpecialPowerStore->findSpecialPowerTemplate( AsciiString(token) );
 	if( !sPowerT && stricmp( token, "None" ) != 0 )
 	{
 		DEBUG_CRASH( ("[LINE: %d in '%s'] Specialpower %s not found!", ini->getLineNum(), ini->getFilename().str(), token) );
