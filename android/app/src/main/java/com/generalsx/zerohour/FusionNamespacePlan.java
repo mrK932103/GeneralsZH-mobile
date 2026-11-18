@@ -229,10 +229,11 @@ final class FusionNamespacePlan {
         String value = safe(source).replace('\\', '/');
         int member = value.indexOf('!');
         if (member >= 0) value = value.substring(0, member);
-        // Preflight source is ModName/Archive.big. All BIG archives under one selected
-        // mod folder must share the same faction namespace.
-        int archiveSeparator = value.lastIndexOf('/');
-        if (archiveSeparator > 0) value = value.substring(0, archiveSeparator);
+        // Preflight source is the selected mod folder followed by an optional !entry suffix.
+        // Keep the whole folder path: sibling BIG archives belong to the same faction namespace.
+        while (value.endsWith("/") && value.length() > 1) {
+            value = value.substring(0, value.length() - 1);
+        }
         return value.toLowerCase(Locale.ROOT);
     }
 
