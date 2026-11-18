@@ -20,6 +20,18 @@ A buildable APK alone is not acceptance. Completion requires a successful Androi
 - PR status at last known check: open draft; not merged.
 - Latest code commit: `450969d7650d036674933de452a827c819f2c775`
 
+## Latest continuation — Locomotor source registry
+
+The Locomotor template parser now reads `INI::getSourceId()` and stores Fusion-owned locomotor templates in a separate source-tagged registry instead of the legacy global NameKey map. A source-qualified lookup scans only templates owned by that source and then permits an explicit base-game lookup; it never selects a locomotor belonging to another selected mod. Same-source override lookup is source-local. The Fusion registry also participates in reset/override-chain cleanup and destruction. The change is mirrored in both `Generals` and `GeneralsMD`.
+
+Files changed:
+- `Generals/Code/GameEngine/Include/GameLogic/Locomotor.h`
+- `Generals/Code/GameEngine/Source/GameLogic/Object/Locomotor.cpp`
+- `GeneralsMD/Code/GameEngine/Include/GameLogic/Locomotor.h`
+- `GeneralsMD/Code/GameEngine/Source/GameLogic/Object/Locomotor.cpp`
+
+Important limitation: this change isolates registration and exposes source-qualified lookup, but the complete runtime call-site chain that creates each object's Locomotor from its owning ThingTemplate has not yet been audited/wired. Therefore it does not yet prove that every unit actually receives its own mod's locomotor in a mixed-mod match. No compile or runtime test was run in this continuation.
+
 ## Implemented in the branch (not equivalent to end-to-end completion)
 
 - Particle-system snapshot serialization is version 2: each saved particle system carries its owning Fusion source ID, and load resolves the template in that exact source namespace. Version-1 snapshots remain readable through the legacy name-only path. Destroyed/non-saveable entries write the matching empty source field in version 2 so the stream stays aligned.
