@@ -587,6 +587,17 @@ void LocomotorStore::reset()
 			++it;
 		}
 	}
+
+	// Fusion-owned templates have their own registry and override chains.
+	for (std::vector<LocomotorTemplate*>::iterator it = m_fusionLocomotorTemplates.begin();
+		it != m_fusionLocomotorTemplates.end(); )
+	{
+		Overridable *locoTemplate = (*it)->deleteOverrides();
+		if (!locoTemplate)
+			it = m_fusionLocomotorTemplates.erase(it);
+		else
+			++it;
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
