@@ -83,11 +83,14 @@ void ScienceStore::reset()
 //-----------------------------------------------------------------------------
 ScienceType ScienceStore::getScienceFromInternalName(const AsciiString& name) const
 {
+	return getScienceFromInternalName(name, AsciiString::TheEmptyString);
+}
+
+ScienceType ScienceStore::getScienceFromInternalName(const AsciiString& name, const AsciiString& sourceId) const
+{
 	if (name.isEmpty())
 		return SCIENCE_INVALID;
-	NameKeyType nkt = TheNameKeyGenerator->nameToKey(name);
-	ScienceType st = (ScienceType)nkt;
-	return st;
+	return friend_lookupScience(name.str(), sourceId);
 }
 
 //-----------------------------------------------------------------------------
@@ -95,6 +98,9 @@ AsciiString ScienceStore::getInternalNameForScience(ScienceType science) const
 {
 	if (science == SCIENCE_INVALID)
 		return AsciiString::TheEmptyString;
+	const ScienceInfo* info = findScienceInfo(science);
+	if (info)
+		return info->m_internalName;
 	NameKeyType nk = (NameKeyType)(science);
 	return TheNameKeyGenerator->keyToName(nk);
 }
@@ -155,8 +161,8 @@ const ScienceInfo* ScienceStore::findScienceInfo(ScienceType st) const
 /*static*/ void ScienceStore::friend_parseScienceDefinition( INI* ini )
 {
 	const char* c = ini->getNextToken();
-	NameKeyType nkt = NAMEKEY(c);
-	ScienceType st = (ScienceType)nkt;
+	const AsciiString sourceId = ini->getSourceId();
+	ScienceType st = TheScienceStore->friend_lookupScience(c, sourceId);
 
 	if (TheScienceStore)
 	{
@@ -177,7 +183,7 @@ const ScienceInfo* ScienceStore::findScienceInfo(ScienceType st) const
 		for (ScienceInfoVec::iterator it = TheScienceStore->m_sciences.begin(); it != TheScienceStore->m_sciences.end(); ++it)
 		{
 			// note that we don't use getFinalOverride here. this is correct and as-desired.
-			if ((*it)->m_science == st)
+			if ((*it)->m_science == st && (*it)->m_sourceId == sourceId)
 			{
 				info = *it;
 				break;
@@ -222,6 +228,8 @@ const ScienceInfo* ScienceStore::findScienceInfo(ScienceType st) const
 
 		ini->initFromINI(info, myFieldParse);
 		info->m_science = st;
+		info->m_internalName = c;
+		info->m_sourceId = sourceId;
 		info->addRootSciences(info->m_rootSciences);
 	}
 }
@@ -349,9 +357,14 @@ void ScienceStore::getPurchasableSciences(const Player* player, ScienceVec& purc
 // this is intended ONLY for use by INI::scanScience.
 // Don't use it anywhere else. In particular, never, ever, ever
 // call this with a hardcoded science name. (srj)
-ScienceType ScienceStore::friend_lookupScience(const char* scienceName) const
+ScienceType ScienceStore::friend_lookupScience(const char* scienceName, const AsciiString& sourceId) const
 {
-	NameKeyType nkt = NAMEKEY(scienceName);
+	AsciiString qualifiedName;
+	if (sourceId.isNotEmpty())
+		qualifiedName.format("%s::%s", sourceId.str(), scienceName);
+	else
+		qualifiedName = scienceName;
+	NameKeyType nkt = TheNameKeyGenerator->nameToKey(qualifiedName);
 	ScienceType st = (ScienceType)nkt;
 	if (!isValidScience(st))
 	{
@@ -366,7 +379,7 @@ ScienceType ScienceStore::friend_lookupScience(const char* scienceName) const
 		// sibling parsers in INI.cpp (parseSpecialPowerTemplate, etc.)
 		// already treat an unresolved name as a warning, not a fatal error;
 		// bring this one in line instead of throwing.
-		DEBUG_CRASH(("Science name %s not known! (Did you define it in Science.ini?)",scienceName));
+		DEBUG_CRASH(("Science name %s from source %s not known! (Did you define it in Science.ini?)",scienceName,sourceId.str()));
 		fprintf(stderr, "WARNING: Science '%s' not recognized -- defaulting to SCIENCE_INVALID\n", scienceName);
 		fflush(stderr);
 		return SCIENCE_INVALID;
