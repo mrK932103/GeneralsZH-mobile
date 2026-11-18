@@ -134,6 +134,7 @@ UpgradeTemplate::UpgradeTemplate()
 	m_cost = 0;
 	m_type = UPGRADE_TYPE_PLAYER;
 	m_nameKey = NAMEKEY_INVALID;
+	m_fusionSourceId.clear();
 	m_buildTime = 0.0f;
 	m_next = nullptr;
 	m_prev = nullptr;
@@ -318,6 +319,22 @@ UpgradeTemplate *UpgradeCenter::findNonConstUpgradeByKey( NameKeyType key )
 
 }
 
+//-------------------------------------------------------------------------------------------------
+UpgradeTemplate *UpgradeCenter::findNonConstUpgradeByKey(
+	NameKeyType key, const AsciiString& sourceId )
+{
+	if (sourceId.isNotEmpty())
+	{
+		for (UpgradeTemplate *upgrade = m_upgradeList; upgrade; upgrade = upgrade->friend_getNext())
+		{
+			if (upgrade->getUpgradeNameKey() == key &&
+				upgrade->getFusionSourceId() == sourceId)
+				return upgrade;
+		}
+	}
+	return findNonConstUpgradeByKey(key);
+}
+
 // ------------------------------------------------------------------------------------------------
 /** Return the first upgrade template */
 // ------------------------------------------------------------------------------------------------
@@ -350,6 +367,22 @@ const UpgradeTemplate *UpgradeCenter::findUpgradeByKey( NameKeyType key ) const
 const UpgradeTemplate *UpgradeCenter::findUpgrade( const AsciiString& name ) const
 {
 	return findUpgradeByKey( TheNameKeyGenerator->nameToKey( name ) );
+}
+
+//-------------------------------------------------------------------------------------------------
+/** Find an upgrade in one Fusion source, then fall back to a base-game upgrade. */
+//-------------------------------------------------------------------------------------------------
+const UpgradeTemplate *UpgradeCenter::findUpgrade(
+	const AsciiString& name, const AsciiString& sourceId ) const
+{
+	const NameKeyType key = TheNameKeyGenerator->nameToKey(name);
+	for (UpgradeTemplate *upgrade = m_upgradeList; upgrade; upgrade = upgrade->friend_getNext())
+	{
+		if (upgrade->getUpgradeNameKey() == key &&
+			upgrade->getFusionSourceId() == sourceId && sourceId.isNotEmpty())
+			return upgrade;
+	}
+	return findUpgrade(name);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -391,6 +424,34 @@ UpgradeTemplate *UpgradeCenter::newUpgrade( const AsciiString& name )
 	// return new upgrade
 	return newUpgrade;
 
+}
+
+//-------------------------------------------------------------------------------------------------
+/** Allocate an upgrade in a Fusion source namespace. */
+//-------------------------------------------------------------------------------------------------
+UpgradeTemplate *UpgradeCenter::newUpgrade(
+	const AsciiString& name, const AsciiString& sourceId )
+{
+	if (sourceId.isEmpty())
+		return newUpgrade(name);
+
+	UpgradeTemplate *newUpgrade = newInstance(UpgradeTemplate);
+	const UpgradeTemplate *defaultUpgrade = findUpgrade("DefaultUpgrade", sourceId);
+	if (defaultUpgrade != nullptr)
+		*newUpgrade = *defaultUpgrade;
+
+	newUpgrade->setUpgradeName(name);
+	newUpgrade->setUpgradeNameKey(TheNameKeyGenerator->nameToKey(name));
+	newUpgrade->setFusionSourceId(sourceId);
+
+	UpgradeMaskType newMask;
+	newMask.set(m_nextTemplateMaskBit);
+	m_nextTemplateMaskBit++;
+	DEBUG_ASSERTCRASH(m_nextTemplateMaskBit < UPGRADE_MAX_COUNT,
+		("Can't have over %d types of Upgrades and have a Bitfield function.", UPGRADE_MAX_COUNT));
+	newUpgrade->friend_setUpgradeMask(newMask);
+	linkUpgrade(newUpgrade);
+	return newUpgrade;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -482,12 +543,15 @@ void UpgradeCenter::parseUpgradeDefinition( INI *ini )
 	const char* name = ini->getNextToken();
 
 	// find existing item if present
-	UpgradeTemplate* upgrade = TheUpgradeCenter->findNonConstUpgradeByKey( NAMEKEY(name) );
+	const AsciiString sourceId = ini->getSourceId();
+	UpgradeTemplate* upgrade = TheUpgradeCenter->findNonConstUpgradeByKey( NAMEKEY(name), sourceId );
 	if( upgrade == nullptr )
 	{
 
 		// allocate a new item
-		upgrade = TheUpgradeCenter->newUpgrade( name );
+		upgrade = sourceId.isNotEmpty()
+			? TheUpgradeCenter->newUpgrade( name, sourceId )
+			: TheUpgradeCenter->newUpgrade( name );
 
 	}
 
