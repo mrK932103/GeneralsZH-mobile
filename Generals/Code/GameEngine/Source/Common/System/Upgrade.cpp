@@ -311,7 +311,7 @@ UpgradeTemplate *UpgradeCenter::findNonConstUpgradeByKey( NameKeyType key )
 
 	// search list
 	for( upgrade = m_upgradeList; upgrade; upgrade = upgrade->friend_getNext() )
-		if( upgrade->getUpgradeNameKey() == key )
+		if( upgrade->getUpgradeNameKey() == key && upgrade->getFusionSourceId().isEmpty() )
 			return upgrade;
 
 	// item not found
@@ -354,7 +354,7 @@ const UpgradeTemplate *UpgradeCenter::findUpgradeByKey( NameKeyType key ) const
 
 	// search list
 	for( upgrade = m_upgradeList; upgrade; upgrade = upgrade->friend_getNext() )
-		if( upgrade->getUpgradeNameKey() == key )
+		if( upgrade->getUpgradeNameKey() == key && upgrade->getFusionSourceId().isEmpty() )
 			return upgrade;
 
 	// item not found
