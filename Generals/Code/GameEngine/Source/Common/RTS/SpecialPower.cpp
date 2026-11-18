@@ -270,7 +270,8 @@ SpecialPowerTemplate* SpecialPowerStore::findSpecialPowerTemplatePrivate( AsciiS
 
 const SpecialPowerTemplate *SpecialPowerStore::findSpecialPowerTemplate( AsciiString name, const AsciiString& sourceId )
 {
-	return findSpecialPowerTemplatePrivate(name, sourceId);
+	SpecialPowerTemplate *sourceMatch = findSpecialPowerTemplatePrivate(name, sourceId);
+	return sourceMatch ? sourceMatch : findSpecialPowerTemplatePrivate(name);
 }
 
 //-------------------------------------------------------------------------------------------------
