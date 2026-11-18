@@ -1,6 +1,6 @@
 # Generals Mod Fusion — project status
 
-Last updated: 2026-11-18
+Last updated: 2026-11-19
 
 Latest implementation change: added a source-qualified ParticleSystemManager::findParentTemplate overload. It resolves slave/parent particle references only inside the owning Fusion source namespace and deliberately does not fall back to base-game or another mod. The existing unqualified overload remains unchanged for legacy callers. FXList carries its owning Fusion source ID into each FX nugget. Tracer and ray-effect ThingTemplate references and particle-system references resolve through that source namespace (with the existing explicit base-game fallback), rather than using unqualified global lookups. This closes three concrete cross-mod collision paths inside FX execution. The mod-folder-aware INI lookup remains the previous foundational change. The native filesystem resolves a requested virtual file to the highest-priority matching archive whose full path is inside that mod folder, while preserving loose-file precedence. INI single-file opens and directory membership checks use this mod-folder lookup; directory scans are filtered to files from that selected mod. Android preflight now tags INI definitions with the selected mod-folder identity, so sibling `.big` archives share one faction namespace. These changes are foundational only; they are not yet compiled or tested, and non-INI runtime registries/assets remain incomplete. OCL and production-prerequisite reference paths have been audited for source-aware lookup; DamageFX now has a source-qualified registry and source-first reference lookup; remaining registries and visual/audio assets still need a full call-site audit.
 
@@ -100,3 +100,15 @@ ObjectCreationList dependency audit: OCL definitions are stored in a source-qual
 
 
 DamageFX source isolation: Fusion `DamageFX` definitions now use a separate registry keyed by the composite `sourceId::DamageFXName`, while ordinary base-game definitions remain in the legacy registry. INI references resolve the active source first and may fall back to base-game DamageFX, but never to another selected mod. The change is mirrored in Generals and GeneralsMD; the shared INI parser now passes its active source ID into the lookup. This prevents same-named damage effect sets in different mods from silently replacing each other. NameKey hashing retains the engine's theoretical collision risk. Compile and runtime validation remain outstanding.
+
+## Continuation — source-aware LocomotorSet parsing
+
+The runtime link identified as missing in the previous continuation is now wired: `AIUpdateModuleData::parseLocomotorSet` obtains the active INI source ID and resolves each named Locomotor through the source-qualified `LocomotorStore::findLocomotorTemplate(name, sourceId)` overload. When the INI has no Fusion source ID, the parser retains the original legacy NameKey lookup. This means same-named Locomotor definitions in two selected mods no longer cause a unit's LocomotorSet to select whichever mod happened to populate the global name map. The change is mirrored in both `Generals` and `GeneralsMD`.
+
+The Zero Hour / `GeneralsMD` path retains its existing Android robustness behavior for unresolved Locomotor names (warn and skip the bad entry rather than aborting the whole INI load). The `Generals` path retains its original missing-template error behavior. The parser change is source inspection only: native compilation and mixed-mod runtime tests have not been run.
+
+Files changed:
+- `Generals/Code/GameEngine/Source/GameLogic/Object/Update/AIUpdate.cpp`
+- `GeneralsMD/Code/GameEngine/Source/GameLogic/Object/Update/AIUpdate.cpp`
+
+Next required audit: check LocomotorSet upgrade/replacement and any other runtime paths that resolve locomotor names outside this INI parser; then continue with CommandSet/CommandButton and the remaining source-dependent registries/assets.
