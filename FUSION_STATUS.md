@@ -18,7 +18,7 @@ A buildable APK alone is not acceptance. Completion requires a successful Androi
 - Working branch: `claude/generals-mod-fusion`
 - Pull request: https://github.com/mrK932103/GeneralsZH-mobile/pull/1
 - PR status at last known check: open draft; not merged.
-- Latest code commit: `3ea98c65222e00ee2aa4480965e9b9767ecad36b`
+- Latest code commit: `450969d7650d036674933de452a827c819f2c775`
 
 ## Implemented in the branch (not equivalent to end-to-end completion)
 
@@ -40,11 +40,12 @@ A buildable APK alone is not acceptance. Completion requires a successful Androi
 - SpecialPowerTemplate carries source identity; same-named powers are registered in separate source namespaces, source-local overrides remain isolated, and INI references prefer the selected source with base-game fallback. Mirrored in Generals and GeneralsMD.
 - Some source-aware validation and script matching.
 
-## Science isolation audit
+## Science isolation implementation
 
-`ScienceType` is currently a global `NameKeyType`-derived value. `Player` stores learned, disabled, and hidden sciences as vectors of raw `ScienceType`; `hasScience`, prerequisite checks, purchase flow, script availability, and save transfer all consume that raw value. A source-only `ScienceInfo` registry would therefore still alias same-named sciences across mods. Do not implement registry-only separation. Required design: introduce a stable source-qualified science identity and propagate it through INI token/vector parsing, prerequisite resolution, Player science state and script-facing APIs, UI name lookup, and save/network serialization with backward-compatible handling.
+Science IDs are now generated from the source-qualified key `sourceId::scienceName` for Fusion sources; base-game entries retain their legacy unqualified key. INI single-science fields and science vectors pass the active INI source into the resolver, so prerequisite references and fields such as `RequiredScience` resolve to the correct mod namespace. `ScienceInfo` stores source ID and original internal name; duplicate/override matching is source-local. Player science state, acquisition, prerequisite checks, purchasing, and existing save vectors store the resulting `ScienceType`, so the qualified ID is carried through those paths without changing the save-vector layout. The API also has a source-aware `getScienceFromInternalName` overload. Mirrored in Generals and GeneralsMD.
 
-- Science identity implementation: Science IDs are now derived from the source-qualified key `sourceId::scienceName` for Fusion INI sources, while base-game science keeps its legacy name key. Science definitions, duplicate/override matching, prerequisite vectors, single Science fields (including SpecialPower RequiredScience), and source-aware name lookup use that ID. `ScienceInfo` retains original display/internal name and source. Player state and existing save vectors already store `ScienceType`, so the qualified ID follows through acquisition, prerequisite checks, purchase, script availability, and existing save transfer without changing the serialized vector layout. Mirrored in Generals and GeneralsMD. Hash collisions remain subject to the engine's existing NameKey hash behavior; build and runtime verification are still required.
+Known limitation: the engine's `ScienceType` remains a NameKey hash value, so a theoretical hash collision is still possible. Build, save/load, multiplayer synchronization, UI selection and mixed-mod match tests are not verified.
+
 
 ## Critical known gap
 
