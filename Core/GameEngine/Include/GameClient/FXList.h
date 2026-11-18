@@ -31,6 +31,7 @@
 
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "Common/GameMemory.h"
+#include "Common/AsciiString.h"
 #include "Common/NameKeyGenerator.h"
 #include "Common/STLTypedefs.h"
 
@@ -74,6 +75,8 @@ class FXNugget : public MemoryPoolObject
 public:
 
 	FXNugget() { }
+	void setFusionSourceId(const AsciiString& sourceId) { m_fusionSourceId = sourceId; }
+	const AsciiString& getFusionSourceId() const { return m_fusionSourceId; }
 	//virtual ~FXNugget() { }
 
 	/**
