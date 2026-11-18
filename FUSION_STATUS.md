@@ -40,6 +40,10 @@ A buildable APK alone is not acceptance. Completion requires a successful Androi
 - SpecialPowerTemplate carries source identity; same-named powers are registered in separate source namespaces, source-local overrides remain isolated, and INI references prefer the selected source with base-game fallback. Mirrored in Generals and GeneralsMD.
 - Some source-aware validation and script matching.
 
+## Science isolation audit
+
+`ScienceType` is currently a global `NameKeyType`-derived value. `Player` stores learned, disabled, and hidden sciences as vectors of raw `ScienceType`; `hasScience`, prerequisite checks, purchase flow, script availability, and save transfer all consume that raw value. A source-only `ScienceInfo` registry would therefore still alias same-named sciences across mods. Do not implement registry-only separation. Required design: introduce a stable source-qualified science identity and propagate it through INI token/vector parsing, prerequisite resolution, Player science state and script-facing APIs, UI name lookup, and save/network serialization with backward-compatible handling.
+
 ## Critical known gap
 
 The source-aware INI entry point now parses the selected mod-folder path from the source identity and resolves files through `getFileInstanceForMod(...)`. That lookup searches the per-virtual-path archive priority list and accepts only archives whose full archive path is within the selected mod folder. The public FileSystem wrapper accounts for loose-file precedence. INI directory enumeration is still sourced from the merged virtual filesystem, then filtered by the mod-folder lookup before loading. This path has not been compiled or tested; verify path normalization, archive ordering, duplicate files across sibling archives, and missing-file fail-closed behavior.
