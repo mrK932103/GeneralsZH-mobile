@@ -221,9 +221,9 @@ static Bool gxFusionSourceContainsFile(const AsciiString &filename, const AsciiS
 	if (separator == std::string::npos || separator == 0)
 		return FALSE;
 
-	const AsciiString archivePath(source.substr(0, separator).c_str());
+	const AsciiString modFolder(source.substr(0, separator).c_str());
 	FileInstance instance = 0;
-	return TheFileSystem->getFileInstanceForArchive(filename, archivePath, &instance);
+	return TheFileSystem->getFileInstanceForMod(filename, modFolder, &instance);
 }
 
 static Bool gxIsModSource(const AsciiString &filename)
@@ -425,8 +425,8 @@ void INI::prepFile( AsciiString filename, INILoadType loadType )
 
 	}
 
-	// Open from the exact archive selected by Fusion; never fall back to a
-	// different mod's same-named INI file.
+	// Open from any archive inside the selected Fusion mod folder, never
+	// falling back to a same-named file from another selected mod.
 	File* file = nullptr;
 	if (m_sourceId.isNotEmpty())
 	{
@@ -435,10 +435,10 @@ void INI::prepFile( AsciiString filename, INILoadType loadType )
 		if (separator == std::string::npos || separator == 0)
 			throw INIException("Fusion source identity must contain an exact archive path and entry path");
 
-		const AsciiString archivePath(source.substr(0, separator).c_str());
+		const AsciiString modFolder(source.substr(0, separator).c_str());
 		FileInstance instance = 0;
-		if (!TheFileSystem->getFileInstanceForArchive(filename, archivePath, &instance))
-			throw INIException("Fusion source archive does not contain the requested INI file");
+		if (!TheFileSystem->getFileInstanceForMod(filename, modFolder, &instance))
+			throw INIException("Fusion source mod does not contain the requested INI file");
 
 		file = TheFileSystem->openFile(filename.str(), File::READ, File::BUFFERSIZE, instance);
 	}
