@@ -211,6 +211,21 @@ INI::INI()
 // read as before.
 static Bool s_gxMaskLowerDirectory = FALSE;
 
+static Bool gxFusionSourceContainsFile(const AsciiString &filename, const AsciiString &sourceId)
+{
+	if (sourceId.isEmpty())
+		return TheFileSystem->doesFileExist(filename.str());
+
+	std::string source(sourceId.str());
+	const std::string::size_type separator = source.find('!');
+	if (separator == std::string::npos || separator == 0)
+		return FALSE;
+
+	const AsciiString archivePath(source.substr(0, separator).c_str());
+	FileInstance instance = 0;
+	return TheFileSystem->getFileInstanceForArchive(filename, archivePath, &instance);
+}
+
 static Bool gxIsModSource(const AsciiString &filename)
 {
 	if (TheLocalFileSystem != nullptr && TheLocalFileSystem->doesFileExist(filename.str()))
@@ -263,7 +278,7 @@ UnsignedInt INI::loadFileDirectory( AsciiString fileDirName, INILoadType loadTyp
 	fprintf(stderr, "[INI] loadFileDirectory - checking iniFile: '%s'\n", iniFile.str());
 	fflush(stderr);
 	
-	if (TheFileSystem->doesFileExist(iniFile.str()))
+	if (gxFusionSourceContainsFile(iniFile, sourceId))
 	{
 		fprintf(stderr, "[INI] loadFileDirectory - loading iniFile: '%s' START\n", iniFile.str());
 		fflush(stderr);
@@ -277,7 +292,9 @@ UnsignedInt INI::loadFileDirectory( AsciiString fileDirName, INILoadType loadTyp
 	// Load any additional ini files from a "filename" directory and its subdirectories.
 	fprintf(stderr, "[INI] loadFileDirectory - calling loadDirectory('%s') START\n", iniDir.str());
 	fflush(stderr);
-	s_gxMaskLowerDirectory = TheFileSystem->doesFileExist(iniFile.str()) && gxIsModSource(iniFile);
+	s_gxMaskLowerDirectory = sourceId.isEmpty()
+		? (TheFileSystem->doesFileExist(iniFile.str()) && gxIsModSource(iniFile))
+		: FALSE;
 	filesRead += loadDirectory(iniDir, loadType, pXfer, subdirs, sourceId);
 	s_gxMaskLowerDirectory = FALSE;
 	fprintf(stderr, "[INI] loadFileDirectory - calling loadDirectory('%s') END\n", iniDir.str());
@@ -321,6 +338,18 @@ UnsignedInt INI::loadDirectory( AsciiString dirName, INILoadType loadType, Xfer 
 	FilenameList filenameList;
 	dirName.concat('\\');
 	TheFileSystem->getFileListInDirectory(dirName, "*.ini", filenameList, subdirs);
+	// The global directory scan is a union of all mounted archives. For Fusion,
+	// retain only entries physically present in this source archive.
+	if (sourceId.isNotEmpty())
+	{
+		FilenameList sourceFiles;
+		for (FilenameList::const_iterator sourceIt = filenameList.begin(); sourceIt != filenameList.end(); ++sourceIt)
+		{
+			if (gxFusionSourceContainsFile(*sourceIt, sourceId))
+				sourceFiles.insert(*sourceIt);
+		}
+		filenameList.swap(sourceFiles);
+	}
 	// GeneralsX @feature Android port 13/07/2026 GitHub issue #5: a real
 	// low-RAM device died silently (no exception, no crash.log) somewhere
 	// between loadDirectory's START line and the first per-file load() line
