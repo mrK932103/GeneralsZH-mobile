@@ -1605,7 +1605,9 @@ void INI::parseDamageFX( INI* ini, void * /*instance*/, void *store, const void*
 	}
 	else
 	{
-		const DamageFX *fxl = TheDamageFXStore->findDamageFX(token);	// could be null!
+		const DamageFX *fxl = ini->getSourceId().isNotEmpty()
+			? TheDamageFXStore->findDamageFX(token, ini->getSourceId(), TRUE)
+			: TheDamageFXStore->findDamageFX(token);	// could be null!
 		DEBUG_ASSERTCRASH(fxl, ("DamageFX %s not found!",token));
 		// assign it, even if null!
 		*theDamageFX = fxl;
