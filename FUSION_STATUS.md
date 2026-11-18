@@ -2,7 +2,7 @@
 
 Last updated: 2026-11-18
 
-Latest implementation change: FXList now carries its owning Fusion source ID into each FX nugget. Tracer and ray-effect ThingTemplate references and particle-system references resolve through that source namespace (with the existing explicit base-game fallback), rather than using unqualified global lookups. This closes three concrete cross-mod collision paths inside FX execution. The mod-folder-aware INI lookup remains the previous foundational change. The native filesystem resolves a requested virtual file to the highest-priority matching archive whose full path is inside that mod folder, while preserving loose-file precedence. INI single-file opens and directory membership checks use this mod-folder lookup; directory scans are filtered to files from that selected mod. Android preflight now tags INI definitions with the selected mod-folder identity, so sibling `.big` archives share one faction namespace. These changes are foundational only; they are not yet compiled or tested, and non-INI runtime registries/assets remain incomplete.
+Latest implementation change: Fusion particle templates now participate in the particle texture preload pass, and the ParticleSystemManager snapshot version-2 comment now documents the source-identity field. FXList carries its owning Fusion source ID into each FX nugget. Tracer and ray-effect ThingTemplate references and particle-system references resolve through that source namespace (with the existing explicit base-game fallback), rather than using unqualified global lookups. This closes three concrete cross-mod collision paths inside FX execution. The mod-folder-aware INI lookup remains the previous foundational change. The native filesystem resolves a requested virtual file to the highest-priority matching archive whose full path is inside that mod folder, while preserving loose-file precedence. INI single-file opens and directory membership checks use this mod-folder lookup; directory scans are filtered to files from that selected mod. Android preflight now tags INI definitions with the selected mod-folder identity, so sibling `.big` archives share one faction namespace. These changes are foundational only; they are not yet compiled or tested, and non-INI runtime registries/assets remain incomplete.
 
 ## Goal (acceptance criteria)
 
@@ -18,11 +18,12 @@ A buildable APK alone is not acceptance. Completion requires a successful Androi
 - Working branch: `claude/generals-mod-fusion`
 - Pull request: https://github.com/mrK932103/GeneralsZH-mobile/pull/1
 - PR status at last known check: open draft; not merged.
-- Last known code head before this status file: `ab7c28a8b1a780f5e8bb6ce0415b7ae507084afb`
+- Latest code commit: `51db8a31fa1d45168025c835cf0d516df54a6981`
 
 ## Implemented in the branch (not equivalent to end-to-end completion)
 
-- Particle-system snapshot serialization is now version 2: each saved particle system carries its owning Fusion source ID, and load resolves the template in that exact source namespace. Version-1 snapshots remain readable through the legacy name-only path. Destroyed/non-saveable entries write the matching empty source field in version 2 so the stream stays aligned.
+- Particle-system snapshot serialization is version 2: each saved particle system carries its owning Fusion source ID, and load resolves the template in that exact source namespace. Version-1 snapshots remain readable through the legacy name-only path. Destroyed/non-saveable entries write the matching empty source field in version 2 so the stream stays aligned.
+- Particle texture preloading now iterates both the base-game template registry and the source-qualified Fusion template registry, so textures declared by selected mods are included in the preload pass.
 
 - FXList now propagates its source ID into every FXNugget. TracerName, RayEffect template references and ParticleSystem nugget references use source-qualified registries, preventing same-named effects from another selected mod from being substituted at runtime.
 
