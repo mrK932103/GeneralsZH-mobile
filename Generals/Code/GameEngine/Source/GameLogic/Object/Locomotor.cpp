@@ -558,11 +558,12 @@ const LocomotorTemplate* LocomotorStore::findLocomotorTemplate(const AsciiString
 		it != m_fusionLocomotorTemplates.end(); ++it)
 	{
 		const LocomotorTemplate* candidate = *it;
-		if (NAMEKEY(candidate->m_name.str()) == nameKey &&
+		if (NAMEKEY(candidate->getName().str()) == nameKey &&
 			candidate->getFusionSourceId().compareNoCase(sourceId) == 0)
 			return candidate;
 	}
-	return nullptr;
+	// A mod may intentionally use a base-game locomotor, but never one from a sibling mod.
+	return findLocomotorTemplate(nameKey);
 }
 
 //-------------------------------------------------------------------------------------------------
