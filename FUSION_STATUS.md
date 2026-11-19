@@ -39,7 +39,9 @@ Runtime chain audit update: the owning ThingTemplate's `Locomotor` field is pars
 - `DumbProjectileBehavior::xfer` restores its detonation WeaponTemplate using the projectile object's owning ThingTemplate source ID and the WeaponStore's source-first/base-game lookup. This changes no serialized fields and retains the existing save format.
 - Mirrored in `Generals` and `GeneralsMD` (`Weapon.cpp` and `DumbProjectileBehavior.cpp`).
 - Commits: `2b69eacd153d34ce8d92ee0c40a8decd8bddca3e`, `3f7d2affcb4e5a8033418e31e16e1b10afbb6354`, `38724936c837078b708ff41b280dbaf423201d08`, `d8a596fecfdf5d5794bd7ffbd750de11be712f70`, `e8fea79f40ab3c144580d39e8034921ed38cbeba`, `e4028e5914412e3c70c7d20f5348bf24fc4a7294`.
-- Verification: source inspection only; no native build, Android build, or mixed-mod gameplay test.
+- `WeaponSet::xfer` now writes the owning ThingTemplate source ID in snapshot version 3 (non-retail-compatible save mode) and restores the selected weapon set by source-qualified ThingTemplate lookup. Existing version 1/2 saves remain readable. In `RETAIL_COMPATIBLE_XFER_SAVE` mode the format intentionally remains version 1 and therefore retains legacy name-only restoration to avoid changing the retail-compatible wire format.
+- Commits: `e47f224d0fcebbe4a50a359d8b07fff76e159fc8` (`Generals`) and `9cd40e9d1eae9c5f1853efb806e19bf50ea451c3` (`GeneralsMD`).
+- Verification: source inspection only; no native build, save/load execution, Android build, or mixed-mod gameplay test.
 
 ### Locomotor runtime and save/load continuation
 
