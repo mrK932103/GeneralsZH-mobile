@@ -875,7 +875,10 @@ void MissileAIUpdate::xfer( Xfer *xfer )
 	xfer->xferAsciiString(&weaponName);
 	if (weaponName.isNotEmpty() && m_detonationWeaponTmpl == nullptr)
 	{
-		m_detonationWeaponTmpl = TheWeaponStore->findWeaponTemplate(weaponName);
+		const AsciiString sourceId = getObject() && getObject()->getTemplate()
+				? getObject()->getTemplate()->getFusionSourceId()
+				: AsciiString::TheEmptyString;
+			m_detonationWeaponTmpl = TheWeaponStore->findWeaponTemplate(weaponName, sourceId, TRUE);
 	}
 
 	AsciiString exhaustName;
@@ -886,7 +889,10 @@ void MissileAIUpdate::xfer( Xfer *xfer )
 	xfer->xferAsciiString(&exhaustName);
 	if (exhaustName.isNotEmpty() && m_exhaustSysTmpl == nullptr)
 	{
-		m_exhaustSysTmpl = TheParticleSystemManager->findTemplate(exhaustName);
+		const AsciiString sourceId = getObject() && getObject()->getTemplate()
+				? getObject()->getTemplate()->getFusionSourceId()
+				: AsciiString::TheEmptyString;
+			m_exhaustSysTmpl = TheParticleSystemManager->findTemplate(exhaustName, sourceId, TRUE);
 	}
 
 	xfer->xferBool(&m_isTrackingTarget);
