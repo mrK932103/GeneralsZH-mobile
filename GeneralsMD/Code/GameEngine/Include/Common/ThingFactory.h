@@ -82,6 +82,9 @@ public:
 	const ThingTemplate *findTemplate( const AsciiString& name, Bool check = TRUE ) { return findTemplateInternal( name, check ); }
 	const ThingTemplate *findTemplate( const AsciiString& name, const AsciiString& sourceId, Bool check = TRUE )
 		{ return findTemplateInternal( name, sourceId, check ); }
+	// Exact-source lookup: never substitutes a same-named base-game template.
+	const ThingTemplate *findTemplateExact( const AsciiString& name, const AsciiString& sourceId, Bool check = TRUE )
+		{ return findTemplateInSourceChecked( name, sourceId, check ); }
 
 	/**
 		get a template given ID. return null if not found.
@@ -131,6 +134,7 @@ private:
 	ThingTemplate *findTemplateInternal( const AsciiString& name, Bool check = TRUE );
 	ThingTemplate *findTemplateInternal( const AsciiString& name, const AsciiString& sourceId, Bool check );
 	ThingTemplate *findTemplateInSource( const AsciiString& name, const AsciiString& sourceId );
+	ThingTemplate *findTemplateInSourceChecked( const AsciiString& name, const AsciiString& sourceId, Bool check );
 
 	ThingTemplate					*m_firstTemplate;			///< head of linked list
 	UnsignedShort					m_nextTemplateID;			///< next available ID for templates
