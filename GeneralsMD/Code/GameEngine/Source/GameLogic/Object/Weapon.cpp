@@ -2617,7 +2617,7 @@ void Weapon::newProjectileFired(const Object *sourceObj, const Object *projectil
 //-------------------------------------------------------------------------------------------------
 void Weapon::createLaser( const Object *sourceObj, const Object *victimObj, const Coord3D *victimPos )
 {
-	const ThingTemplate* pst = TheThingFactory->findTemplate(m_template->getLaserName());
+	const ThingTemplate* pst = TheThingFactory->findTemplate(m_template->getLaserName(), m_template->getFusionSourceId(), FALSE);
 	if( !pst )
 	{
 		DEBUG_CRASH( ("Weapon::createLaser(). %s could not find template for its laser %s.",
