@@ -664,8 +664,21 @@ Bool ArchiveFileSystem::getFileInstanceForMod(const AsciiString& filename, const
 	if (instance == nullptr || filename.isEmpty() || modFolder.isEmpty())
 		return FALSE;
 
+	// Mod source IDs may originate from Android paths while archive paths can
+	// retain separators from the archive registration layer. Normalize both
+	// before the folder-boundary comparison so a valid archive is not skipped
+	// solely because one path uses '\\' and the other uses '/'.
 	std::string folder(modFolder.str());
-	if (folder.back() != '/' && folder.back() != '\\')
+	if (folder.empty())
+		return FALSE;
+	for (size_t i = 0; i < folder.size(); ++i)
+	{
+		if (folder[i] == '\\')
+			folder[i] = '/';
+	}
+	while (folder.size() > 1 && folder[folder.size() - 1] == '/')
+		folder.erase(folder.size() - 1);
+	if (folder[folder.size() - 1] != '/')
 		folder += '/';
 
 	ArchivedDirectoryInfoResult result = const_cast<ArchiveFileSystem*>(this)->getArchivedDirectoryInfo(filename.str());
@@ -682,7 +695,14 @@ Bool ArchiveFileSystem::getFileInstanceForMod(const AsciiString& filename, const
 		if (it->second != nullptr)
 		{
 			const AsciiString archivePath = it->second->getPath();
-			if (archivePath.startsWithNoCase(folder.c_str()))
+			std::string normalizedArchivePathText(archivePath.str());
+			for (size_t pathChar = 0; pathChar < normalizedArchivePathText.size(); ++pathChar)
+			{
+				if (normalizedArchivePathText[pathChar] == '\\')
+					normalizedArchivePathText[pathChar] = '/';
+			}
+			const AsciiString normalizedArchivePath(normalizedArchivePathText.c_str());
+			if (normalizedArchivePath.startsWithNoCase(folder.c_str()))
 			{
 				*instance = index;
 				return TRUE;
