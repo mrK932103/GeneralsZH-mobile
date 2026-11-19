@@ -2734,17 +2734,33 @@ void LocomotorSet::xferSelfAndCurLocoPtr(Xfer *xfer, Locomotor** loco)
 {
 	xfer->xferSnapshot(this);
 
+	// Version 1 stored only the template name. Version 2 also stores the
+	// source namespace so same-named locomotors from different mods cannot
+	// be confused when restoring the current locomotor pointer.
+	const XferVersion currentVersion = 2;
+	XferVersion version = currentVersion;
+	xfer->xferVersion(&version, currentVersion);
+
 	if (xfer->getXferMode() == XFER_SAVE)
 	{
 		AsciiString name;
+		AsciiString sourceId;
 		if (*loco)
+		{
 			name = (*loco)->getTemplateName();
+			sourceId = (*loco)->getTemplateSourceId();
+		}
 		xfer->xferAsciiString(&name);
+		xfer->xferAsciiString(&sourceId);
 	}
 	else if (xfer->getXferMode() == XFER_LOAD)
 	{
 		AsciiString name;
 		xfer->xferAsciiString(&name);
+
+		AsciiString sourceId;
+		if (version >= 2)
+			xfer->xferAsciiString(&sourceId);
 
 		if (name.isEmpty())
 		{
@@ -2754,14 +2770,16 @@ void LocomotorSet::xferSelfAndCurLocoPtr(Xfer *xfer, Locomotor** loco)
 		{
 			for (size_t i = 0; i < m_locomotors.size(); ++i)
 			{
-				if (m_locomotors[i]->getTemplateName() == name)
+				Locomotor* candidate = m_locomotors[i];
+				if (candidate->getTemplateName() == name &&
+					(version < 2 || candidate->getTemplateSourceId().compareNoCase(sourceId) == 0))
 				{
-					*loco = m_locomotors[i];
+					*loco = candidate;
 					return;
 				}
 			}
 
-			DEBUG_CRASH(( "LocomotorSet::xfer - template %s not found", name.str() ));
+			DEBUG_CRASH(( "LocomotorSet::xfer - template %s from source %s not found", name.str(), sourceId.str() ));
 			throw XFER_UNKNOWN_STRING;
 		}
 	}
