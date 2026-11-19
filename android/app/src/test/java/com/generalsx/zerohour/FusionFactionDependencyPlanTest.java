@@ -82,4 +82,42 @@ public class FusionFactionDependencyPlanTest {
         assertFalse(plan.isClosed());
         assertTrue(plan.crossSource.toString().contains("object:sharedlookingname"));
     }
+
+    @Test
+    public void threeSelectedModsKeepSameNamedDefinitionsInTheirOwnFactionClosures() {
+        FusionPreflight.Result input = preflight(
+            block("PlayerTemplate AlphaFaction\\n Side = Alpha\\n PlayableSide = Yes\\n"
+                + " StartingBuilding = SharedCommandCenter\\nEnd",
+                "AlphaMod/factions.big!Data/INI/PlayerTemplate.ini"),
+            block("Object SharedCommandCenter\\nEnd",
+                "AlphaMod/units.big!Data/INI/Object/factory.ini"),
+            block("PlayerTemplate BravoFaction\\n Side = Bravo\\n PlayableSide = Yes\\n"
+                + " StartingBuilding = SharedCommandCenter\\nEnd",
+                "BravoMod/factions.big!Data/INI/PlayerTemplate.ini"),
+            block("Object SharedCommandCenter\\nEnd",
+                "BravoMod/units.big!Data/INI/Object/factory.ini"),
+            block("PlayerTemplate CharlieFaction\\n Side = Charlie\\n PlayableSide = Yes\\n"
+                + " StartingBuilding = SharedCommandCenter\\nEnd",
+                "CharlieMod/factions.big!Data/INI/PlayerTemplate.ini"),
+            block("Object SharedCommandCenter\\nEnd",
+                "CharlieMod/units.big!Data/INI/Object/factory.ini"));
+
+        List<FusionFactionCatalog.FactionSource> factions =
+            FusionFactionCatalog.discover(input.iniBlocks);
+        List<FusionFactionDependencyPlan.FactionPlan> plans =
+            FusionFactionDependencyPlan.build(input, factions);
+
+        assertEquals(3, plans.size());
+        assertEquals("alphamod", plans.get(0).sourceMod);
+        assertEquals("bravomod", plans.get(1).sourceMod);
+        assertEquals("charliemod", plans.get(2).sourceMod);
+        for (FusionFactionDependencyPlan.FactionPlan plan : plans) {
+            assertTrue(plan.definitions.contains("object:sharedcommandcenter"));
+            assertTrue("A same-named definition in another selected mod must not block "
+                + plan.sourceMod, plan.crossSource.isEmpty());
+            assertTrue("Each faction must close against its own mod source: "
+                + plan.unresolved, plan.isClosed());
+        }
+    }
+
 }
