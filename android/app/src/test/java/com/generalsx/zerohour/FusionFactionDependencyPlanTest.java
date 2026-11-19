@@ -86,20 +86,20 @@ public class FusionFactionDependencyPlanTest {
     @Test
     public void threeSelectedModsKeepSameNamedDefinitionsInTheirOwnFactionClosures() {
         FusionPreflight.Result input = preflight(
-            block("PlayerTemplate AlphaFaction\\n Side = Alpha\\n PlayableSide = Yes\\n"
-                + " StartingBuilding = SharedCommandCenter\\nEnd",
+            block("PlayerTemplate AlphaFaction\n Side = Alpha\n PlayableSide = Yes\n"
+                + " StartingBuilding = SharedCommandCenter\nEnd",
                 "AlphaMod/factions.big!Data/INI/PlayerTemplate.ini"),
-            block("Object SharedCommandCenter\\nEnd",
+            block("Object SharedCommandCenter\nEnd",
                 "AlphaMod/units.big!Data/INI/Object/factory.ini"),
-            block("PlayerTemplate BravoFaction\\n Side = Bravo\\n PlayableSide = Yes\\n"
-                + " StartingBuilding = SharedCommandCenter\\nEnd",
+            block("PlayerTemplate BravoFaction\n Side = Bravo\n PlayableSide = Yes\n"
+                + " StartingBuilding = SharedCommandCenter\nEnd",
                 "BravoMod/factions.big!Data/INI/PlayerTemplate.ini"),
-            block("Object SharedCommandCenter\\nEnd",
+            block("Object SharedCommandCenter\nEnd",
                 "BravoMod/units.big!Data/INI/Object/factory.ini"),
-            block("PlayerTemplate CharlieFaction\\n Side = Charlie\\n PlayableSide = Yes\\n"
-                + " StartingBuilding = SharedCommandCenter\\nEnd",
+            block("PlayerTemplate CharlieFaction\n Side = Charlie\n PlayableSide = Yes\n"
+                + " StartingBuilding = SharedCommandCenter\nEnd",
                 "CharlieMod/factions.big!Data/INI/PlayerTemplate.ini"),
-            block("Object SharedCommandCenter\\nEnd",
+            block("Object SharedCommandCenter\nEnd",
                 "CharlieMod/units.big!Data/INI/Object/factory.ini"));
 
         List<FusionFactionCatalog.FactionSource> factions =
