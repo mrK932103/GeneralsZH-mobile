@@ -216,3 +216,17 @@ Additional projectile save/load fixes: both Generals and GeneralsMD now restore 
 ## N-way dependency-closure regression coverage
 
 Added a three-source fixture to `FusionFactionDependencyPlanTest`: AlphaMod, BravoMod and CharlieMod each define a faction and a different `SharedCommandCenter` body under the same INI name. The test asserts that all three faction plans remain independently closed and that each resolves the shared name within its own mod-folder namespace. This directly guards the N-way requirement; it is a test addition only. The test has not been executed in this environment, and it does not prove native runtime isolation or a playable mixed-mod match.
+
+## Continuation — trace the audio asset boundary
+
+A source-context audit followed Fusion audio definitions from INI parsing into playback filename generation. `AudioEventInfo` records are stored under a composite source-qualified key, and `AudioEventRTS` carries the Fusion source ID when copied. `AudioManager::getInfoForAudioEvent` resolves the event definition using that source ID, with the explicit base-game fallback.
+
+The audit also confirms that this is not yet end-to-end audio asset isolation: `AudioEventRTS::generateFilename` builds a normal shared virtual path from the event's filename/folder settings, and its localization probe calls the global `TheFileSystem->doesFileExist(...)`. The music-availability scan likewise checks generated paths through the global filesystem. These checks do not select the originating mod folder, so same-relative-path audio files can still be resolved from whichever archive wins the global virtual-file priority. No change was made to audio playback in this pass because the actual backend file-open/cache path must be traced before changing its ownership and lifetime semantics.
+
+Files inspected:
+- `Core/GameEngine/Source/Common/INI/INIAudioEventInfo.cpp`
+- `Core/GameEngine/Source/Common/Audio/GameAudio.cpp`
+- `Core/GameEngine/Source/Common/Audio/AudioEventRTS.cpp`
+- `Core/GameEngine/Include/Common/AudioEventRTS.h`
+
+Next audio task: trace the device/backend path from `AudioEventRTS::getFilename()` to the actual sample/stream open and cache operation, then pass source identity into that operation and test duplicate relative filenames across two selected mod folders. Also cover attack/decay samples and localized variants. This pass is source inspection only; no native build, audio playback test, Android build, or mixed-mod Skirmish was run.
