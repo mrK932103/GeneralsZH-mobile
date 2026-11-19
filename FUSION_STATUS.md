@@ -18,7 +18,7 @@ A buildable APK alone is not acceptance. Completion requires a successful Androi
 - Working branch: `claude/generals-mod-fusion`
 - Pull request: https://github.com/mrK932103/GeneralsZH-mobile/pull/1
 - PR status at last known check: open draft; not merged.
-- Latest code commit: `88f0a24f3d9396146df94f0913876f7f968dbfe0`
+- Latest native runtime code commit: `88f0a24f3d9396146df94f0913876f7f968dbfe0` (the newer commits add projectile save/restore fixes and N-way test/documentation coverage).
 
 ## Latest continuation — Locomotor source registry
 
