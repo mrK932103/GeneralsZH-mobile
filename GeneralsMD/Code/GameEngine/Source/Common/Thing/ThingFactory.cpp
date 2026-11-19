@@ -349,6 +349,19 @@ ThingTemplate *ThingFactory::findTemplateInternal( const AsciiString& name, Bool
 }
 
 //-------------------------------------------------------------------------------------------------
+/** Find a template strictly in one source namespace, without base-game fallback. */
+//-------------------------------------------------------------------------------------------------
+ThingTemplate *ThingFactory::findTemplateInSourceChecked(
+	const AsciiString& name, const AsciiString& sourceId, Bool check )
+{
+	ThingTemplate *sourceTemplate = findTemplateInSource(name, sourceId);
+	if (sourceTemplate == nullptr && check && name.isNotEmpty())
+		DEBUG_CRASH(("Failed to find ThingTemplate '%s' in exact Fusion source '%s'",
+			name.str(), sourceId.str()));
+	return sourceTemplate;
+}
+
+//-------------------------------------------------------------------------------------------------
 /** Find a template in one Fusion source, then fall back only to untagged/base templates. */
 //-------------------------------------------------------------------------------------------------
 ThingTemplate *ThingFactory::findTemplateInSource(
@@ -392,7 +405,7 @@ Object *ThingFactory::newObject( const ThingTemplate *tmplate, Team *team, Objec
 	if (!asv.empty())
 	{
 		Int which = GameLogicRandomValue(0, asv.size()-1);
-		const ThingTemplate* tmp = findTemplate( asv[which], tmplate->getSourceId(), FALSE );
+		const ThingTemplate* tmp = findTemplateExact( asv[which], tmplate->getSourceId(), FALSE );
 		if (tmp != nullptr)
 			tmplate = tmp;
 	}
@@ -491,7 +504,7 @@ AsciiString TheThingTemplateBeingParsedName;
 	if (reskinFrom.isNotEmpty())
 	{
 		const ThingTemplate* reskinTmpl = sourceId.isNotEmpty()
-			? TheThingFactory->findTemplate(reskinFrom, sourceId, FALSE)
+			? TheThingFactory->findTemplateExact(reskinFrom, sourceId, FALSE)
 			: TheThingFactory->findTemplate(reskinFrom);
 		if (reskinTmpl)
 		{
