@@ -230,3 +230,5 @@ Files inspected:
 - `Core/GameEngine/Include/Common/AudioEventRTS.h`
 
 Next audio task: trace the device/backend path from `AudioEventRTS::getFilename()` to the actual sample/stream open and cache operation, then pass source identity into that operation and test duplicate relative filenames across two selected mod folders. Also cover attack/decay samples and localized variants. This pass is source inspection only; no native build, audio playback test, Android build, or mixed-mod Skirmish was run.
+
+Follow-up dispatch trace: `SoundManager::addAudioEvent` only queues an `AudioRequest`; the common `SoundManager::getFilenameForPlayFromAudioEvent` implementation returns an empty string. Therefore the final file-open path is not in this common implementation and must be located in the platform-specific sound backend/override before source-aware audio routing can be safely added. Do not route audio by changing only `AudioEventRTS::generateFilename`: that would still leave the global localized-file probe and backend cache identity unresolved.
