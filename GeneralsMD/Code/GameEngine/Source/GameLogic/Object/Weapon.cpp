@@ -2595,7 +2595,7 @@ void Weapon::newProjectileFired(const Object *sourceObj, const Object *projectil
 	if( projectileStream == nullptr )
 	{
 		m_projectileStreamID = INVALID_ID;	// reset, since it might have been "valid" but deleted out from under us
-		const ThingTemplate* pst = TheThingFactory->findTemplate(m_template->getProjectileStreamName(), m_template->getFusionSourceId(), FALSE);
+		const ThingTemplate* pst = TheThingFactory->findTemplate(m_template->getProjectileStreamName(), m_template->getFusionSourceId(), TRUE);
 		projectileStream = TheThingFactory->newObject( pst, sourceObj->getControllingPlayer()->getDefaultTeam() );
 		if( projectileStream == nullptr )
 			return;
@@ -2617,7 +2617,7 @@ void Weapon::newProjectileFired(const Object *sourceObj, const Object *projectil
 //-------------------------------------------------------------------------------------------------
 void Weapon::createLaser( const Object *sourceObj, const Object *victimObj, const Coord3D *victimPos )
 {
-	const ThingTemplate* pst = TheThingFactory->findTemplate(m_template->getLaserName(), m_template->getFusionSourceId(), FALSE);
+	const ThingTemplate* pst = TheThingFactory->findTemplate(m_template->getLaserName(), m_template->getFusionSourceId(), TRUE);
 	if( !pst )
 	{
 		DEBUG_CRASH( ("Weapon::createLaser(). %s could not find template for its laser %s.",
