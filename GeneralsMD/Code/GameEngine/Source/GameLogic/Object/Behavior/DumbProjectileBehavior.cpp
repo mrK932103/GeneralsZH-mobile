@@ -804,7 +804,8 @@ void DumbProjectileBehavior::xfer( Xfer *xfer )
 		{
 
 			// find template
-			m_detonationWeaponTmpl = TheWeaponStore->findWeaponTemplate( weaponTemplateName );
+			const AsciiString sourceId = getObject()->getTemplate()->getSourceId();
+			m_detonationWeaponTmpl = TheWeaponStore->findWeaponTemplate(weaponTemplateName, sourceId, TRUE);
 
 			// sanity
 			if( m_detonationWeaponTmpl == nullptr )
