@@ -1008,47 +1008,46 @@ Real AudioManager::getAudioLengthMS( const AudioEventRTS *event )
 //-------------------------------------------------------------------------------------------------
 Bool AudioManager::isMusicAlreadyLoaded() const
 {
-	const AudioEventInfo *musicToLoad = nullptr;
+	Bool foundMusicDefinition = FALSE;
 	AudioEventInfoHash::const_iterator it;
+
+	// Do not let unordered hash iteration select one arbitrary final entry and
+	// make that single track decide whether the entire game can initialize.
 	for (it = m_allAudioEventInfo.begin(); it != m_allAudioEventInfo.end(); ++it) {
-		if (it->second) {
-			const AudioEventInfo *aet = it->second;
-			if (aet->m_soundType == AT_Music) {
-				musicToLoad = aet;
-			}
-		}
+		const AudioEventInfo *eventInfo = it->second;
+		if (!eventInfo || eventInfo->m_soundType != AT_Music)
+			continue;
+
+		foundMusicDefinition = TRUE;
+		AudioEventRTS aud;
+		aud.setAudioEventInfo(eventInfo);
+		aud.generateFilename();
+		const AsciiString filename = aud.getFilename();
+		if (TheFileSystem->doesFileExist(filename.str()))
+			return TRUE;
 	}
 
-	// Fusion mods keep music definitions in their own source-qualified registry.
+	// Fusion music definitions live in a separate source-qualified registry.
 	for (it = m_fusionAudioEventInfo.begin(); it != m_fusionAudioEventInfo.end(); ++it) {
-		if (it->second && it->second->m_soundType == AT_Music)
-			musicToLoad = it->second;
+		const AudioEventInfo *eventInfo = it->second;
+		if (!eventInfo || eventInfo->m_soundType != AT_Music)
+			continue;
+
+		foundMusicDefinition = TRUE;
+		AudioEventRTS aud;
+		aud.setAudioEventInfo(eventInfo);
+		aud.generateFilename();
+		const AsciiString filename = aud.getFilename();
+		if (TheFileSystem->doesFileExist(filename.str()))
+			return TRUE;
 	}
 
-	if (!musicToLoad) {
-		// GeneralsX @diag Android port 06/09/2026 A FALSE from this function makes
-		// GameEngine::init() set the quit flag, so the game reaches the main menu
-		// and then closes on the loop's first check -- a black screen and an exit
-		// with status 0, with nothing anywhere saying why. Say why.
-		fprintf(stderr, "[gxaudio] isMusicAlreadyLoaded: no AT_Music entries defined at all\n");
-		return FALSE;
+	if (!foundMusicDefinition) {
+		fprintf(stderr, "[gxaudio] isMusicAlreadyLoaded: no AT_Music entries defined at all\\n");
+	} else {
+		fprintf(stderr, "[gxaudio] isMusicAlreadyLoaded: no declared AT_Music track file exists\\n");
 	}
-
-	AudioEventRTS aud;
-	aud.setAudioEventInfo(musicToLoad);
-	aud.generateFilename();
-
-	AsciiString astr = aud.getFilename();
-
-	const Bool exists = TheFileSystem->doesFileExist(astr.str());
-	if (!exists) {
-		// Note that the probed track is whichever music entry came last out of an
-		// unordered hash, so this names one missing file, not necessarily the only
-		// one -- but it is the one the engine judged the whole game on.
-		fprintf(stderr, "[gxaudio] isMusicAlreadyLoaded: probe track '%s' -> file '%s' NOT FOUND\n",
-			musicToLoad->m_audioName.str(), astr.str());
-	}
-	return exists;
+	return FALSE;
 }
 
 //-------------------------------------------------------------------------------------------------
