@@ -216,7 +216,7 @@ void WeaponSet::xfer( Xfer *xfer )
 #if RETAIL_COMPATIBLE_XFER_SAVE
 	const XferVersion currentVersion = 1;
 #else
-	const XferVersion currentVersion = 2;
+	const XferVersion currentVersion = 3;
 #endif
 	XferVersion version = currentVersion;
 	xfer->xferVersion( &version, currentVersion );
@@ -224,9 +224,12 @@ void WeaponSet::xfer( Xfer *xfer )
 	if (xfer->getXferMode() == XFER_LOAD)
 	{
 		AsciiString ttName;
+		AsciiString sourceId;
 		WeaponSetFlags wsFlags;
 
 		xfer->xferAsciiString(&ttName);
+		if (version >= 3)
+			xfer->xferAsciiString(&sourceId);
 		wsFlags.xfer( xfer );
 
 		if (ttName.isEmpty())
@@ -235,7 +238,9 @@ void WeaponSet::xfer( Xfer *xfer )
 		}
 		else
 		{
-			const ThingTemplate* tt = TheThingFactory->findTemplate(ttName);
+			const ThingTemplate* tt = sourceId.isNotEmpty()
+				? TheThingFactory->findTemplate(ttName, sourceId)
+				: TheThingFactory->findTemplate(ttName);
 			if (tt == nullptr)
 				throw INI_INVALID_DATA;
 
@@ -247,6 +252,7 @@ void WeaponSet::xfer( Xfer *xfer )
 	else if (xfer->getXferMode() == XFER_SAVE)
 	{
 		AsciiString ttName;				// leave 'em empty in case we're null
+		AsciiString sourceId;
 		WeaponSetFlags wsFlags;
 		if (m_curWeaponTemplateSet != nullptr)
 		{
@@ -255,9 +261,12 @@ void WeaponSet::xfer( Xfer *xfer )
 				throw INI_INVALID_DATA;
 
 			ttName = tt->getName();
+			sourceId = tt->getSourceId();
 			wsFlags = m_curWeaponTemplateSet->friend_getWeaponSetFlags();
 		}
 		xfer->xferAsciiString(&ttName);
+		if (version >= 3)
+			xfer->xferAsciiString(&sourceId);
 		wsFlags.xfer( xfer );
 	}
 
