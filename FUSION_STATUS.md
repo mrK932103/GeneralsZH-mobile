@@ -35,7 +35,7 @@ Runtime chain audit update: the owning ThingTemplate's `Locomotor` field is pars
 ### Weapon-linked runtime references
 
 - `Weapon::newProjectileFired` now resolves the projectile-stream ThingTemplate using the weapon template's Fusion source ID, with the ThingFactory's explicit source-first/base-game fallback and no sibling-mod lookup.
-- `Weapon::createLaser` now resolves the laser ThingTemplate through the same source-aware path.
+- `Weapon::createLaser` now resolves the laser ThingTemplate through the same source-aware path. Required projectile, projectile-stream, and laser references retain the ThingFactory's checked lookup behavior, so missing dependencies still trigger the existing diagnostic path instead of silently producing a null template.
 - `DumbProjectileBehavior::xfer` restores its detonation WeaponTemplate using the projectile object's owning ThingTemplate source ID and the WeaponStore's source-first/base-game lookup. This changes no serialized fields and retains the existing save format.
 - Mirrored in `Generals` and `GeneralsMD` (`Weapon.cpp` and `DumbProjectileBehavior.cpp`).
 - Commits: `2b69eacd153d34ce8d92ee0c40a8decd8bddca3e`, `3f7d2affcb4e5a8033418e31e16e1b10afbb6354`, `38724936c837078b708ff41b280dbaf423201d08`, `d8a596fecfdf5d5794bd7ffbd750de11be712f70`, `e8fea79f40ab3c144580d39e8034921ed38cbeba`, `e4028e5914412e3c70c7d20f5348bf24fc4a7294`.
