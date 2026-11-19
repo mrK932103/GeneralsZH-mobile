@@ -2391,7 +2391,7 @@ void Weapon::newProjectileFired(const Object *sourceObj, const Object *projectil
 //-------------------------------------------------------------------------------------------------
 void Weapon::createLaser( const Object *sourceObj, const Object *victimObj, const Coord3D *victimPos )
 {
-	const ThingTemplate* pst = TheThingFactory->findTemplate(m_template->getLaserName());
+	const ThingTemplate* pst = TheThingFactory->findTemplate(m_template->getLaserName(), m_template->getFusionSourceId(), FALSE);
 	Object* laser = TheThingFactory->newObject( pst, sourceObj->getControllingPlayer()->getDefaultTeam() );
 	if( laser == nullptr )
 		return;
