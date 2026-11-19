@@ -18,7 +18,7 @@ A buildable APK alone is not acceptance. Completion requires a successful Androi
 - Working branch: `claude/generals-mod-fusion`
 - Pull request: https://github.com/mrK932103/GeneralsZH-mobile/pull/1
 - PR status at last known check: open draft; not merged.
-- Latest code commit: `450969d7650d036674933de452a827c819f2c775`
+- Latest code commit: `88f0a24f3d9396146df94f0913876f7f968dbfe0`
 
 ## Latest continuation — Locomotor source registry
 
@@ -30,7 +30,14 @@ Files changed:
 - `GeneralsMD/Code/GameEngine/Include/GameLogic/Locomotor.h`
 - `GeneralsMD/Code/GameEngine/Source/GameLogic/Object/Locomotor.cpp`
 
-Important limitation: this change isolates registration and exposes source-qualified lookup, but the complete runtime call-site chain that creates each object's Locomotor from its owning ThingTemplate has not yet been audited/wired. Therefore it does not yet prove that every unit actually receives its own mod's locomotor in a mixed-mod match. No compile or runtime test was run in this continuation.
+Runtime chain audit update: the owning ThingTemplate's `Locomotor` field is parsed by `AIUpdateModuleData::parseLocomotorSet`, which reads `ini->getSourceId()` and resolves each template through the source-qualified LocomotorStore lookup. `AIUpdateInterface::chooseLocomotorSetExplicit` then builds that object's LocomotorSet directly from the resolved template pointers. This wiring is present in both `Generals` and `GeneralsMD`; it is no longer an unverified gap. A separate save/load ambiguity was fixed: `LocomotorSet::xferSelfAndCurLocoPtr` now writes a version-2 source ID alongside the current locomotor name and restores by both fields. Version-1 saves remain readable using the old name-only match. The regular LocomotorSet snapshot already carries per-entry source IDs in version 2. These code paths have been inspected, but no compile, save/load test, or mixed-mod runtime test was run.
+
+### Locomotor runtime and save/load continuation
+
+- Verified source propagation from the `ThingTemplate` `Locomotor` field through `AIUpdateModuleData::parseLocomotorSet` into `AIUpdateInterface::chooseLocomotorSetExplicit` and each object's `LocomotorSet`; the source-aware parsing/lookup is present in both `Generals` and `GeneralsMD`.
+- `LocomotorSet::xferSelfAndCurLocoPtr` now serializes the current locomotor's source ID as version 2 and restores by name plus source. Version 1 save data still uses its historical name-only match. This prevents the current-locomotor pointer from binding to a same-named sibling-mod template after load.
+- Commits: `5073ec1ceaa145e8b88f38ac498a27eed6481da2` (`Generals`) and `88f0a24f3d9396146df94f0913876f7f968dbfe0` (`GeneralsMD`).
+- Verification: source inspection only; no native build, save/load execution, Android build, or mixed-mod Skirmish test.
 
 ## Implemented in the branch (not equivalent to end-to-end completion)
 
