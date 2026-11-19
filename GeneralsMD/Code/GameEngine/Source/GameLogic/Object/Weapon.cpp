@@ -2595,7 +2595,7 @@ void Weapon::newProjectileFired(const Object *sourceObj, const Object *projectil
 	if( projectileStream == nullptr )
 	{
 		m_projectileStreamID = INVALID_ID;	// reset, since it might have been "valid" but deleted out from under us
-		const ThingTemplate* pst = TheThingFactory->findTemplate(m_template->getProjectileStreamName());
+		const ThingTemplate* pst = TheThingFactory->findTemplate(m_template->getProjectileStreamName(), m_template->getFusionSourceId(), FALSE);
 		projectileStream = TheThingFactory->newObject( pst, sourceObj->getControllingPlayer()->getDefaultTeam() );
 		if( projectileStream == nullptr )
 			return;
