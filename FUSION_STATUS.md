@@ -279,3 +279,24 @@ Files inspected:
 - `Core/GameEngine/Source/Common/INI/INIAudioEventInfo.cpp`
 
 Verification: call-chain source inspection only; no runtime audio test.
+
+## W3D model and texture source-isolation audit
+
+A source-level audit of the Android/SDL3 W3D asset path identified a major remaining Fusion gap. `W3DModelDraw` obtains render objects and animations from the single global `W3DDisplay::m_assetManager` using only the model/animation name. The W3D asset manager's prototype and texture caches are shared and keyed by asset names, without a Fusion source component.
+
+`W3DFileSystem::GameFileClass::Set_Name` checks localized and normal paths through the merged global `TheFileSystem->doesFileExist(...)`; `GameFileClass::Open` later opens through global `TheFileSystem->openFile(...)`. `W3DFileSystem::Get_File` creates a `GameFileClass` without any source identity. The same applies to W3D models and image textures (`.tga`/`.dds`). Consequently, identical relative model/texture names from different selected mods can resolve to whichever global archive entry wins, and already-cached prototypes/textures can be reused across sources.
+
+The owning source is available higher in the game object chain: `ThingTemplate::getSourceId()` returns the Fusion source identity, and `W3DModelDraw` has access to its owning Drawable/Thing. But the inspected W3D asset-manager API (`Create_Render_Obj`, `Get_HAnim`, `Get_Texture`) accepts names without source identity. The file factory and asset caches therefore need a coordinated source-aware design; changing only `W3DModelDraw` to prepend a path or wrapping one global file lookup would be incomplete and risks breaking W3D internal references, texture references, animation loads, and cache lifetime.
+
+Inspected files:
+- `GeneralsMD/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DFileSystem.cpp`
+- `GeneralsMD/Code/GameEngineDevice/Include/W3DDevice/GameClient/W3DFileSystem.h`
+- `GeneralsMD/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DAssetManager.cpp`
+- `GeneralsMD/Code/GameEngineDevice/Include/W3DDevice/GameClient/W3DAssetManager.h`
+- `Core/GameEngineDevice/Source/W3DDevice/GameClient/Drawable/Draw/W3DModelDraw.cpp`
+- `Core/GameEngineDevice/Include/W3DDevice/GameClient/Module/W3DModelDraw.h`
+- `GeneralsMD/Code/GameEngine/Include/Common/ThingTemplate.h`
+
+Next implementation work: define source-aware W3D file requests and source-qualified prototype/texture/animation cache identity, then trace nested W3D material texture references and load-on-demand paths. Keep explicit base-game fallback separate from sibling-mod lookup. No code change was made in this audit because the global W3D cache and file-factory ownership must be handled together.
+
+Verification: source inspection only. No native build, Android build, W3D asset load test, duplicate-name collision test, or mixed-mod Skirmish was run.
