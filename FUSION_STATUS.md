@@ -232,3 +232,24 @@ Files inspected:
 Next audio task: trace the device/backend path from `AudioEventRTS::getFilename()` to the actual sample/stream open and cache operation, then pass source identity into that operation and test duplicate relative filenames across two selected mod folders. Also cover attack/decay samples and localized variants. This pass is source inspection only; no native build, audio playback test, Android build, or mixed-mod Skirmish was run.
 
 Follow-up dispatch trace: `SoundManager::addAudioEvent` only queues an `AudioRequest`; the common `SoundManager::getFilenameForPlayFromAudioEvent` implementation returns an empty string. Therefore the final file-open path is not in this common implementation and must be located in the platform-specific sound backend/override before source-aware audio routing can be safely added. Do not route audio by changing only `AudioEventRTS::generateFilename`: that would still leave the global localized-file probe and backend cache identity unresolved.
+
+## Audio backend audit correction — OpenAL is already source-aware
+
+A deeper device-layer inspection found that the earlier audio note above stopped too early and must not be read as saying the Android OpenAL path is still globally routed. The Android OpenAL implementation already contains source-aware handling:
+
+- `OpenALAudioFileCache::getBufferForFile` extracts the owning mod folder from the event's Fusion source ID, resolves the file with `getFileInstanceForMod`, and opens it using that exact file instance.
+- Its cache key includes both the full Fusion source identity and the relative filename, preventing two selected mods with the same audio filename from sharing one decoded buffer.
+- The OpenAL streaming path in `OpenALAudioManager::playAudioEvent` also resolves and opens the stream through the event's source folder.
+- Attack, sound, and decay portions use the same source-qualified cache path.
+
+This means the Android/OpenAL audio path has meaningful source isolation already implemented in the device layer. The global `TheFileSystem->doesFileExist` check in filename generation remains a separate localization/availability concern and should be checked for incorrect cross-mod fallback; it does not negate the exact-source open performed by the OpenAL backend.
+
+A remaining cross-backend gap was found in the legacy Miles implementation: `AudioFileCache::openFile` still keys its cache only by relative filename and calls the global `TheFileSystem->openFile`. This can collide across mods if Fusion events are routed through Miles. It is not evidence of an Android/OpenAL failure, but it should be fixed or explicitly excluded by the supported-platform matrix before claiming cross-platform parity.
+
+Files inspected:
+- `Core/GameEngineDevice/Source/OpenALAudioDevice/OpenALAudioCache.cpp`
+- `Core/GameEngineDevice/Source/OpenALAudioDevice/OpenALAudioManager.cpp`
+- `Core/GameEngineDevice/Source/MilesAudioDevice/MilesAudioManager.cpp`
+- `Core/GameEngineDevice/Include/MilesAudioDevice/MilesAudioManager.h`
+
+No source code was changed in this audit pass. Native builds, Android builds, cache collision tests, and actual audio playback with two mods were not run. Next: add focused regression coverage for same-named audio files in two mod folders on OpenAL, inspect localized filename selection, and decide the Miles compatibility policy.
