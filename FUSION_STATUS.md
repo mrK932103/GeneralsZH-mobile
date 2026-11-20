@@ -266,3 +266,16 @@ Changed:
 Commit: `2bc34e300f0115e09b9bf171b71f7d6faa10781b`
 
 Verification: source diff inspection only. No native build, Android build, automated test, or mixed-mod audio playback test was run.
+
+## Additional audio event fallback audit
+
+A further call-chain check found a separate unresolved edge case: `AudioManager::getInfoForAudioEvent` calls `findAudioEventInfo(name, sourceId, TRUE)`, which permits a base-game definition when a Fusion source has no same-named local definition. However, `AudioEventRTS::getAudioEventInfo` subsequently requires the cached definition's source ID to equal the event source ID exactly. A base definition has an empty source ID, so the accessor invalidates it for a Fusion event. Consequently, the apparent base fallback is not actually usable through this path.
+
+This was not changed in this pass. Correctly supporting base-audio fallback requires separating the source that owns the event definition from the source that owns the resolved audio asset; simply relaxing the equality check would leave OpenAL routing the base definition's filename into the mod's exact archive. Until that ownership split is designed and tested, treat source-local Fusion audio definitions as required for reliable playback rather than claiming base-audio fallback works.
+
+Files inspected:
+- `Core/GameEngine/Source/Common/Audio/GameAudio.cpp`
+- `Core/GameEngine/Source/Common/Audio/AudioEventRTS.cpp`
+- `Core/GameEngine/Source/Common/INI/INIAudioEventInfo.cpp`
+
+Verification: call-chain source inspection only; no runtime audio test.
