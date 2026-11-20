@@ -253,3 +253,16 @@ Files inspected:
 - `Core/GameEngineDevice/Include/MilesAudioDevice/MilesAudioManager.h`
 
 No source code was changed in this audit pass. Native builds, Android builds, cache collision tests, and actual audio playback with two mods were not run. Next: add focused regression coverage for same-named audio files in two mod folders on OpenAL, inspect localized filename selection, and decide the Miles compatibility policy.
+
+## Audio music-availability source-context fix
+
+`AudioManager::isMusicAlreadyLoaded` now copies each Fusion music definition's source ID onto its temporary `AudioEventRTS` before calling `generateFilename()`. This is important because `AudioEventRTS::adjustForLocalization` intentionally skips the legacy global localization probe for source-qualified events: without the source ID, a localized track in another selected mod could change the generated path before the later exact-source existence check, causing a false negative for a valid non-localized track in the owning mod.
+
+The availability scan still resolves the resulting filename with `getFileInstanceForMod` and checks existence through that exact source instance. This is a targeted correctness fix; it does not add source-local localized-track selection. Fusion events currently retain their non-localized path unless a future source-aware localization resolver is implemented.
+
+Changed:
+- `Core/GameEngine/Source/Common/Audio/GameAudio.cpp`
+
+Commit: `2bc34e300f0115e09b9bf171b71f7d6faa10781b`
+
+Verification: source diff inspection only. No native build, Android build, automated test, or mixed-mod audio playback test was run.
