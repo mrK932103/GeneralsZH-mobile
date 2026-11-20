@@ -1038,6 +1038,11 @@ Bool AudioManager::isMusicAlreadyLoaded() const
 		foundMusicDefinition = TRUE;
 		AudioEventRTS aud;
 		aud.setAudioEventInfo(eventInfo);
+		// Keep filename generation in the same source namespace as the
+		// availability check below. In particular, Fusion events must not
+		// run the legacy global localization probe, which can select a
+		// same-named localized track from a different mod.
+		aud.setFusionSourceId(eventInfo->m_fusionSourceId);
 		aud.generateFilename();
 		const AsciiString filename = aud.getFilename();
 		const AsciiString sourceId = eventInfo->m_fusionSourceId;
