@@ -58,6 +58,8 @@
 #include "Common/GameSounds.h"
 #include "Common/MiscAudio.h"
 #include "Common/OSDisplay.h"
+
+#include <string>
 #include "Common/Player.h"
 #include "Common/PlayerList.h"
 #include "Common/OptionPreferences.h"
@@ -1038,8 +1040,16 @@ Bool AudioManager::isMusicAlreadyLoaded() const
 		aud.setAudioEventInfo(eventInfo);
 		aud.generateFilename();
 		const AsciiString filename = aud.getFilename();
-		if (TheFileSystem->doesFileExist(filename.str()))
-			return TRUE;
+		const AsciiString sourceId = eventInfo->m_fusionSourceId;
+		const std::string source(sourceId.str());
+		const std::string::size_type separator = source.find('!');
+		FileInstance sourceInstance = 0;
+		if (separator != std::string::npos && separator > 0) {
+			const AsciiString modFolder(source.substr(0, separator).c_str());
+			if (TheFileSystem->getFileInstanceForMod(filename, modFolder, &sourceInstance)
+				&& TheFileSystem->doesFileExist(filename.str(), sourceInstance))
+				return TRUE;
+		}
 	}
 
 	if (!foundMusicDefinition) {
