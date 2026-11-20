@@ -512,6 +512,9 @@ LocomotorStore::~LocomotorStore()
 	}
 
 	m_locomotorTemplates.clear();
+	for (std::vector<LocomotorTemplate*>::iterator fusionIt = m_fusionLocomotorTemplates.begin(); fusionIt != m_fusionLocomotorTemplates.end(); ++fusionIt)
+		deleteInstance(*fusionIt);
+	m_fusionLocomotorTemplates.clear();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -545,6 +548,25 @@ const LocomotorTemplate* LocomotorStore::findLocomotorTemplate(NameKeyType namek
 }
 
 //-------------------------------------------------------------------------------------------------
+const LocomotorTemplate* LocomotorStore::findLocomotorTemplate(const AsciiString& name, const AsciiString& sourceId) const
+{
+	if (sourceId.isEmpty())
+		return findLocomotorTemplate(NAMEKEY(name.str()));
+
+	const NameKeyType nameKey = NAMEKEY(name.str());
+	for (std::vector<LocomotorTemplate*>::const_iterator it = m_fusionLocomotorTemplates.begin();
+		it != m_fusionLocomotorTemplates.end(); ++it)
+	{
+		const LocomotorTemplate* candidate = *it;
+		if (NAMEKEY(candidate->getName().str()) == nameKey &&
+			candidate->getFusionSourceId().compareNoCase(sourceId) == 0)
+			return candidate;
+	}
+	// A mod may intentionally use a base-game locomotor, but never one from a sibling mod.
+	return findLocomotorTemplate(nameKey);
+}
+
+//-------------------------------------------------------------------------------------------------
 void LocomotorStore::update()
 {
 }
@@ -564,6 +586,17 @@ void LocomotorStore::reset()
 		{
 			++it;
 		}
+	}
+
+	// Fusion-owned templates have their own registry and override chains.
+	for (std::vector<LocomotorTemplate*>::iterator it = m_fusionLocomotorTemplates.begin();
+		it != m_fusionLocomotorTemplates.end(); )
+	{
+		Overridable *locoTemplate = (*it)->deleteOverrides();
+		if (!locoTemplate)
+			it = m_fusionLocomotorTemplates.erase(it);
+		else
+			++it;
 	}
 }
 
@@ -597,8 +630,11 @@ LocomotorTemplate *LocomotorStore::newOverride( LocomotorTemplate *locoTemplate 
 	// read the Locomotor name
 	const char* token = ini->getNextToken();
 	NameKeyType namekey = NAMEKEY(token);
+	const AsciiString sourceId = ini->getSourceId();
 
-	LocomotorTemplate *loco = TheLocomotorStore->findLocomotorTemplate(namekey);
+	LocomotorTemplate *loco = sourceId.isNotEmpty()
+		? const_cast<LocomotorTemplate*>(TheLocomotorStore->findLocomotorTemplate(AsciiString(token), sourceId))
+		: TheLocomotorStore->findLocomotorTemplate(namekey);
 	if (loco) {
 		if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES) {
 			loco = TheLocomotorStore->newOverride((LocomotorTemplate*) loco->friend_getFinalOverride());
@@ -618,7 +654,17 @@ LocomotorTemplate *LocomotorStore::newOverride( LocomotorTemplate *locoTemplate 
 	// if this is an override, then we want the pointer on the existing named locomotor to point us
 	// to the override, so don't add it to the map.
 	if (!isOverride)
-		TheLocomotorStore->m_locomotorTemplates[namekey] = loco;
+	{
+		if (sourceId.isNotEmpty())
+		{
+			loco->setFusionSourceId(sourceId);
+			TheLocomotorStore->m_fusionLocomotorTemplates.push_back(loco);
+		}
+		else
+		{
+			TheLocomotorStore->m_locomotorTemplates[namekey] = loco;
+		}
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -2610,12 +2656,13 @@ void LocomotorSet::crc( Xfer *xfer )
 // ------------------------------------------------------------------------------------------------
 /** Xfer method
 	* Version Info:
-	* 1: Initial version */
+	* 1: Initial version
+	* 2: Store Fusion source ID for each Locomotor template */
 // ------------------------------------------------------------------------------------------------
 void LocomotorSet::xfer( Xfer *xfer )
 {
 	// version
-	const XferVersion currentVersion = 1;
+	const XferVersion currentVersion = 2;
 	XferVersion version = currentVersion;
 	xfer->xferVersion( &version, currentVersion );
 
@@ -2631,6 +2678,8 @@ void LocomotorSet::xfer( Xfer *xfer )
 			Locomotor* loco = *it;
 			AsciiString name = loco->getTemplateName();
 			xfer->xferAsciiString(&name);
+			AsciiString sourceId = loco->getTemplateSourceId();
+			xfer->xferAsciiString(&sourceId);
 			xfer->xferSnapshot(loco);
 		}
 	}
@@ -2648,7 +2697,13 @@ void LocomotorSet::xfer( Xfer *xfer )
 			AsciiString name;
 			xfer->xferAsciiString(&name);
 
-			const LocomotorTemplate* lt = TheLocomotorStore->findLocomotorTemplate(NAMEKEY(name));
+			AsciiString sourceId;
+			if (version >= 2)
+				xfer->xferAsciiString(&sourceId);
+
+			const LocomotorTemplate* lt = sourceId.isEmpty()
+				? TheLocomotorStore->findLocomotorTemplate(NAMEKEY(name))
+				: TheLocomotorStore->findLocomotorTemplate(name, sourceId);
 			if (lt == nullptr)
 			{
 				DEBUG_CRASH(( "LocomotorSet::xfer - template %s not found", name.str() ));
@@ -2679,17 +2734,33 @@ void LocomotorSet::xferSelfAndCurLocoPtr(Xfer *xfer, Locomotor** loco)
 {
 	xfer->xferSnapshot(this);
 
+	// Version 1 stored only the template name. Version 2 also stores the
+	// source namespace so same-named locomotors from different mods cannot
+	// be confused when restoring the current locomotor pointer.
+	const XferVersion currentVersion = 2;
+	XferVersion version = currentVersion;
+	xfer->xferVersion(&version, currentVersion);
+
 	if (xfer->getXferMode() == XFER_SAVE)
 	{
 		AsciiString name;
+		AsciiString sourceId;
 		if (*loco)
+		{
 			name = (*loco)->getTemplateName();
+			sourceId = (*loco)->getTemplateSourceId();
+		}
 		xfer->xferAsciiString(&name);
+		xfer->xferAsciiString(&sourceId);
 	}
 	else if (xfer->getXferMode() == XFER_LOAD)
 	{
 		AsciiString name;
 		xfer->xferAsciiString(&name);
+
+		AsciiString sourceId;
+		if (version >= 2)
+			xfer->xferAsciiString(&sourceId);
 
 		if (name.isEmpty())
 		{
@@ -2699,14 +2770,16 @@ void LocomotorSet::xferSelfAndCurLocoPtr(Xfer *xfer, Locomotor** loco)
 		{
 			for (size_t i = 0; i < m_locomotors.size(); ++i)
 			{
-				if (m_locomotors[i]->getTemplateName() == name)
+				Locomotor* candidate = m_locomotors[i];
+				if (candidate->getTemplateName() == name &&
+					(version < 2 || candidate->getTemplateSourceId().compareNoCase(sourceId) == 0))
 				{
-					*loco = m_locomotors[i];
+					*loco = candidate;
 					return;
 				}
 			}
 
-			DEBUG_CRASH(( "LocomotorSet::xfer - template %s not found", name.str() ));
+			DEBUG_CRASH(( "LocomotorSet::xfer - template %s from source %s not found", name.str(), sourceId.str() ));
 			throw XFER_UNKNOWN_STRING;
 		}
 	}

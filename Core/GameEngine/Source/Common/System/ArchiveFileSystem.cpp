@@ -618,6 +618,102 @@ ArchiveFile* ArchiveFileSystem::getArchiveFile(const AsciiString& filename, File
 	return range.get()->second;
 }
 
+// Resolve the duplicate-file slot for one exact archive. FileInstance is a
+// per-path index in the archive priority list, not a global archive number.
+Bool ArchiveFileSystem::getFileInstanceForArchive(const AsciiString& filename, const AsciiString& archiveFilename, FileInstance *instance) const
+{
+	if (instance == nullptr || filename.isEmpty() || archiveFilename.isEmpty())
+		return FALSE;
+
+	ArchivedDirectoryInfoResult result = const_cast<ArchiveFileSystem*>(this)->getArchivedDirectoryInfo(filename.str());
+	if (!result.valid())
+		return FALSE;
+
+	stl::const_range<ArchivedFileLocationMap> range = stl::get_range(result.dirInfo->m_files, result.lastToken, 0);
+	if (!range.valid())
+		return FALSE;
+
+	FileInstance index = 0;
+	for (ArchivedFileLocationMap::const_iterator it = range.begin; it != range.end; ++it, ++index)
+	{
+		if (it->second != nullptr)
+		{
+			// Callers may identify an archive by its display name (legacy) or by
+			// the absolute path written by the Android mod launcher. Prefer the
+			// exact path when supplied; keep the name comparison for older callers.
+			const AsciiString archiveName = it->second->getName();
+			const AsciiString archivePath = it->second->getPath();
+			if (archiveName.compareNoCase(archiveFilename) == 0
+				|| archivePath.compareNoCase(archiveFilename) == 0)
+			{
+				*instance = index;
+				return TRUE;
+			}
+		}
+		if (index == ~FileInstance(0))
+			return FALSE;
+	}
+
+	return FALSE;
+}
+
+// Resolve the highest-priority matching file from any archive inside one selected mod folder.
+// The per-file instance is local to this virtual path, so archive ordering for other paths is irrelevant.
+Bool ArchiveFileSystem::getFileInstanceForMod(const AsciiString& filename, const AsciiString& modFolder, FileInstance *instance) const
+{
+	if (instance == nullptr || filename.isEmpty() || modFolder.isEmpty())
+		return FALSE;
+
+	// Mod source IDs may originate from Android paths while archive paths can
+	// retain separators from the archive registration layer. Normalize both
+	// before the folder-boundary comparison so a valid archive is not skipped
+	// solely because one path uses '\\' and the other uses '/'.
+	std::string folder(modFolder.str());
+	if (folder.empty())
+		return FALSE;
+	for (size_t i = 0; i < folder.size(); ++i)
+	{
+		if (folder[i] == '\\')
+			folder[i] = '/';
+	}
+	while (folder.size() > 1 && folder[folder.size() - 1] == '/')
+		folder.erase(folder.size() - 1);
+	if (folder[folder.size() - 1] != '/')
+		folder += '/';
+
+	ArchivedDirectoryInfoResult result = const_cast<ArchiveFileSystem*>(this)->getArchivedDirectoryInfo(filename.str());
+	if (!result.valid())
+		return FALSE;
+
+	stl::const_range<ArchivedFileLocationMap> range = stl::get_range(result.dirInfo->m_files, result.lastToken, 0);
+	if (!range.valid())
+		return FALSE;
+
+	FileInstance index = 0;
+	for (ArchivedFileLocationMap::const_iterator it = range.begin; it != range.end; ++it, ++index)
+	{
+		if (it->second != nullptr)
+		{
+			const AsciiString archivePath = it->second->getPath();
+			std::string normalizedArchivePathText(archivePath.str());
+			for (size_t pathChar = 0; pathChar < normalizedArchivePathText.size(); ++pathChar)
+			{
+				if (normalizedArchivePathText[pathChar] == '\\')
+					normalizedArchivePathText[pathChar] = '/';
+			}
+			const AsciiString normalizedArchivePath(normalizedArchivePathText.c_str());
+			if (normalizedArchivePath.startsWithNoCase(folder.c_str()))
+			{
+				*instance = index;
+				return TRUE;
+			}
+		}
+		if (index == ~FileInstance(0))
+			return FALSE;
+	}
+	return FALSE;
+}
+
 void ArchiveFileSystem::getFileListInDirectory(const AsciiString& currentDirectory, const AsciiString& originalDirectory, const AsciiString& searchName, FilenameList &filenameList, Bool searchSubdirectories) const
 {
 	ArchiveFileMap::const_iterator it = m_archiveFileMap.begin();

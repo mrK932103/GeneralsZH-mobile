@@ -54,6 +54,8 @@ class ScienceInfo : public Overridable
 
 private:
 	ScienceType						m_science;
+	AsciiString						m_internalName;
+	AsciiString						m_sourceId;
 	UnicodeString					m_name;
 	UnicodeString					m_description;
 	ScienceVec						m_rootSciences;			// this is calced at runtime, NOT read from INI
@@ -104,6 +106,7 @@ public:
 	Int getSciencePurchaseCost(ScienceType science) const;
 
 	ScienceType getScienceFromInternalName(const AsciiString& name) const;
+	ScienceType getScienceFromInternalName(const AsciiString& name, const AsciiString& sourceId) const;
 	AsciiString getInternalNameForScience(ScienceType science) const;
 
 	/** return a list of the sciences the given player can purchase now, and a list he might be able to purchase in the future,
@@ -113,7 +116,8 @@ public:
 	// this is intended ONLY for use by INI::scanScience.
 	// Don't use it anywhere else. In particular, never, ever, ever
 	// call this with a hardcoded science name. (srj)
-	ScienceType friend_lookupScience(const char* scienceName) const;
+	ScienceType friend_getScienceType(const char* scienceName, const AsciiString& sourceId) const;
+	ScienceType friend_lookupScience(const char* scienceName, const AsciiString& sourceId = AsciiString::TheEmptyString) const;
 	static void friend_parseScienceDefinition(INI* ini);
 
 	// return a vector of all the currently-known science names

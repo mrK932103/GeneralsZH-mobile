@@ -80,6 +80,15 @@
 
 ObjectCreationListStore *TheObjectCreationListStore = nullptr;					///< the ObjectCreationList store definition
 
+// Keep a Fusion OCL's identity separate from its original INI name.
+static AsciiString makeFusionObjectCreationListKey(const AsciiString& name, const AsciiString& sourceId)
+{
+	AsciiString key = sourceId;
+	key.concat("::");
+	key.concat(name);
+	return key;
+}
+
 //-------------------------------------------------------------------------------------------------
 static void adjustVector(Coord3D *vec, const Matrix3D* mtx)
 {
@@ -156,6 +165,7 @@ public:
 		};
 
 		FireWeaponNugget* nugget = newInstance(FireWeaponNugget);
+		nugget->setFusionSourceId(ini->getSourceId());
 		ini->initFromINI(nugget, myFieldParse);
 		((ObjectCreationList*)instance)->addObjectCreationNugget(nugget);
 	}
@@ -227,6 +237,7 @@ public:
 		};
 
 		AttackNugget* nugget = newInstance(AttackNugget);
+		nugget->setFusionSourceId(ini->getSourceId());
 		ini->initFromINI(nugget, myFieldParse);
 		((ObjectCreationList*)instance)->addObjectCreationNugget(nugget);
 	}
@@ -369,7 +380,7 @@ public:
 
 			if( createOwner )
 			{
-				const ThingTemplate* ttn = TheThingFactory->findTemplate(m_transportName);
+				const ThingTemplate* ttn = TheThingFactory->findTemplate(m_transportName, getFusionSourceId(), TRUE);
 				transport = TheThingFactory->newObject( ttn, owner );
 				if( !transport )
 				{
@@ -435,10 +446,10 @@ public:
 					transport->setPosition(&startPos);
 				}
 
-				const ThingTemplate* putInContainerTmpl = m_putInContainerName.isEmpty() ? nullptr : TheThingFactory->findTemplate(m_putInContainerName);
+				const ThingTemplate* putInContainerTmpl = m_putInContainerName.isEmpty() ? nullptr : TheThingFactory->findTemplate(m_putInContainerName, getFusionSourceId(), TRUE);
 				for (std::vector<Payload>::const_iterator it = m_payload.begin(); it != m_payload.end(); ++it)
   			{
-					const ThingTemplate* payloadTmpl = TheThingFactory->findTemplate(it->m_payloadName);
+					const ThingTemplate* payloadTmpl = TheThingFactory->findTemplate(it->m_payloadName, getFusionSourceId(), TRUE);
 					if( !payloadTmpl )
 					{
 						DEBUG_CRASH( ("DeliverPayloadNugget::create() -- %s couldn't create %s (template not found).",
@@ -551,6 +562,7 @@ public:
 		};
 
 		DeliverPayloadNugget* nugget = newInstance(DeliverPayloadNugget);
+		nugget->setFusionSourceId(ini->getSourceId());
 
 		MultiIniFieldParse p;
 		p.add(myFieldParse);
@@ -672,6 +684,7 @@ public:
 		};
 
 		ApplyRandomForceNugget* nugget = newInstance(ApplyRandomForceNugget);
+		nugget->setFusionSourceId(ini->getSourceId());
 		ini->initFromINI(nugget, myFieldParse);
 		((ObjectCreationList*)instance)->addObjectCreationNugget(nugget);
 	}
@@ -873,6 +886,7 @@ public:
 		p.add(myFieldParse);
 
 		GenericObjectCreationNugget* nugget = newInstance(GenericObjectCreationNugget);
+		nugget->setFusionSourceId(ini->getSourceId());
 		nugget->m_nameAreObjects = true;
 
 		ini->initFromINIMulti(nugget, p);
@@ -900,6 +914,7 @@ public:
 		p.add(myFieldParse);
 
 		GenericObjectCreationNugget* nugget = newInstance(GenericObjectCreationNugget);
+		nugget->setFusionSourceId(ini->getSourceId());
 		nugget->m_nameAreObjects = false;
 
 		ini->initFromINIMulti(nugget, p);
@@ -976,7 +991,9 @@ protected:
 
 		if (!m_particleSysName.isEmpty())
 		{
-			const ParticleSystemTemplate *tmp = TheParticleSystemManager->findTemplate(m_particleSysName);
+			const ParticleSystemTemplate *tmp = getFusionSourceId().isNotEmpty()
+				? TheParticleSystemManager->findTemplate(m_particleSysName, getFusionSourceId(), TRUE)
+				: TheParticleSystemManager->findTemplate(m_particleSysName);
 			if (tmp)
 			{
 				ParticleSystem *sys = TheParticleSystemManager->createParticleSystem(tmp);
@@ -1335,7 +1352,7 @@ protected:
 		Object *firstObject = nullptr;
 		if (!m_putInContainer.isEmpty())
 		{
-			const ThingTemplate* containerTmpl = TheThingFactory->findTemplate(m_putInContainer);
+			const ThingTemplate* containerTmpl = TheThingFactory->findTemplate(m_putInContainer, getFusionSourceId(), TRUE);
 			if (containerTmpl)
 			{
 				container = TheThingFactory->newObject( containerTmpl, debrisOwner );
@@ -1356,7 +1373,7 @@ protected:
 
 			const ThingTemplate* tmpl;
 			if (m_nameAreObjects)
-				tmpl = TheThingFactory->findTemplate(m_names[pick]);
+				tmpl = TheThingFactory->findTemplate(m_names[pick], getFusionSourceId(), TRUE);
 			else
 			{	//this is using the generic debris type so it's probably safe to
 				//remove if requested by the GameLOD manager.
@@ -1426,6 +1443,7 @@ protected:
 			if (m_fadeIn)
 			{
 				AudioEventRTS fadeAudioEvent(m_fadeSoundName);
+				fadeAudioEvent.setFusionSourceId(getFusionSourceId());
 				fadeAudioEvent.setObjectID(sourceObj->getID());
 				TheAudio->addAudioEvent(&fadeAudioEvent);
 				debris->getDrawable()->fadeIn(m_fadeFrames);
@@ -1434,6 +1452,7 @@ protected:
 			if (m_fadeOut)
 			{
 				AudioEventRTS fadeAudioEvent(m_fadeSoundName);
+				fadeAudioEvent.setFusionSourceId(getFusionSourceId());
 				fadeAudioEvent.setObjectID(sourceObj->getID());
 				TheAudio->addAudioEvent(&fadeAudioEvent);
 				debris->getDrawable()->fadeOut(m_fadeFrames);
@@ -1622,15 +1641,25 @@ const ObjectCreationList *ObjectCreationListStore::findObjectCreationList(const 
 	if (stricmp(name, "None") == 0)
 		return nullptr;
 
-  ObjectCreationListMap::const_iterator it = m_ocls.find(NAMEKEY(name));
-  if (it == m_ocls.end())
-	{
+	ObjectCreationListMap::const_iterator it = m_ocls.find(NAMEKEY(name));
+	return it == m_ocls.end() ? nullptr : &it->second;
+}
+
+//-------------------------------------------------------------------------------------------------
+const ObjectCreationList *ObjectCreationListStore::findObjectCreationList(const char* name, const AsciiString& sourceId, Bool allowBaseFallback) const
+{
+	if (stricmp(name, "None") == 0)
 		return nullptr;
-	}
-	else
+
+	if (sourceId.isNotEmpty())
 	{
-		return &(*it).second;
+		NameKeyType key = TheNameKeyGenerator->nameToKey(makeFusionObjectCreationListKey(AsciiString(name), sourceId).str());
+		ObjectCreationListMap::const_iterator it = m_fusionOcls.find(key);
+		if (it != m_fusionOcls.end())
+			return &it->second;
 	}
+
+	return allowBaseFallback ? findObjectCreationList(name) : nullptr;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1644,10 +1673,20 @@ void ObjectCreationListStore::addObjectCreationNugget(ObjectCreationNugget* nugg
 {
 	// read the ObjectCreationList name
 	const char *c = ini->getNextToken();
-	NameKeyType key = TheNameKeyGenerator->nameToKey(c);
-	ObjectCreationList& ocl = TheObjectCreationListStore->m_ocls[key];
-	ocl.clear();
-	ini->initFromINI(&ocl, TheObjectCreationListFieldParse);
+	const AsciiString sourceId = ini->getSourceId();
+	ObjectCreationList* ocl = nullptr;
+	if (sourceId.isNotEmpty())
+	{
+		NameKeyType key = TheNameKeyGenerator->nameToKey(makeFusionObjectCreationListKey(AsciiString(c), sourceId).str());
+		ocl = &TheObjectCreationListStore->m_fusionOcls[key];
+	}
+	else
+	{
+		NameKeyType key = TheNameKeyGenerator->nameToKey(c);
+		ocl = &TheObjectCreationListStore->m_ocls[key];
+	}
+	ocl->clear();
+	ini->initFromINI(ocl, TheObjectCreationListFieldParse);
 }
 
 //-------------------------------------------------------------------------------------------------

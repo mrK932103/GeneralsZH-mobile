@@ -78,6 +78,10 @@ public:
 
 	NameKeyType getNameKey() const { DEBUG_ASSERTCRASH(m_nameKey != NAMEKEY_INVALID, ("bad namekey")); return m_nameKey; }
 	AsciiString getName() const { return KEYNAME(m_nameKey); }
+	// Stable owner identity for source-isolated Fusion templates; empty for legacy loads.
+	void setFusionSourceId(AsciiString sourceId) { m_fusionSourceId = sourceId; }
+	AsciiString getFusionSourceId() const { return m_fusionSourceId; }
+
 
 	UnicodeString getDisplayName() const { return m_displayName; }
 
@@ -142,6 +146,8 @@ protected:
 private:
 
 	NameKeyType			m_nameKey;
+	AsciiString			m_fusionSourceId;			///< owning Fusion mod; empty for ordinary game templates
+
 	UnicodeString		m_displayName;
 	AsciiString			m_side, m_baseSide;
 	Handicap				m_handicap;						///< initial baseline for Player capabilities
@@ -201,7 +207,17 @@ public:
 
 	const PlayerTemplate* getNthPlayerTemplate(Int i) const;
 	const PlayerTemplate* findPlayerTemplate(NameKeyType namekey) const;
-	Int getPlayerTemplateCount() const { return m_playerTemplates.size(); }
+	const PlayerTemplate* findPlayerTemplate(NameKeyType namekey, const AsciiString& sourceId) const;
+
+	// Legacy Skirmish APIs expose only untagged templates; Fusion has a separate source-aware list.
+	Int getPlayerTemplateCount() const;
+	const PlayerTemplate* getNthFusionPlayerTemplate(Int i) const;
+	Int getFusionPlayerTemplateCount() const;
+
+	// Stable combined view for the normal Skirmish selector: legacy factions first,
+	// then source-tagged Fusion factions. Existing legacy enumeration remains unchanged.
+	Int getSelectablePlayerTemplateCount() const;
+	const PlayerTemplate* getNthSelectablePlayerTemplate(Int i) const;
 
 
 	// This function will fill outStringList with all the sides found in all the templates

@@ -1101,12 +1101,14 @@ void ThingTemplate::copyFrom(const ThingTemplate* that)
 	ThingTemplate* next = this->m_nextThingTemplate;
 	UnsignedShort id = this->m_templateID;
 	AsciiString name = this->m_nameString;
+	AsciiString sourceId = this->m_sourceId;
 
 	*this = *that;
 
 	this->m_nextThingTemplate = next;
 	this->m_templateID = id;
 	this->m_nameString = name;
+	this->m_sourceId = sourceId;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1148,7 +1150,7 @@ void ThingTemplate::resolveNames()
 
 	for (i = 0; i < m_prereqInfo.size(); i++)
 	{
-		m_prereqInfo[i].resolveNames();
+		m_prereqInfo[i].resolveNames(m_sourceId);
 	}
 
 	const Int MAX_BF = 32;

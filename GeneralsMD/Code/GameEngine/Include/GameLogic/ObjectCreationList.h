@@ -74,6 +74,8 @@ class ObjectCreationNugget : public MemoryPoolObject
 public:
 
 	ObjectCreationNugget() { }
+	void setFusionSourceId(const AsciiString& sourceId) { m_fusionSourceId = sourceId; }
+	const AsciiString& getFusionSourceId() const { return m_fusionSourceId; }
 	//virtual ~ObjectCreationNugget() { }
 
 	/**
@@ -94,6 +96,9 @@ public:
 		object, or using the existing one.
 	*/
 	virtual Object* create( const Object* primaryObj, const Coord3D *primary, const Coord3D *secondary, Bool createOwner, UnsignedInt lifetimeFrames = 0 ) const;
+
+private:
+	AsciiString m_fusionSourceId;
 };
 EMPTY_DTOR(ObjectCreationNugget)
 
@@ -198,6 +203,8 @@ public:
 		return nullptr if no such ObjectCreationList exists.
 	*/
 	const ObjectCreationList *findObjectCreationList(const char* name) const;
+	// Fusion references resolve in their owning source first, then in untagged base-game data.
+	const ObjectCreationList *findObjectCreationList(const char* name, const AsciiString& sourceId, Bool allowBaseFallback = TRUE) const;
 
 	static void parseObjectCreationListDefinition(INI* ini);
 
@@ -207,6 +214,9 @@ private:
 
 	typedef std::map< NameKeyType, ObjectCreationList, std::less<NameKeyType>/**/> ObjectCreationListMap;
 	ObjectCreationListMap m_ocls;
+
+	// Fusion OCLs are isolated by source identity; legacy map remains base-game only.
+	ObjectCreationListMap m_fusionOcls;
 
 	// note, this list doesn't own the nuggets; all nuggets are owned by the Store.
 	typedef std::vector<ObjectCreationNugget*> ObjectCreationNuggetVector;

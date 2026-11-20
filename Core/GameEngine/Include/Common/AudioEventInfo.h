@@ -90,6 +90,7 @@ struct AudioEventInfo : public MemoryPoolObject
 
 public:
 	AsciiString m_audioName;	// This name matches the name of the AudioEventRTS
+	AsciiString m_fusionSourceId;	// Owning Fusion mod; empty for shared/base-game audio events
 	AsciiString m_filename;		// For music tracks, this is the filename of the track
 
 	Real m_volume;						// Desired volume of this audio

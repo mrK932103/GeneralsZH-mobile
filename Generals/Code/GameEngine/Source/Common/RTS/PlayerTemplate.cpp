@@ -310,19 +310,121 @@ const PlayerTemplate* PlayerTemplateStore::findPlayerTemplate(NameKeyType nameke
 		#ifdef RTS_DEBUG
 		AsciiString n = KEYNAME((*it).getNameKey());
 		#endif
-		if ((*it).getNameKey() == namekey)
+		if ((*it).getNameKey() == namekey && (*it).getFusionSourceId().isEmpty())
 			return &(*it);
 	}
 	return nullptr;
 }
 
 //-----------------------------------------------------------------------------
+// Source-qualified lookup used only by explicitly tagged Fusion INI loads.
+// The legacy overload above deliberately keeps its original load-order behavior.
+const PlayerTemplate* PlayerTemplateStore::findPlayerTemplate(NameKeyType namekey, const AsciiString& sourceId) const
+{
+	if (sourceId.isEmpty())
+		return findPlayerTemplate(namekey);
+
+	// Preserve the legacy General-variant aliases while resolving inside one source.
+	static NameKeyType a0 = NAMEKEY("FactionAmerica");
+	static NameKeyType a1 = NAMEKEY("FactionAmericaChooseAGeneral");
+	static NameKeyType a2 = NAMEKEY("FactionAmericaTankCommand");
+	static NameKeyType a3 = NAMEKEY("FactionAmericaSpecialForces");
+	static NameKeyType a4 = NAMEKEY("FactionAmericaAirForce");
+	static NameKeyType c0 = NAMEKEY("FactionChina");
+	static NameKeyType c1 = NAMEKEY("FactionChinaChooseAGeneral");
+	static NameKeyType c2 = NAMEKEY("FactionChinaRedArmy");
+	static NameKeyType c3 = NAMEKEY("FactionChinaSpecialWeapons");
+	static NameKeyType c4 = NAMEKEY("FactionChinaSecretPolice");
+	static NameKeyType g0 = NAMEKEY("FactionGLA");
+	static NameKeyType g1 = NAMEKEY("FactionGLAChooseAGeneral");
+	static NameKeyType g2 = NAMEKEY("FactionGLATerrorCell");
+	static NameKeyType g3 = NAMEKEY("FactionGLABiowarCommand");
+	static NameKeyType g4 = NAMEKEY("FactionGLAWarlordCommand");
+
+	if (namekey == a1 || namekey == a2 || namekey == a3 || namekey == a4)
+		namekey = a0;
+	else if (namekey == c1 || namekey == c2 || namekey == c3 || namekey == c4)
+		namekey = c0;
+	else if (namekey == g1 || namekey == g2 || namekey == g3 || namekey == g4)
+		namekey = g0;
+
+	for (PlayerTemplateVector::const_iterator it = m_playerTemplates.begin(); it != m_playerTemplates.end(); ++it)
+	{
+		if ((*it).getNameKey() == namekey &&
+			(*it).getFusionSourceId().compareNoCase(sourceId) == 0)
+			return &(*it);
+	}
+	return nullptr;
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+// Legacy Skirmish enumeration deliberately hides source-tagged Fusion templates.
+Int PlayerTemplateStore::getPlayerTemplateCount() const
+{
+	Int count = 0;
+	for (PlayerTemplateVector::const_iterator it = m_playerTemplates.begin(); it != m_playerTemplates.end(); ++it)
+		if ((*it).getFusionSourceId().isEmpty())
+			++count;
+	return count;
+}
+
+//-----------------------------------------------------------------------------
 const PlayerTemplate* PlayerTemplateStore::getNthPlayerTemplate(Int i) const
 {
-	if (i >= 0 && i < m_playerTemplates.size())
-		return &m_playerTemplates[i];
-
+	if (i < 0)
+		return nullptr;
+	for (PlayerTemplateVector::const_iterator it = m_playerTemplates.begin(); it != m_playerTemplates.end(); ++it)
+	{
+		if ((*it).getFusionSourceId().isEmpty() && i-- == 0)
+			return &(*it);
+	}
 	return nullptr;
+}
+
+//-----------------------------------------------------------------------------
+Int PlayerTemplateStore::getFusionPlayerTemplateCount() const
+{
+	Int count = 0;
+	for (PlayerTemplateVector::const_iterator it = m_playerTemplates.begin(); it != m_playerTemplates.end(); ++it)
+		if ((*it).getFusionSourceId().isNotEmpty())
+			++count;
+	return count;
+}
+
+//-----------------------------------------------------------------------------
+const PlayerTemplate* PlayerTemplateStore::getNthFusionPlayerTemplate(Int i) const
+{
+	if (i < 0)
+		return nullptr;
+	for (PlayerTemplateVector::const_iterator it = m_playerTemplates.begin(); it != m_playerTemplates.end(); ++it)
+	{
+		if ((*it).getFusionSourceId().isNotEmpty() && i-- == 0)
+			return &(*it);
+	}
+	return nullptr;
+}
+
+//-----------------------------------------------------------------------------
+// Combined source-aware enumeration used by the Fusion Skirmish selector.
+// Keep legacy and Fusion ordering deterministic so existing preference indices
+// retain their meaning when Fusion mode is not enabled.
+Int PlayerTemplateStore::getSelectablePlayerTemplateCount() const
+{
+	return getPlayerTemplateCount() + getFusionPlayerTemplateCount();
+}
+
+//-----------------------------------------------------------------------------
+const PlayerTemplate* PlayerTemplateStore::getNthSelectablePlayerTemplate(Int i) const
+{
+	if (i < 0)
+		return nullptr;
+
+	const Int legacyCount = getPlayerTemplateCount();
+	if (i < legacyCount)
+		return getNthPlayerTemplate(i);
+
+	return getNthFusionPlayerTemplate(i - legacyCount);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -363,7 +465,10 @@ void PlayerTemplateStore::getAllSideStrings(AsciiStringList *outStringList)
 	const char* c = ini->getNextToken();
 	NameKeyType namekey = NAMEKEY(c);
 
-	PlayerTemplate* pt = const_cast<PlayerTemplate*>(ThePlayerTemplateStore->findPlayerTemplate(namekey));
+	const AsciiString sourceId = ini->getSourceId();
+	PlayerTemplate* pt = const_cast<PlayerTemplate*>(sourceId.isNotEmpty()
+		? ThePlayerTemplateStore->findPlayerTemplate(namekey, sourceId)
+		: ThePlayerTemplateStore->findPlayerTemplate(namekey));
 	if (pt)
 	{
 		ini->initFromINI(pt, pt->getFieldParse() );
@@ -374,6 +479,7 @@ void PlayerTemplateStore::getAllSideStrings(AsciiStringList *outStringList)
 		PlayerTemplate npt;
 		ini->initFromINI( &npt, npt.getFieldParse() );
 		npt.setNameKey(namekey);
+		npt.setFusionSourceId(sourceId);
 		ThePlayerTemplateStore->m_playerTemplates.push_back(npt);
 	}
 

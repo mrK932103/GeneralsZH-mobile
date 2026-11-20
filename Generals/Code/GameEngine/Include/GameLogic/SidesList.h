@@ -177,6 +177,9 @@ public:
 	Bool validateSides();
 
 	void addPlayerByTemplate(AsciiString playerTemplateName);
+	// Fusion variant: records the owning mod ID in the side dictionary so PlayerList
+	// can resolve the correct source-qualified PlayerTemplate at game start.
+	void addPlayerByTemplate(AsciiString playerTemplateName, AsciiString fusionSourceId);
 
 	enum
 	{

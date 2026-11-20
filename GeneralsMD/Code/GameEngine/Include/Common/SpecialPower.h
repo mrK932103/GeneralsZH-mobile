@@ -102,6 +102,9 @@ public:
 
 	static const FieldParse* getFieldParse() { return m_specialPowerFieldParse; }
 
+	void friend_setFusionSourceId(const AsciiString& sourceId) { m_fusionSourceId = sourceId; }
+	const AsciiString& getFusionSourceId() const { return getFO()->m_fusionSourceId; }
+
 	void friend_setNameAndID(const AsciiString& name, UnsignedInt id)
 	{
 		m_name = name;
@@ -129,6 +132,7 @@ private:
 	const SpecialPowerTemplate* getFO() const { return (const SpecialPowerTemplate*)friend_getFinalOverride(); }
 
 	AsciiString				m_name;								///< name
+	AsciiString				m_fusionSourceId;				///< source mod identity
 	UnsignedInt				m_id;									///< unique identifier
 	SpecialPowerType	m_type;								///< enum allowing for fast type checking for ability processing.
 	UnsignedInt				m_reloadTime;					///< (frames) after using special power, how long it takes to use again
@@ -164,6 +168,7 @@ public:
 	virtual void reset() override;
 
 	const SpecialPowerTemplate *findSpecialPowerTemplate( AsciiString name ) { return findSpecialPowerTemplatePrivate(name); }
+	const SpecialPowerTemplate *findSpecialPowerTemplate( AsciiString name, const AsciiString& sourceId );
 	const SpecialPowerTemplate *findSpecialPowerTemplateByID( UnsignedInt id );
 	const SpecialPowerTemplate *getSpecialPowerTemplateByIndex( UnsignedInt index ); // for WorldBuilder
 
@@ -178,6 +183,7 @@ private:
 
 protected:
 	SpecialPowerTemplate *findSpecialPowerTemplatePrivate( AsciiString name );
+	SpecialPowerTemplate *findSpecialPowerTemplatePrivate( AsciiString name, const AsciiString& sourceId );
 
 	typedef std::vector<SpecialPowerTemplate *> SpecialPowerTemplatePtrVector;
 	SpecialPowerTemplatePtrVector m_specialPowerTemplates;			///< the special power templates

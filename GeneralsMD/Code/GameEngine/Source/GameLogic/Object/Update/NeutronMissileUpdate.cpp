@@ -641,7 +641,10 @@ void NeutronMissileUpdate::xfer( Xfer *xfer )
 		if( name.isEmpty() == FALSE )
 		{
 
-			m_exhaustSysTmpl = TheParticleSystemManager->findTemplate( name );
+			const AsciiString sourceId = getObject() && getObject()->getTemplate()
+				? getObject()->getTemplate()->getFusionSourceId()
+				: AsciiString::TheEmptyString;
+			m_exhaustSysTmpl = TheParticleSystemManager->findTemplate(name, sourceId, TRUE);
 			if( m_exhaustSysTmpl == nullptr )
 			{
 

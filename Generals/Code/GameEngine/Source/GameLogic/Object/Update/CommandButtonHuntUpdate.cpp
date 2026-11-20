@@ -104,7 +104,7 @@ void CommandButtonHuntUpdate::setCommandButton(const AsciiString& buttonName)
 	Object *obj = getObject();
 	m_commandButtonName = buttonName;
 	m_commandButton = nullptr;
-	const CommandSet *commandSet = TheControlBar->findCommandSet( obj->getCommandSetString() );
+	const CommandSet *commandSet = TheControlBar->findCommandSet( obj->getCommandSetString(), obj->getTemplate()->getSourceId() );
 	if( commandSet )
 	{
 		for( Int i = 0; i < MAX_COMMANDS_PER_SET; i++ )
@@ -360,7 +360,7 @@ void CommandButtonHuntUpdate::xfer( Xfer *xfer )
 		if( m_commandButtonName.isEmpty() == FALSE )
 		{
 			Object *us = getObject();
-			const CommandSet *commandSet = TheControlBar->findCommandSet( us->getCommandSetString() );
+			const CommandSet *commandSet = TheControlBar->findCommandSet( us->getCommandSetString(), us->getTemplate()->getSourceId() );
 
 			if( commandSet )
 			{

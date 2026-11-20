@@ -735,9 +735,9 @@ static void populateRandomSideAndColor( GameInfo *game )
 #define MORE_RANDOM
 #ifdef MORE_RANDOM
 	std::vector<Int> startSlots;
-	for (i = 0; i < ThePlayerTemplateStore->getPlayerTemplateCount(); ++i)
+	for (i = 0; i < ThePlayerTemplateStore->getSelectablePlayerTemplateCount(); ++i)
 	{
-		const PlayerTemplate* ptTest = ThePlayerTemplateStore->getNthPlayerTemplate(i);
+		const PlayerTemplate* ptTest = ThePlayerTemplateStore->getNthSelectablePlayerTemplate(i);
 		if (!ptTest || ptTest->getStartingBuilding().isEmpty())
 			continue;
 		startSlots.push_back(i);
@@ -754,7 +754,7 @@ static void populateRandomSideAndColor( GameInfo *game )
 		// clean up random factions
 		Int playerTemplateIdx = slot->getPlayerTemplate();
 		DEBUG_LOG(("Player %d has playerTemplate index %d", i, playerTemplateIdx));
-		while (playerTemplateIdx != PLAYERTEMPLATE_OBSERVER && (playerTemplateIdx < 0 || playerTemplateIdx >= ThePlayerTemplateStore->getPlayerTemplateCount()))
+		while (playerTemplateIdx != PLAYERTEMPLATE_OBSERVER && (playerTemplateIdx < 0 || playerTemplateIdx >= ThePlayerTemplateStore->getSelectablePlayerTemplateCount()))
 		{
 			DEBUG_ASSERTCRASH(playerTemplateIdx == -1, ("Non-random bad playerTemplate %d in slot %d", playerTemplateIdx, i));
 #ifdef MORE_RANDOM
@@ -769,9 +769,9 @@ static void populateRandomSideAndColor( GameInfo *game )
 			Int idxIdx = GameLogicRandomValue(0, 1000) % startSlots.size();
 			playerTemplateIdx = startSlots[idxIdx];
 #else
-			playerTemplateIdx = GameLogicRandomValue(0, ThePlayerTemplateStore->getPlayerTemplateCount()-1);
+			playerTemplateIdx = GameLogicRandomValue(0, ThePlayerTemplateStore->getSelectablePlayerTemplateCount()-1);
 #endif
-			const PlayerTemplate* pt = ThePlayerTemplateStore->getNthPlayerTemplate(playerTemplateIdx);
+			const PlayerTemplate* pt = ThePlayerTemplateStore->getNthSelectablePlayerTemplate(playerTemplateIdx);
 			if (!pt || pt->getStartingBuilding().isEmpty())
 			{
 #ifdef MORE_RANDOM
@@ -1287,12 +1287,13 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 			d.setUnicodeString(TheKey_playerDisplayName, slot->getName());
 			const PlayerTemplate* pt;
 			if (slot->getPlayerTemplate() >= 0)
-				pt = ThePlayerTemplateStore->getNthPlayerTemplate(slot->getPlayerTemplate());
+				pt = ThePlayerTemplateStore->getNthSelectablePlayerTemplate(slot->getPlayerTemplate());
 			else
 				pt = ThePlayerTemplateStore->findPlayerTemplate( TheNameKeyGenerator->nameToKey("FactionObserver") );
 			if (pt)
 			{
 				d.setAsciiString(TheKey_playerFaction, KEYNAME(pt->getNameKey()));
+				d.setAsciiString(NAMEKEY("playerFusionSource"), pt->getFusionSourceId());
 			}
 
 			if (TheGameInfo->isPlayerPreorder(i))
@@ -1854,7 +1855,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 			else
 			{
 				const PlayerTemplate* pt = nullptr;
-				pt = ThePlayerTemplateStore->getNthPlayerTemplate(slot->getPlayerTemplate());
+				pt = ThePlayerTemplateStore->getNthSelectablePlayerTemplate(slot->getPlayerTemplate());
 
 				placeNetworkBuildingsForPlayer(i, slot, player, pt);
 			}

@@ -31,6 +31,7 @@
 
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "Common/GameMemory.h"
+#include "Common/AsciiString.h"
 #include "Common/NameKeyGenerator.h"
 #include "Common/STLTypedefs.h"
 
@@ -38,6 +39,7 @@
 class FXNugget;
 class FXList;
 class FXListStore;
+class AsciiString;
 class INI;
 class Object;
 class Matrix3D;
@@ -73,6 +75,8 @@ class FXNugget : public MemoryPoolObject
 public:
 
 	FXNugget() { }
+	void setFusionSourceId(const AsciiString& sourceId) { m_fusionSourceId = sourceId; }
+	const AsciiString& getFusionSourceId() const { return m_fusionSourceId; }
 	//virtual ~FXNugget() { }
 
 	/**
@@ -88,7 +92,7 @@ public:
 	virtual void doFXObj(const Object* primary, const Object* secondary = nullptr) const;
 
 private:
-
+	AsciiString m_fusionSourceId;
 };
 EMPTY_DTOR(FXNugget)
 
@@ -133,9 +137,16 @@ public:
 	/**
 		add a nugget to the list. It belongs to the FXList, who is responsible for freeing it.
 	*/
+	void setFusionSourceId(const AsciiString& sourceId) { m_fusionSourceId = sourceId; }
+	const AsciiString& getFusionSourceId() const { return m_fusionSourceId; }
+
 	void addFXNugget(FXNugget *fxn)
 	{
-		m_nuggets.push_back(fxn);
+		if (fxn)
+		{
+			fxn->setFusionSourceId(m_fusionSourceId);
+			m_nuggets.push_back(fxn);
+		}
 	}
 
 	/// inline convenience method to avoid having to check for null.
@@ -179,6 +190,7 @@ private:
 	typedef std::list< FXNugget* > FXNuggetList;
 
 	FXNuggetList m_nuggets;
+	AsciiString m_fusionSourceId;
 
 };
 
@@ -203,6 +215,8 @@ public:
 		return nullptr if no such FXList exists.
 	*/
 	const FXList *findFXList( const char* name ) const;
+	// Fusion lookup: prefer the exact source namespace, then the legacy/base-game store.
+	const FXList *findFXList( const char* name, const AsciiString& sourceId ) const;
 
 	static void parseFXListDefinition(INI* ini);
 
@@ -211,7 +225,8 @@ private:
 	// use the hashing function for Ints.
 	typedef std::hash_map< NameKeyType, FXList, rts::hash<NameKeyType>, rts::equal_to<NameKeyType>/**/> FXListMap;
 
-	FXListMap m_fxmap;
+	FXListMap m_fxmap; // untagged legacy/base-game definitions
+	FXListMap m_fusionFxmap; // source-qualified Fusion definitions
 
 };
 

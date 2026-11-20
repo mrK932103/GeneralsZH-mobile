@@ -50,6 +50,7 @@
 #include "GameClient/Drawable.h"
 #include "GameClient/ParticleSys.h"
 #include "GameLogic/PartitionManager.h"
+#include <string>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // PUBLIC DATA ////////////////////////////////////////////////////////////////////////////////////
@@ -98,6 +99,7 @@ public:
 	virtual void doFXPos(const Coord3D *primary, const Matrix3D* /*primaryMtx*/, const Real /*primarySpeed*/, const Coord3D * /*secondary*/, const Real /*overrideRadius*/ ) const override
 	{
 		AudioEventRTS sound(m_soundName);
+		sound.setFusionSourceId(m_fusionSourceId);
 
 		if (primary)
 		{
@@ -110,6 +112,7 @@ public:
 	virtual void doFXObj(const Object* primary, const Object* secondary = nullptr) const override
 	{
 		AudioEventRTS sound(m_soundName);
+		sound.setFusionSourceId(m_fusionSourceId);
 		if (primary)
 		{
 			sound.setPlayerIndex(primary->getControllingPlayer()->getPlayerIndex());
@@ -129,12 +132,14 @@ public:
 		};
 
 		SoundFXNugget* nugget = newInstance(SoundFXNugget);
+		nugget->m_fusionSourceId = ini->getSourceId();
 		ini->initFromINI(nugget, myFieldParse);
 		((FXList*)instance)->addFXNugget(nugget);
 	}
 
 private:
 	AsciiString		m_soundName;
+	AsciiString		m_fusionSourceId;
 };
 EMPTY_DTOR(SoundFXNugget)
 
@@ -172,7 +177,7 @@ public:
 
 		if (primary && secondary)
 		{
-			Drawable *tracer = TheThingFactory->newDrawable(TheThingFactory->findTemplate(m_tracerName));
+			Drawable *tracer = TheThingFactory->newDrawable(TheThingFactory->findTemplate(m_tracerName, getFusionSourceId()));
 			if(!tracer)
 				return;
 
@@ -265,7 +270,7 @@ public:
 
 	virtual void doFXPos(const Coord3D *primary, const Matrix3D* /*primaryMtx*/, const Real /*primarySpeed*/, const Coord3D * secondary, const Real /*overrideRadius*/ ) const override
 	{
-		const ThingTemplate* tmpl = TheThingFactory->findTemplate(m_templateName);
+		const ThingTemplate* tmpl = TheThingFactory->findTemplate(m_templateName, getFusionSourceId());
 		DEBUG_ASSERTCRASH(tmpl, ("RayEffect %s not found",m_templateName.str()));
 		if (primary && secondary && tmpl)
 		{
@@ -599,7 +604,7 @@ protected:
 			adjustVector(&offset, mtx);
 		}
 
-		const ParticleSystemTemplate *tmp = TheParticleSystemManager->findTemplate(m_name);
+		const ParticleSystemTemplate *tmp = TheParticleSystemManager->findTemplate(m_name, getFusionSourceId(), TRUE);
 		DEBUG_ASSERTCRASH(tmp, ("ParticleSystem %s not found",m_name.str()));
 		if (tmp)
 		{
@@ -850,6 +855,7 @@ FXListStore::FXListStore()
 FXListStore::~FXListStore()
 {
 	m_fxmap.clear();
+	m_fusionFxmap.clear();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -867,14 +873,50 @@ const FXList *FXListStore::findFXList(const char* name) const
 }
 
 //-------------------------------------------------------------------------------------------------
+// Fusion lookups never search another mod's namespace. The untagged map is the
+// explicit shared/base-game fallback for definitions loaded outside Fusion.
+const FXList *FXListStore::findFXList(const char* name, const AsciiString& sourceId) const
+{
+	if (stricmp(name, "None") == 0)
+		return nullptr;
+
+	if (sourceId.isNotEmpty())
+	{
+		std::string qualifiedName = sourceId.str();
+		qualifiedName.push_back('\x1f');
+		qualifiedName += name;
+		NameKeyType key = TheNameKeyGenerator->nameToKey(qualifiedName.c_str());
+		FXListMap::const_iterator it = m_fusionFxmap.find(key);
+		if (it != m_fusionFxmap.end())
+			return &(*it).second;
+	}
+
+	return findFXList(name);
+}
+
+//-------------------------------------------------------------------------------------------------
 /*static */ void FXListStore::parseFXListDefinition(INI *ini)
 {
 	// read the FXList name
 	const char *c = ini->getNextToken();
+	const AsciiString sourceId = ini->getSourceId();
 	NameKeyType key = TheNameKeyGenerator->nameToKey(c);
-	FXList& fxl = TheFXListStore->m_fxmap[key];
-	fxl.clear();
-	ini->initFromINI(&fxl, TheFXListFieldParse);
+	FXList* fxl = nullptr;
+	if (sourceId.isNotEmpty())
+	{
+		std::string qualifiedName = sourceId.str();
+		qualifiedName.push_back('\x1f');
+		qualifiedName += c;
+		key = TheNameKeyGenerator->nameToKey(qualifiedName.c_str());
+		fxl = &TheFXListStore->m_fusionFxmap[key];
+	}
+	else
+	{
+		fxl = &TheFXListStore->m_fxmap[key];
+	}
+	fxl->clear();
+	fxl->setFusionSourceId(sourceId);
+	ini->initFromINI(fxl, TheFXListFieldParse);
 }
 
 //-------------------------------------------------------------------------------------------------

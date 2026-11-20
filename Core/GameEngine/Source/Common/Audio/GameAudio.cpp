@@ -47,6 +47,7 @@
 
 #include "Common/AudioAffect.h"
 #include "Common/AudioEventInfo.h"
+
 #include "Common/AudioEventRTS.h"
 #include "Common/AudioHandleSpecialValues.h"
 #include "Common/AudioRequest.h"
@@ -57,9 +58,20 @@
 #include "Common/GameSounds.h"
 #include "Common/MiscAudio.h"
 #include "Common/OSDisplay.h"
+
+#include <string>
 #include "Common/Player.h"
 #include "Common/PlayerList.h"
 #include "Common/OptionPreferences.h"
+
+// Keep Fusion audio definitions in a source-qualified namespace.
+static AsciiString makeFusionAudioEventKey(const AsciiString& eventName, const AsciiString& sourceId)
+{
+	AsciiString key = sourceId;
+	key.concat("::");
+	key.concat(eventName);
+	return key;
+}
 
 #include "GameClient/ControlBar.h"
 #include "GameClient/Drawable.h"
@@ -192,6 +204,9 @@ AudioManager::~AudioManager()
 		deleteInstance(eventInfo);
 	}
 	m_allAudioEventInfo.clear();
+	for (AudioEventInfoHashIt fusionIt = m_fusionAudioEventInfo.begin(); fusionIt != m_fusionAudioEventInfo.end(); ++fusionIt)
+		deleteInstance(fusionIt->second);
+	m_fusionAudioEventInfo.clear();
 
 	delete m_silentAudioEvent;
 	m_silentAudioEvent = nullptr;
@@ -377,7 +392,7 @@ void AudioManager::getInfoForAudioEvent( const AudioEventRTS *eventToFindAndFill
 		return;
 	}
 
-	eventToFindAndFill->setAudioEventInfo(findAudioEventInfo(eventToFindAndFill->getEventName()));
+	eventToFindAndFill->setAudioEventInfo(findAudioEventInfo(eventToFindAndFill->getEventName(), eventToFindAndFill->getFusionSourceId(), TRUE));
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -827,43 +842,79 @@ void AudioManager::processRequestList()
 //-------------------------------------------------------------------------------------------------
 AudioEventInfo *AudioManager::newAudioEventInfo( AsciiString audioName )
 {
-	AudioEventInfo *eventInfo = findAudioEventInfo(audioName);
-	if (eventInfo) {
-		DEBUG_CRASH(("Requested add of '%s' multiple times. Is this intentional? - jkmcd", audioName.str()));
-		return eventInfo;
+	return newAudioEventInfo(audioName, AsciiString::TheEmptyString);
+}
+
+//-------------------------------------------------------------------------------------------------
+AudioEventInfo *AudioManager::newAudioEventInfo( AsciiString audioName, const AsciiString& sourceId )
+{
+	if (sourceId.isEmpty())
+	{
+		AudioEventInfo *eventInfo = findAudioEventInfo(audioName);
+		if (eventInfo)
+		{
+			DEBUG_CRASH(("Requested add of '%s' multiple times. Is this intentional? - jkmcd", audioName.str()));
+			return eventInfo;
+		}
+		m_allAudioEventInfo[audioName] = newInstance(AudioEventInfo);
+		m_allAudioEventInfo[audioName]->m_audioName = audioName;
+		return m_allAudioEventInfo[audioName];
 	}
 
-	m_allAudioEventInfo[audioName] = newInstance(AudioEventInfo);
-	return m_allAudioEventInfo[audioName];
+	const AsciiString key = makeFusionAudioEventKey(audioName, sourceId);
+	AudioEventInfoHash::iterator it = m_fusionAudioEventInfo.find(key);
+	if (it != m_fusionAudioEventInfo.end())
+	{
+		DEBUG_CRASH(("Requested add of Fusion audio event '%s' multiple times in source '%s'.", audioName.str(), sourceId.str()));
+		return it->second;
+	}
+
+	AudioEventInfo *eventInfo = newInstance(AudioEventInfo);
+	eventInfo->m_audioName = audioName;
+	eventInfo->m_fusionSourceId = sourceId;
+	m_fusionAudioEventInfo[key] = eventInfo;
+	return eventInfo;
 }
 
 //-------------------------------------------------------------------------------------------------
 // Add an AudioEventInfo structure allocated elsewhere to the audio event list
 void AudioManager::addAudioEventInfo( AudioEventInfo * newEvent )
 {
-  // Warning: Don't try to copy the structure. It may be a derived class
-  AudioEventInfo *eventInfo = findAudioEventInfo( newEvent->m_audioName );
-  if (eventInfo)
-  {
-    DEBUG_CRASH(("Requested add of '%s' multiple times. Is this intentional? - jkmcd", newEvent->m_audioName.str()));
-    *eventInfo = *newEvent;
-  }
-  else
-  {
-    m_allAudioEventInfo[newEvent->m_audioName] = newEvent;
-  }
+	if (newEvent->m_fusionSourceId.isNotEmpty())
+	{
+		const AsciiString key = makeFusionAudioEventKey(newEvent->m_audioName, newEvent->m_fusionSourceId);
+		m_fusionAudioEventInfo[key] = newEvent;
+		return;
+	}
+
+	AudioEventInfo *eventInfo = findAudioEventInfo(newEvent->m_audioName);
+	if (eventInfo)
+	{
+		DEBUG_CRASH(("Requested add of '%s' multiple times. Is this intentional? - jkmcd", newEvent->m_audioName.str()));
+		*eventInfo = *newEvent;
+	}
+	else
+		m_allAudioEventInfo[newEvent->m_audioName] = newEvent;
 }
 
 //-------------------------------------------------------------------------------------------------
 AudioEventInfo *AudioManager::findAudioEventInfo( AsciiString eventName ) const
 {
-	AudioEventInfoHash::const_iterator it;
-	it = m_allAudioEventInfo.find(eventName);
-	if (it == m_allAudioEventInfo.end()) {
-		return nullptr;
-	}
+	AudioEventInfoHash::const_iterator it = m_allAudioEventInfo.find(eventName);
+	return it == m_allAudioEventInfo.end() ? nullptr : it->second;
+}
 
-	return (*it).second;
+//-------------------------------------------------------------------------------------------------
+AudioEventInfo *AudioManager::findAudioEventInfo( AsciiString eventName, const AsciiString& sourceId, Bool allowBaseFallback ) const
+{
+	if (sourceId.isNotEmpty())
+	{
+		const AsciiString key = makeFusionAudioEventKey(eventName, sourceId);
+		AudioEventInfoHash::const_iterator it = m_fusionAudioEventInfo.find(key);
+		if (it != m_fusionAudioEventInfo.end())
+			return it->second;
+	}
+	return allowBaseFallback ? findAudioEventInfo(eventName) : nullptr;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -886,6 +937,18 @@ void AudioManager::removeLevelSpecificAudioEventInfos()
     it = next;
   }
 
+	AudioEventInfoHash::iterator fusionIt = m_fusionAudioEventInfo.begin();
+	while (fusionIt != m_fusionAudioEventInfo.end())
+	{
+		AudioEventInfoHash::iterator next = fusionIt;
+		++next;
+		if (fusionIt->second->isLevelSpecific())
+		{
+			deleteInstance(fusionIt->second);
+			m_fusionAudioEventInfo.erase(fusionIt);
+		}
+		fusionIt = next;
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -947,41 +1010,59 @@ Real AudioManager::getAudioLengthMS( const AudioEventRTS *event )
 //-------------------------------------------------------------------------------------------------
 Bool AudioManager::isMusicAlreadyLoaded() const
 {
-	const AudioEventInfo *musicToLoad = nullptr;
+	Bool foundMusicDefinition = FALSE;
 	AudioEventInfoHash::const_iterator it;
+
+	// Do not let unordered hash iteration select one arbitrary final entry and
+	// make that single track decide whether the entire game can initialize.
 	for (it = m_allAudioEventInfo.begin(); it != m_allAudioEventInfo.end(); ++it) {
-		if (it->second) {
-			const AudioEventInfo *aet = it->second;
-			if (aet->m_soundType == AT_Music) {
-				musicToLoad = aet;
-			}
+		const AudioEventInfo *eventInfo = it->second;
+		if (!eventInfo || eventInfo->m_soundType != AT_Music)
+			continue;
+
+		foundMusicDefinition = TRUE;
+		AudioEventRTS aud;
+		aud.setAudioEventInfo(eventInfo);
+		aud.generateFilename();
+		const AsciiString filename = aud.getFilename();
+		if (TheFileSystem->doesFileExist(filename.str()))
+			return TRUE;
+	}
+
+	// Fusion music definitions live in a separate source-qualified registry.
+	for (it = m_fusionAudioEventInfo.begin(); it != m_fusionAudioEventInfo.end(); ++it) {
+		const AudioEventInfo *eventInfo = it->second;
+		if (!eventInfo || eventInfo->m_soundType != AT_Music)
+			continue;
+
+		foundMusicDefinition = TRUE;
+		AudioEventRTS aud;
+		aud.setAudioEventInfo(eventInfo);
+		// Keep filename generation in the same source namespace as the
+		// availability check below. In particular, Fusion events must not
+		// run the legacy global localization probe, which can select a
+		// same-named localized track from a different mod.
+		aud.setFusionSourceId(eventInfo->m_fusionSourceId);
+		aud.generateFilename();
+		const AsciiString filename = aud.getFilename();
+		const AsciiString sourceId = eventInfo->m_fusionSourceId;
+		const std::string source(sourceId.str());
+		const std::string::size_type separator = source.find('!');
+		FileInstance sourceInstance = 0;
+		if (separator != std::string::npos && separator > 0) {
+			const AsciiString modFolder(source.substr(0, separator).c_str());
+			if (TheFileSystem->getFileInstanceForMod(filename, modFolder, &sourceInstance)
+				&& TheFileSystem->doesFileExist(filename.str(), sourceInstance))
+				return TRUE;
 		}
 	}
 
-	if (!musicToLoad) {
-		// GeneralsX @diag Android port 06/09/2026 A FALSE from this function makes
-		// GameEngine::init() set the quit flag, so the game reaches the main menu
-		// and then closes on the loop's first check -- a black screen and an exit
-		// with status 0, with nothing anywhere saying why. Say why.
-		fprintf(stderr, "[gxaudio] isMusicAlreadyLoaded: no AT_Music entries defined at all\n");
-		return FALSE;
+	if (!foundMusicDefinition) {
+		fprintf(stderr, "[gxaudio] isMusicAlreadyLoaded: no AT_Music entries defined at all\\n");
+	} else {
+		fprintf(stderr, "[gxaudio] isMusicAlreadyLoaded: no declared AT_Music track file exists\\n");
 	}
-
-	AudioEventRTS aud;
-	aud.setAudioEventInfo(musicToLoad);
-	aud.generateFilename();
-
-	AsciiString astr = aud.getFilename();
-
-	const Bool exists = TheFileSystem->doesFileExist(astr.str());
-	if (!exists) {
-		// Note that the probed track is whichever music entry came last out of an
-		// unordered hash, so this names one missing file, not necessarily the only
-		// one -- but it is the one the engine judged the whole game on.
-		fprintf(stderr, "[gxaudio] isMusicAlreadyLoaded: probe track '%s' -> file '%s' NOT FOUND\n",
-			musicToLoad->m_audioName.str(), astr.str());
-	}
-	return exists;
+	return FALSE;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -993,6 +1074,13 @@ void AudioManager::findAllAudioEventsOfType( AudioType audioType, std::vector<Au
 		if (aud->m_soundType == audioType) {
 			allEvents.push_back(aud);
 		}
+	}
+
+	AudioEventInfoHash::const_iterator fusionIt;
+	for (fusionIt = m_fusionAudioEventInfo.begin(); fusionIt != m_fusionAudioEventInfo.end(); ++fusionIt) {
+		AudioEventInfo *aud = fusionIt->second;
+		if (aud->m_soundType == audioType)
+			allEvents.push_back(aud);
 	}
 }
 

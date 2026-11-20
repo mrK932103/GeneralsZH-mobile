@@ -45,11 +45,16 @@ void INI::parseParticleSystemDefinition( INI* ini )
 	name.set( c );
 
 	// find existing item if present
-	ParticleSystemTemplate *sysTemplate = const_cast<ParticleSystemTemplate*>(TheParticleSystemManager->findTemplate( name ));
+	const AsciiString sourceId = ini->getSourceId();
+	ParticleSystemTemplate *sysTemplate = sourceId.isNotEmpty()
+		? TheParticleSystemManager->findTemplate(name, sourceId, FALSE)
+		: TheParticleSystemManager->findTemplate(name);
 	if (sysTemplate == nullptr)
 	{
-		// no item is present, create a new one
-		sysTemplate = TheParticleSystemManager->newTemplate( name );
+		// A same-named definition in another Fusion source is not an override.
+		sysTemplate = sourceId.isNotEmpty()
+			? TheParticleSystemManager->newTemplate(name, sourceId)
+			: TheParticleSystemManager->newTemplate(name);
 	}
 
 	// parse the ini definition

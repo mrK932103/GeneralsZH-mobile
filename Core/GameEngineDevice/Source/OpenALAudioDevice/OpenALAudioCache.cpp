@@ -12,6 +12,7 @@ extern "C" {
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <string>
 #include <limits>
 #include <utility>
 #include <vector>
@@ -262,7 +263,32 @@ ALuint OpenALAudioFileCache::getBufferForFile(const OpenFileInfo &fileInfo)
 		}
 	}
 
-	auto it = m_openFiles.find(strToFind);
+	// Fusion audio is owned by a selected mod folder. The same relative filename
+	// can exist in several selected mods, so both the cache identity and the file
+	// instance must include the event's source identity.
+	AsciiString cacheKey = strToFind;
+	FileInstance sourceInstance = 0;
+	Bool sourceQualified = FALSE;
+	if (eventToOpenFrom && eventToOpenFrom->getFusionSourceId().isNotEmpty()) {
+		const AsciiString sourceId = eventToOpenFrom->getFusionSourceId();
+		const std::string source(sourceId.str());
+		const std::string::size_type separator = source.find('!');
+		if (separator == std::string::npos || separator == 0) {
+			DEBUG_LOG(("Invalid Fusion audio source identity: %s\\n", sourceId.str()));
+			return 0;
+		}
+		const AsciiString modFolder(source.substr(0, separator).c_str());
+		if (!TheFileSystem->getFileInstanceForMod(strToFind, modFolder, &sourceInstance)) {
+			DEBUG_LOG(("Fusion audio source '%s' does not contain '%s'\\n", modFolder.str(), strToFind.str()));
+			return 0;
+		}
+		cacheKey = sourceId;
+		cacheKey.concat("|");
+		cacheKey.concat(strToFind);
+		sourceQualified = TRUE;
+	}
+
+	auto it = m_openFiles.find(cacheKey);
 
 	if (it != m_openFiles.end()) {
 		++it->second.m_openCount;
@@ -289,7 +315,9 @@ ALuint OpenALAudioFileCache::getBufferForFile(const OpenFileInfo &fileInfo)
 	} missTimer = { m_stats, missStart };
 
 	// Couldn't find the file, so actually open it.
-	File* file = TheFileSystem->openFile(strToFind.str());
+	File* file = sourceQualified
+		? TheFileSystem->openFile(strToFind.str(), File::READ, File::BUFFERSIZE, sourceInstance)
+		: TheFileSystem->openFile(strToFind.str());
 	m_stats.openMs += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - missStart).count();
 	if (!file) {
 		DEBUG_ASSERTLOG(strToFind.isEmpty(), ("Missing Audio File: '%s'\n", strToFind.str()));
@@ -365,7 +393,7 @@ ALuint OpenALAudioFileCache::getBufferForFile(const OpenFileInfo &fileInfo)
 	// the main thread, which on the old Mali test phone grew to 5-15 ms of every frame in battle.
 	openedAudioFile.m_openCount = 1;
 	openedAudioFile.m_lastUse = ++m_useClock;
-	m_openFiles[strToFind] = openedAudioFile;
+	m_openFiles[cacheKey] = openedAudioFile;
 	return openedAudioFile.m_buffer;
 }
 

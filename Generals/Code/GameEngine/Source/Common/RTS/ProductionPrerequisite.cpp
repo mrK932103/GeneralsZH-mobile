@@ -73,7 +73,7 @@ void ProductionPrerequisite::init()
 }
 
 //=============================================================================
-void ProductionPrerequisite::resolveNames()
+void ProductionPrerequisite::resolveNames(const AsciiString& sourceId)
 {
 	for (size_t i = 0; i < m_prereqUnits.size(); i++)
 	{
@@ -83,7 +83,9 @@ void ProductionPrerequisite::resolveNames()
 		// sub-templates), which is what we want ... we conceptually only have one
 		// template for any given thing, it's only the *data* that is overridden
 		//
-		m_prereqUnits[i].unit = TheThingFactory->findTemplate(m_prereqUnits[i].name);	// might be null
+		m_prereqUnits[i].unit = sourceId.isNotEmpty()
+			? TheThingFactory->findTemplate(m_prereqUnits[i].name, sourceId, FALSE)
+			: TheThingFactory->findTemplate(m_prereqUnits[i].name);	// might be null
 
  		/** @todo for now removing this assert until we can completely remove
  		the GDF stuff, the problem is that some INI files refer to GDF names, and they

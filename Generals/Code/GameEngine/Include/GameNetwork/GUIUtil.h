@@ -34,7 +34,7 @@ void ShowUnderlyingGUIElements( Bool show, const char *layoutFilename, const cha
 															 const char **gadgetsToHide, const char **perPlayerGadgetsToHide );
 
 void PopulateColorComboBox(Int comboBox, GameWindow *comboArray[], GameInfo *myGame, Bool isObserver = FALSE);
-void PopulatePlayerTemplateComboBox(Int comboBox, GameWindow *comboArray[], GameInfo *myGame, Bool allowObservers );
+void PopulatePlayerTemplateComboBox(Int comboBox, GameWindow *comboArray[], GameInfo *myGame, Bool allowObservers, Bool allowFusionFactions = FALSE );
 void PopulateTeamComboBox(Int comboBox, GameWindow *comboArray[], GameInfo *myGame, Bool isObserver = FALSE);
 void PopulateStartingCashComboBox(GameWindow *comboBox, GameInfo *myGame);
 

@@ -29,6 +29,7 @@
 
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
+#include <string>
 #define DEFINE_DEATH_NAMES
 
 #include "Common/INI.h"
@@ -188,6 +189,7 @@ INI::INI()
 	m_readBufferNext = 0;
 	m_readBufferUsed = 0;
 	m_filename					= "None";
+	m_sourceId.clear();
 	m_loadType					= INI_LOAD_INVALID;
 	m_lineNum						= 0;
 	m_buffer[0]					= 0;
@@ -208,6 +210,21 @@ INI::INI()
 // community patch stopped starting). A mod that only adds files to a set in the same form is
 // read as before.
 static Bool s_gxMaskLowerDirectory = FALSE;
+
+static Bool gxFusionSourceContainsFile(const AsciiString &filename, const AsciiString &sourceId)
+{
+	if (sourceId.isEmpty())
+		return TheFileSystem->doesFileExist(filename.str());
+
+	std::string source(sourceId.str());
+	const std::string::size_type separator = source.find('!');
+	if (separator == std::string::npos || separator == 0)
+		return FALSE;
+
+	const AsciiString modFolder(source.substr(0, separator).c_str());
+	FileInstance instance = 0;
+	return TheFileSystem->getFileInstanceForMod(filename, modFolder, &instance);
+}
 
 static Bool gxIsModSource(const AsciiString &filename)
 {
@@ -235,7 +252,7 @@ static Bool gxIsModSource(const AsciiString &filename)
 	return FALSE;
 }
 
-UnsignedInt INI::loadFileDirectory( AsciiString fileDirName, INILoadType loadType, Xfer *pXfer, Bool subdirs )
+UnsignedInt INI::loadFileDirectory( AsciiString fileDirName, INILoadType loadType, Xfer *pXfer, Bool subdirs, AsciiString sourceId )
 {
 	// GeneralsX @feature BenderAI 20/02/2026 Debug hang investigation
 	fprintf(stderr, "[INI] loadFileDirectory('%s') START\n", fileDirName.str());
@@ -261,11 +278,13 @@ UnsignedInt INI::loadFileDirectory( AsciiString fileDirName, INILoadType loadTyp
 	fprintf(stderr, "[INI] loadFileDirectory - checking iniFile: '%s'\n", iniFile.str());
 	fflush(stderr);
 	
-	if (TheFileSystem->doesFileExist(iniFile.str()))
+	if (gxFusionSourceContainsFile(iniFile, sourceId))
 	{
 		fprintf(stderr, "[INI] loadFileDirectory - loading iniFile: '%s' START\n", iniFile.str());
 		fflush(stderr);
-		filesRead += load(iniFile, loadType, pXfer);
+		filesRead += sourceId.isNotEmpty()
+			? loadFromFusionSource(iniFile, loadType, pXfer, sourceId)
+			: load(iniFile, loadType, pXfer);
 		fprintf(stderr, "[INI] loadFileDirectory - loading iniFile: '%s' END\n", iniFile.str());
 		fflush(stderr);
 	}
@@ -273,8 +292,10 @@ UnsignedInt INI::loadFileDirectory( AsciiString fileDirName, INILoadType loadTyp
 	// Load any additional ini files from a "filename" directory and its subdirectories.
 	fprintf(stderr, "[INI] loadFileDirectory - calling loadDirectory('%s') START\n", iniDir.str());
 	fflush(stderr);
-	s_gxMaskLowerDirectory = TheFileSystem->doesFileExist(iniFile.str()) && gxIsModSource(iniFile);
-	filesRead += loadDirectory(iniDir, loadType, pXfer, subdirs);
+	s_gxMaskLowerDirectory = sourceId.isEmpty()
+		? (TheFileSystem->doesFileExist(iniFile.str()) && gxIsModSource(iniFile))
+		: FALSE;
+	filesRead += loadDirectory(iniDir, loadType, pXfer, subdirs, sourceId);
 	s_gxMaskLowerDirectory = FALSE;
 	fprintf(stderr, "[INI] loadFileDirectory - calling loadDirectory('%s') END\n", iniDir.str());
 	fflush(stderr);
@@ -297,7 +318,7 @@ UnsignedInt INI::loadFileDirectory( AsciiString fileDirName, INILoadType loadTyp
 	* If we are to load subdirectories, we will load them *after* we load all the
 	* files in the current directory */
 //-------------------------------------------------------------------------------------------------
-UnsignedInt INI::loadDirectory( AsciiString dirName, INILoadType loadType, Xfer *pXfer, Bool subdirs )
+UnsignedInt INI::loadDirectory( AsciiString dirName, INILoadType loadType, Xfer *pXfer, Bool subdirs, AsciiString sourceId )
 {
 	// GeneralsX @feature BenderAI 20/02/2026 Debug hang investigation
 	fprintf(stderr, "[INI] loadDirectory('%s') START\n", dirName.str());
@@ -317,6 +338,18 @@ UnsignedInt INI::loadDirectory( AsciiString dirName, INILoadType loadType, Xfer 
 	FilenameList filenameList;
 	dirName.concat('\\');
 	TheFileSystem->getFileListInDirectory(dirName, "*.ini", filenameList, subdirs);
+	// The global directory scan is a union of all mounted archives. For Fusion,
+	// retain only entries physically present in this source archive.
+	if (sourceId.isNotEmpty())
+	{
+		FilenameList sourceFiles;
+		for (FilenameList::const_iterator sourceIt = filenameList.begin(); sourceIt != filenameList.end(); ++sourceIt)
+		{
+			if (gxFusionSourceContainsFile(*sourceIt, sourceId))
+				sourceFiles.insert(*sourceIt);
+		}
+		filenameList.swap(sourceFiles);
+	}
 	// GeneralsX @feature Android port 13/07/2026 GitHub issue #5: a real
 	// low-RAM device died silently (no exception, no crash.log) somewhere
 	// between loadDirectory's START line and the first per-file load() line
@@ -355,7 +388,9 @@ UnsignedInt INI::loadDirectory( AsciiString dirName, INILoadType loadType, Xfer 
 
 		if ((tempname.find('\\') == nullptr) && (tempname.find('/') == nullptr)) {
 			// this file doesn't reside in a subdirectory, load it first.
-			filesRead += load( *it, loadType, pXfer );
+			filesRead += sourceId.isNotEmpty()
+				? loadFromFusionSource(*it, loadType, pXfer, sourceId)
+				: load(*it, loadType, pXfer);
 		}
 		++it;
 	}
@@ -367,7 +402,9 @@ UnsignedInt INI::loadDirectory( AsciiString dirName, INILoadType loadType, Xfer 
 		tempname = (*it).str() + dirName.getLength();
 
 		if ((tempname.find('\\') != nullptr) || (tempname.find('/') != nullptr)) {
-			filesRead += load( *it, loadType, pXfer );
+			filesRead += sourceId.isNotEmpty()
+				? loadFromFusionSource(*it, loadType, pXfer, sourceId)
+				: load(*it, loadType, pXfer);
 		}
 		++it;
 	}
@@ -388,14 +425,32 @@ void INI::prepFile( AsciiString filename, INILoadType loadType )
 
 	}
 
-	// open the file
-	File* file = TheFileSystem->openFile(filename.str(), File::READ);
-	if( file == nullptr )
+	// Open from any archive inside the selected Fusion mod folder, never
+	// falling back to a same-named file from another selected mod.
+	File* file = nullptr;
+	if (m_sourceId.isNotEmpty())
 	{
+		std::string source(m_sourceId.str());
+		const std::string::size_type separator = source.find('!');
+		if (separator == std::string::npos || separator == 0)
+			throw INIException("Fusion source identity must contain a mod folder path and entry path");
 
+		const AsciiString modFolder(source.substr(0, separator).c_str());
+		FileInstance instance = 0;
+		if (!TheFileSystem->getFileInstanceForMod(filename, modFolder, &instance))
+			throw INIException("Fusion source mod does not contain the requested INI file");
+
+		file = TheFileSystem->openFile(filename.str(), File::READ, File::BUFFERSIZE, instance);
+	}
+	else
+	{
+		file = TheFileSystem->openFile(filename.str(), File::READ);
+	}
+
+	if (file == nullptr)
+	{
 		DEBUG_CRASH(( "INI::load, cannot open file '%s'", filename.str() ));
 		throw INI_CANT_OPEN_FILE;
-
 	}
 
 	m_readBufferNext = 0;
@@ -420,6 +475,7 @@ void INI::unPrepFile()
 	m_readBufferUsed = 0;
 
 	m_filename = "None";
+	m_sourceId.clear();
 	m_loadType = INI_LOAD_INVALID;
 	m_lineNum = 0;
 	m_endOfFile = FALSE;
@@ -468,6 +524,28 @@ static INIFieldParseProc findFieldParse(const FieldParse* parseTable, const char
 
 //-------------------------------------------------------------------------------------------------
 /** Load and parse an INI file */
+//-------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
+// Load one INI file while tagging every parsed definition with its selected Fusion source.
+// The tag is visible only during this load and is cleared by unPrepFile() on success or failure.
+//-------------------------------------------------------------------------------------------------
+UnsignedInt INI::loadFromFusionSource( AsciiString filename, INILoadType loadType, Xfer *pXfer, AsciiString sourceId )
+{
+	if (sourceId.isEmpty())
+		throw INIException("Fusion source identity must not be empty");
+
+	m_sourceId = sourceId;
+	try
+	{
+		return load(filename, loadType, pXfer);
+	}
+	catch (...)
+	{
+		m_sourceId.clear();
+		throw;
+	}
+}
+
 //-------------------------------------------------------------------------------------------------
 UnsignedInt INI::load( AsciiString filename, INILoadType loadType, Xfer *pXfer )
 {
@@ -915,7 +993,7 @@ void INI::parseAsciiStringVectorAppend( INI* ini, void * /*instance*/, void *sto
 			asv->clear();
 			return;
 		}
-		asv->push_back(INI::scanScience( token ));
+		asv->push_back(INI::scanScience( token, ini->getSourceId() ));
 	}
 }
 
@@ -1364,6 +1442,7 @@ void INI::parseDynamicAudioEventRTS( INI *ini, void * /*instance*/, void *store,
 	{
 		if (*theSound == nullptr)
 			*theSound = newInstance(DynamicAudioEventRTS);
+		(*theSound)->m_event.setFusionSourceId(ini->getSourceId());
 		(*theSound)->m_event.setEventName(AsciiString(token));
 	}
 
@@ -1379,6 +1458,9 @@ void INI::parseAudioEventRTS( INI *ini, void * /*instance*/, void *store, const 
 	const char *token = ini->getNextToken();
 
 	AudioEventRTS *theSound = (AudioEventRTS*)store;
+
+	// Preserve the owning mod so the event is resolved in its own audio namespace.
+	theSound->setFusionSourceId(ini->getSourceId());
 
 	// translate the string into a sound
 	if (stricmp(token, "NoSound") != 0) {
@@ -1410,7 +1492,9 @@ void INI::parseThingTemplate( INI* ini, void * /*instance*/, void *store, const 
 	}
 	else
 	{
-		const ThingTemplate *tt = TheThingFactory->findTemplate(token);	// could be null!
+		const ThingTemplate *tt = ini->getSourceId().isNotEmpty()
+			? TheThingFactory->findTemplate(token, ini->getSourceId(), FALSE)
+			: TheThingFactory->findTemplate(token);	// could be null!
 		DEBUG_ASSERTCRASH(tt, ("ThingTemplate %s not found!",token));
 		// assign it, even if null!
 		*theThingTemplate = tt;
@@ -1434,7 +1518,9 @@ void INI::parseArmorTemplate( INI* ini, void * /*instance*/, void *store, const 
 	}
 	else
 	{
-		const ArmorTemplate *tt = TheArmorStore->findArmorTemplate(token);	// could be null!
+		const ArmorTemplate *tt = ini->getSourceId().isNotEmpty()
+			? TheArmorStore->findArmorTemplate(AsciiString(token), ini->getSourceId())
+			: TheArmorStore->findArmorTemplate(token);	// could be null!
 		DEBUG_ASSERTCRASH(tt, ("ArmorTemplate %s not found!",token));
 		// assign it, even if null!
 		*theArmorTemplate = tt;
@@ -1452,8 +1538,12 @@ void INI::parseWeaponTemplate( INI* ini, void * /*instance*/, void *store, const
 	typedef const WeaponTemplate *ConstWeaponTemplatePtr;
 	ConstWeaponTemplatePtr* theWeaponTemplate = (ConstWeaponTemplatePtr*)store;
 
-	const WeaponTemplate *tt = TheWeaponStore->findWeaponTemplate(token);	// could be null!
-	DEBUG_ASSERTCRASH(tt || stricmp(token, "None") == 0, ("WeaponTemplate %s not found!",token));
+	const AsciiString sourceId = ini->getSourceId();
+	const WeaponTemplate *tt = sourceId.isNotEmpty()
+		? TheWeaponStore->findWeaponTemplate(AsciiString(token), sourceId, TRUE)
+		: TheWeaponStore->findWeaponTemplate(token);	// could be null!
+	DEBUG_ASSERTCRASH(tt || stricmp(token, "None") == 0,
+		("WeaponTemplate %s not found in Fusion source '%s'!", token, sourceId.str()));
 	// assign it, even if null!
 	*theWeaponTemplate = tt;
 
@@ -1469,7 +1559,10 @@ void INI::parseFXList( INI* ini, void * /*instance*/, void *store, const void* /
 	typedef const FXList *ConstFXListPtr;
 	ConstFXListPtr* theFXList = (ConstFXListPtr*)store;
 
-	const FXList *fxl = TheFXListStore->findFXList(token);	// could be null!
+	const AsciiString sourceId = ini->getSourceId();
+	const FXList *fxl = sourceId.isNotEmpty()
+		? TheFXListStore->findFXList(token, sourceId)
+		: TheFXListStore->findFXList(token); // could be null!
 	DEBUG_ASSERTCRASH(fxl != nullptr || stricmp(token, "None") == 0, ("FXList %s not found!",token));
 	// assign it, even if null!
 	*theFXList = fxl;
@@ -1483,7 +1576,10 @@ void INI::parseParticleSystemTemplate( INI *ini, void * /*instance*/, void *stor
 {
 	const char *token = ini->getNextToken();
 
-	const ParticleSystemTemplate *pSystemT = TheParticleSystemManager->findTemplate( AsciiString( token ) );
+	const AsciiString sourceId = ini->getSourceId();
+	const ParticleSystemTemplate *pSystemT = sourceId.isNotEmpty()
+		? TheParticleSystemManager->findTemplate( AsciiString( token ), sourceId, TRUE )
+		: TheParticleSystemManager->findTemplate( AsciiString( token ) );
 	DEBUG_ASSERTCRASH( pSystemT || stricmp( token, "None" ) == 0, ("ParticleSystem %s not found!",token) );
 
 	typedef const ParticleSystemTemplate* ConstParticleSystemTemplatePtr;
@@ -1509,7 +1605,9 @@ void INI::parseDamageFX( INI* ini, void * /*instance*/, void *store, const void*
 	}
 	else
 	{
-		const DamageFX *fxl = TheDamageFXStore->findDamageFX(token);	// could be null!
+		const DamageFX *fxl = ini->getSourceId().isNotEmpty()
+			? TheDamageFXStore->findDamageFX(token, ini->getSourceId(), TRUE)
+			: TheDamageFXStore->findDamageFX(token);	// could be null!
 		DEBUG_ASSERTCRASH(fxl, ("DamageFX %s not found!",token));
 		// assign it, even if null!
 		*theDamageFX = fxl;
@@ -1527,7 +1625,7 @@ void INI::parseObjectCreationList( INI* ini, void * /*instance*/, void *store, c
 	typedef const ObjectCreationList *ConstObjectCreationListPtr;
 	ConstObjectCreationListPtr* theObjectCreationList = (ConstObjectCreationListPtr*)store;
 
-	const ObjectCreationList *ocl = TheObjectCreationListStore->findObjectCreationList(token);	// could be null!
+	const ObjectCreationList *ocl = TheObjectCreationListStore->findObjectCreationList(token, ini->getSourceId(), TRUE);	// could be null!
 	DEBUG_ASSERTCRASH(ocl || stricmp(token, "None") == 0, ("ObjectCreationList %s not found!",token));
 	// assign it, even if null!
 	*theObjectCreationList = ocl;
@@ -1547,7 +1645,10 @@ void INI::parseUpgradeTemplate( INI* ini, void * /*instance*/, void *store, cons
 		throw ERROR_BUG;
 	}
 
-	const UpgradeTemplate *uu = TheUpgradeCenter->findUpgrade( token );
+	const AsciiString sourceId = ini->getSourceId();
+	const UpgradeTemplate *uu = sourceId.isNotEmpty()
+		? TheUpgradeCenter->findUpgrade( AsciiString(token), sourceId )
+		: TheUpgradeCenter->findUpgrade( token );
 	DEBUG_ASSERTCRASH( uu || stricmp( token, "None" ) == 0, ("Upgrade %s not found!",token) );
 
 	typedef const UpgradeTemplate* ConstUpgradeTemplatePtr;
@@ -1568,7 +1669,10 @@ void INI::parseSpecialPowerTemplate( INI* ini, void * /*instance*/, void *store,
 		throw ERROR_BUG;
 	}
 
-	const SpecialPowerTemplate *sPowerT = TheSpecialPowerStore->findSpecialPowerTemplate( AsciiString( token ) );
+	const AsciiString sourceId = ini->getSourceId();
+	const SpecialPowerTemplate *sPowerT = sourceId.isNotEmpty()
+		? TheSpecialPowerStore->findSpecialPowerTemplate( AsciiString(token), sourceId )
+		: TheSpecialPowerStore->findSpecialPowerTemplate( AsciiString(token) );
 	if( !sPowerT && stricmp( token, "None" ) != 0 )
 	{
 		DEBUG_CRASH( ("[LINE: %d in '%s'] Specialpower %s not found!", ini->getLineNum(), ini->getFilename().str(), token) );
@@ -1592,7 +1696,7 @@ void INI::parseSpecialPowerTemplate( INI* ini, void * /*instance*/, void *store,
 		throw ERROR_BUG;
 	}
 
-	*((ScienceType *)store) = INI::scanScience(token);
+	*((ScienceType *)store) = INI::scanScience(token, ini->getSourceId());
 
 }
 
@@ -1816,9 +1920,9 @@ void INI::initFromINIMulti( void *what, const MultiIniFieldParse& parseTableList
 }
 
 //-------------------------------------------------------------------------------------------------
-/*static*/ ScienceType INI::scanScience(const char* token)
+/*static*/ ScienceType INI::scanScience(const char* token, const AsciiString& sourceId)
 {
-	return TheScienceStore->friend_lookupScience( token );
+	return TheScienceStore->friend_lookupScience( token, sourceId );
 }
 
 #if USE_STD_FROM_CHARS_PARSING

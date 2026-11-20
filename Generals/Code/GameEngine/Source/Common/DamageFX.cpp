@@ -32,6 +32,14 @@
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
 #include "Common/INI.h"
+
+static AsciiString makeFusionDamageFXKey(const AsciiString& name, const AsciiString& sourceId)
+{
+	AsciiString key = sourceId;
+	key.concat("::");
+	key.concat(name);
+	return key;
+}
 #include "Common/ThingFactory.h"
 #include "Common/ThingTemplate.h"
 #include "Common/DamageFX.h"
@@ -263,12 +271,14 @@ static void parseCommonStuff(
 DamageFXStore::DamageFXStore()
 {
 	m_dfxmap.clear();
+	m_fusionDfxmap.clear();
 }
 
 //-------------------------------------------------------------------------------------------------
 DamageFXStore::~DamageFXStore()
 {
 	m_dfxmap.clear();
+	m_fusionDfxmap.clear();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -289,6 +299,19 @@ const DamageFX *DamageFXStore::findDamageFX(NameKeyType namekey) const
 const DamageFX *DamageFXStore::findDamageFX(const AsciiString& name) const
 {
 	return findDamageFX(TheNameKeyGenerator->nameToKey(name));
+}
+
+//-------------------------------------------------------------------------------------------------
+const DamageFX *DamageFXStore::findDamageFX(const char* name, const AsciiString& sourceId, Bool allowBaseFallback) const
+{
+	if (sourceId.isNotEmpty())
+	{
+		NameKeyType key = TheNameKeyGenerator->nameToKey(makeFusionDamageFXKey(AsciiString(name), sourceId));
+		DamageFXMap::const_iterator it = m_fusionDfxmap.find(key);
+		if (it != m_fusionDfxmap.end())
+			return &it->second;
+	}
+	return allowBaseFallback ? findDamageFX(name) : nullptr;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -317,8 +340,13 @@ void DamageFXStore::update()
 {
 
 	const char *c = ini->getNextToken();
-	NameKeyType key = TheNameKeyGenerator->nameToKey(c);
-	DamageFX& dfx = TheDamageFXStore->m_dfxmap[key];
+	const AsciiString sourceId = ini->getSourceId();
+	NameKeyType key = sourceId.isNotEmpty()
+		? TheNameKeyGenerator->nameToKey(makeFusionDamageFXKey(AsciiString(c), sourceId))
+		: TheNameKeyGenerator->nameToKey(c);
+	DamageFX& dfx = sourceId.isNotEmpty()
+		? TheDamageFXStore->m_fusionDfxmap[key]
+		: TheDamageFXStore->m_dfxmap[key];
 	dfx.clear();
 	ini->initFromINI(&dfx, dfx.getFieldParse());
 }

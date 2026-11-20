@@ -107,14 +107,15 @@ void ParticleInfo::crc( Xfer *xfer )
 // ------------------------------------------------------------------------------------------------
 /** Xfer method
 	* Version Info:
-	* 1: Initial version */
+	* 1: Initial version
+	* 2: Preserve Fusion source identity for each saved particle system */
 // ------------------------------------------------------------------------------------------------
 void ParticleInfo::xfer( Xfer *xfer )
 {
 	Int i;
 
 	// version
-	XferVersion currentVersion = 1;
+	XferVersion currentVersion = 2;
 	XferVersion version = currentVersion;
 	xfer->xferVersion( &version, currentVersion );
 
@@ -2089,7 +2090,9 @@ Bool ParticleSystem::update( Int localPlayerIndex  )
 
 							if (m_attachedSystemName.isEmpty() == false)
 							{
-								const ParticleSystemTemplate *tmp = TheParticleSystemManager->findTemplate( m_attachedSystemName );
+								const ParticleSystemTemplate *tmp = m_template->getFusionSourceId().isNotEmpty()
+					? TheParticleSystemManager->findTemplate(m_attachedSystemName, m_template->getFusionSourceId(), TRUE)
+					: TheParticleSystemManager->findTemplate(m_attachedSystemName);
 								if (tmp)
 								{
 									ParticleSystem *sys = TheParticleSystemManager->createParticleSystem( tmp, TRUE );
@@ -2894,7 +2897,9 @@ ParticleSystemTemplate::~ParticleSystemTemplate()
 ParticleSystem *ParticleSystemTemplate::createSlaveSystem( Bool createSlaves ) const
 {
 	if (m_slaveTemplate == nullptr && m_slaveSystemName.isEmpty() == false)
-		m_slaveTemplate = TheParticleSystemManager->findTemplate( m_slaveSystemName );
+		m_slaveTemplate = m_fusionSourceId.isNotEmpty()
+			? TheParticleSystemManager->findTemplate(m_slaveSystemName, m_fusionSourceId, FALSE)
+			: TheParticleSystemManager->findTemplate(m_slaveSystemName);
 
 	ParticleSystem *slave = nullptr;
 	if (m_slaveTemplate)
@@ -2942,6 +2947,11 @@ ParticleSystemManager::~ParticleSystemManager()
 	TemplateMap::iterator end(m_templateMap.end());
 	for (; begin != end; ++begin) {
 		deleteInstance((*begin).second);
+	}
+	TemplateMap::iterator fusionBegin(m_fusionTemplateMap.begin());
+	TemplateMap::iterator fusionEnd(m_fusionTemplateMap.end());
+	for (; fusionBegin != fusionEnd; ++fusionBegin) {
+		deleteInstance((*fusionBegin).second);
 	}
 }
 
@@ -3177,6 +3187,47 @@ ParticleSystemTemplate *ParticleSystemManager::findTemplate( const AsciiString &
 // ------------------------------------------------------------------------------------------------
 /** Create a new ParticleSystemTemplate */
 // ------------------------------------------------------------------------------------------------
+ParticleSystemTemplate *ParticleSystemManager::findTemplate( const AsciiString &name, const AsciiString& sourceId, Bool allowBaseFallback ) const
+{
+	if (sourceId.isNotEmpty())
+	{
+		AsciiString key = sourceId;
+		key.concat("::");
+		key.concat(name);
+		TemplateMap::const_iterator it = m_fusionTemplateMap.find(key);
+		if (it != m_fusionTemplateMap.end())
+			return it->second;
+	}
+	return allowBaseFallback ? findTemplate(name) : nullptr;
+}
+
+// ------------------------------------------------------------------------------------------------
+/** Create a source-owned particle system template without reusing another mod's definition */
+// ------------------------------------------------------------------------------------------------
+ParticleSystemTemplate *ParticleSystemManager::newTemplate( const AsciiString &name, const AsciiString& sourceId )
+{
+	if (sourceId.isEmpty())
+		return newTemplate(name);
+
+	AsciiString key = sourceId;
+	key.concat("::");
+	key.concat(name);
+	TemplateMap::iterator it = m_fusionTemplateMap.find(key);
+	if (it != m_fusionTemplateMap.end())
+		return it->second;
+
+	ParticleSystemTemplate *sysTemplate = newInstance(ParticleSystemTemplate)(name);
+	sysTemplate->setFusionSourceId(sourceId);
+	if (!m_fusionTemplateMap.insert(std::make_pair(key, sysTemplate)).second)
+	{
+		deleteInstance(sysTemplate);
+		return nullptr;
+	}
+	return sysTemplate;
+}
+
+// ------------------------------------------------------------------------------------------------
+/** Create a new ParticleSystemTemplate */
 ParticleSystemTemplate *ParticleSystemManager::newTemplate( const AsciiString &name )
 {
 	ParticleSystemTemplate *sysTemplate = findTemplate(name);
@@ -3212,6 +3263,29 @@ ParticleSystemTemplate *ParticleSystemManager::findParentTemplate( const AsciiSt
 		}
 	}
 
+	return nullptr;
+}
+
+// ------------------------------------------------------------------------------------------------
+/** Find a parent particle template within one Fusion source namespace */
+// ------------------------------------------------------------------------------------------------
+ParticleSystemTemplate *ParticleSystemManager::findParentTemplate( const AsciiString &name, Int parentNum, const AsciiString& sourceId ) const
+{
+	if (name.isEmpty() || sourceId.isEmpty()) {
+		return nullptr;
+	}
+
+	for (TemplateMap::const_iterator it = m_fusionTemplateMap.begin(); it != m_fusionTemplateMap.end(); ++it) {
+		ParticleSystemTemplate *sysTemplate = (*it).second;
+		if (sysTemplate->getFusionSourceId().compare(sourceId) == 0 &&
+			name.compare(sysTemplate->m_slaveSystemName) == 0) {
+			if (!parentNum--) {
+				return sysTemplate;
+			}
+		}
+	}
+
+	// Deliberately do not fall back to base-game or another mod's templates.
 	return nullptr;
 }
 
@@ -3362,13 +3436,27 @@ Int ParticleSystemManager::removeOldestParticles( UnsignedInt count,
 // ------------------------------------------------------------------------------------------------
 void ParticleSystemManager::preloadAssets( TimeOfDay timeOfDay )
 {
-	TemplateMap::iterator begin(m_templateMap.begin());
-	TemplateMap::iterator end(m_templateMap.end());
+	// Preload base-game particle textures.
+	TemplateMap::const_iterator begin(m_templateMap.begin());
+	TemplateMap::const_iterator end(m_templateMap.end());
 
 	for (; begin != end; ++begin) {
 		const ParticleSystemTemplate *tmplate = (*begin).second;
 		if (tmplate->m_particleType == ParticleSystemInfo::PARTICLE &&
-			 	(! tmplate->m_particleTypeName.isEmpty()))
+				(! tmplate->m_particleTypeName.isEmpty()))
+		{
+			TheDisplay->preloadTextureAssets(tmplate->m_particleTypeName);
+		}
+	}
+
+	// Fusion templates live in a separate source-qualified registry and must
+	// participate in the same preload pass.
+	begin = m_fusionTemplateMap.begin();
+	end = m_fusionTemplateMap.end();
+	for (; begin != end; ++begin) {
+		const ParticleSystemTemplate *tmplate = (*begin).second;
+		if (tmplate->m_particleType == ParticleSystemInfo::PARTICLE &&
+				(! tmplate->m_particleTypeName.isEmpty()))
 		{
 			TheDisplay->preloadTextureAssets(tmplate->m_particleTypeName);
 		}
@@ -3386,13 +3474,14 @@ void ParticleSystemManager::crc( Xfer *xfer )
 // ------------------------------------------------------------------------------------------------
 /** Xfer method
 	* Version Info:
-	* 1: Initial version */
+	* 1: Initial version
+	* 2: Preserve Fusion source identity for each saved particle system */
 // ------------------------------------------------------------------------------------------------
 void ParticleSystemManager::xfer( Xfer *xfer )
 {
 
 	// version
-	XferVersion currentVersion = 1;
+	XferVersion currentVersion = 2;
 	XferVersion version = currentVersion;
 	xfer->xferVersion( &version, currentVersion );
 
@@ -3405,6 +3494,7 @@ void ParticleSystemManager::xfer( Xfer *xfer )
 
 	// particle systems data
 	AsciiString systemName;
+	AsciiString systemSourceId;
 	ParticleSystem *system;
 	if( xfer->getXferMode() == XFER_SAVE )
 	{
@@ -3421,12 +3511,16 @@ void ParticleSystemManager::xfer( Xfer *xfer )
 			if( system->isDestroyed() == TRUE || system->isSaveable() == FALSE )	{
 				AsciiString mtString;
 				xfer->xferAsciiString(&mtString); // write null string as key for destroyed system.
+				mtString.clear();
+				xfer->xferAsciiString(&mtString); // keep the version-2 source field aligned.
 				continue;
 			}
 
 			// write template name
 			systemName = system->getTemplate()->getName();
+			systemSourceId = system->getTemplate()->getFusionSourceId();
 			xfer->xferAsciiString( &systemName );
+			xfer->xferAsciiString( &systemSourceId );
 
 			// write system data
 			xfer->xferSnapshot( system );
@@ -3447,10 +3541,15 @@ void ParticleSystemManager::xfer( Xfer *xfer )
 
 			// read system name and find template
 			xfer->xferAsciiString( &systemName );
+			systemSourceId.clear();
+			if (version >= 2)
+				xfer->xferAsciiString( &systemSourceId );
 			if (systemName.isEmpty()) {
 				continue; // destroyed particle system.
 			}
-			systemTemplate = findTemplate( systemName );
+			systemTemplate = systemSourceId.isNotEmpty()
+				? findTemplate( systemName, systemSourceId, FALSE )
+				: findTemplate( systemName );
 
 			// sanity
 			if( systemTemplate == nullptr )

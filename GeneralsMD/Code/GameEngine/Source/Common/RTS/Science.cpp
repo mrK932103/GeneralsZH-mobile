@@ -83,11 +83,14 @@ void ScienceStore::reset()
 //-----------------------------------------------------------------------------
 ScienceType ScienceStore::getScienceFromInternalName(const AsciiString& name) const
 {
+	return getScienceFromInternalName(name, AsciiString::TheEmptyString);
+}
+
+ScienceType ScienceStore::getScienceFromInternalName(const AsciiString& name, const AsciiString& sourceId) const
+{
 	if (name.isEmpty())
 		return SCIENCE_INVALID;
-	NameKeyType nkt = TheNameKeyGenerator->nameToKey(name);
-	ScienceType st = (ScienceType)nkt;
-	return st;
+	return friend_lookupScience(name.str(), sourceId);
 }
 
 //-----------------------------------------------------------------------------
@@ -95,6 +98,9 @@ AsciiString ScienceStore::getInternalNameForScience(ScienceType science) const
 {
 	if (science == SCIENCE_INVALID)
 		return AsciiString::TheEmptyString;
+	const ScienceInfo* info = findScienceInfo(science);
+	if (info)
+		return info->m_internalName;
 	NameKeyType nk = (NameKeyType)(science);
 	return TheNameKeyGenerator->keyToName(nk);
 }
@@ -109,8 +115,7 @@ std::vector<AsciiString> ScienceStore::friend_getScienceNames() const
 	for (ScienceInfoVec::const_iterator it = m_sciences.begin(); it != m_sciences.end(); ++it)
 	{
 		const ScienceInfo* si = (const ScienceInfo*)(*it)->getFinalOverride();
-		NameKeyType nk = (NameKeyType)(si->m_science);
-		v.push_back(TheNameKeyGenerator->keyToName(nk));
+		v.push_back(si->m_internalName);
 	}
 	return v;
 }
@@ -155,10 +160,11 @@ const ScienceInfo* ScienceStore::findScienceInfo(ScienceType st) const
 /*static*/ void ScienceStore::friend_parseScienceDefinition( INI* ini )
 {
 	const char* c = ini->getNextToken();
-	NameKeyType nkt = NAMEKEY(c);
-	ScienceType st = (ScienceType)nkt;
+	if (!TheScienceStore)
+		return;
+	const AsciiString sourceId = ini->getSourceId();
+	ScienceType st = TheScienceStore->friend_getScienceType(c, sourceId);
 
-	if (TheScienceStore)
 	{
 
 		static const FieldParse myFieldParse[] =
@@ -177,7 +183,7 @@ const ScienceInfo* ScienceStore::findScienceInfo(ScienceType st) const
 		for (ScienceInfoVec::iterator it = TheScienceStore->m_sciences.begin(); it != TheScienceStore->m_sciences.end(); ++it)
 		{
 			// note that we don't use getFinalOverride here. this is correct and as-desired.
-			if ((*it)->m_science == st)
+			if ((*it)->m_science == st && (*it)->m_sourceId == sourceId)
 			{
 				info = *it;
 				break;
@@ -222,6 +228,8 @@ const ScienceInfo* ScienceStore::findScienceInfo(ScienceType st) const
 
 		ini->initFromINI(info, myFieldParse);
 		info->m_science = st;
+		info->m_internalName = c;
+		info->m_sourceId = sourceId;
 		info->addRootSciences(info->m_rootSciences);
 	}
 }
@@ -349,29 +357,33 @@ void ScienceStore::getPurchasableSciences(const Player* player, ScienceVec& purc
 // this is intended ONLY for use by INI::scanScience.
 // Don't use it anywhere else. In particular, never, ever, ever
 // call this with a hardcoded science name. (srj)
-ScienceType ScienceStore::friend_lookupScience(const char* scienceName) const
+ScienceType ScienceStore::friend_getScienceType(const char* scienceName, const AsciiString& sourceId) const
 {
-	NameKeyType nkt = NAMEKEY(scienceName);
-	ScienceType st = (ScienceType)nkt;
-	if (!isValidScience(st))
+	AsciiString qualifiedName;
+	if (sourceId.isNotEmpty())
+		qualifiedName.format("%s::%s", sourceId.str(), scienceName);
+	else
+		qualifiedName = scienceName;
+	return (ScienceType)TheNameKeyGenerator->nameToKey(qualifiedName);
+}
+
+ScienceType ScienceStore::friend_lookupScience(const char* scienceName, const AsciiString& sourceId) const
+{
+	// Prefer the owning mod's definition. Shared base-game sciences remain
+	// available when the mod does not provide a source-local definition.
+	ScienceType st = friend_getScienceType(scienceName, sourceId);
+	if (isValidScience(st))
+		return st;
+
+	if (sourceId.isNotEmpty())
 	{
-		// GeneralsX @bugfix Android port 13/07/2026 - A real-device log
-		// (GitHub issue #2, stock/patched retail data) showed this throw
-		// firing for airforcegeneral.ini's RequiredScience field (multiple
-		// direct `{ "RequiredScience", INI::parseScience, ... }`
-		// registrations across SpecialPower.cpp, SpectreGunshipDeploymentUpdate.cpp,
-		// W3DScienceModelDraw.cpp, none of which wrap the call), which --
-		// same as every other unresolved-reference crash in this file --
-		// takes down the entire INI load over one field. This function's
-		// sibling parsers in INI.cpp (parseSpecialPowerTemplate, etc.)
-		// already treat an unresolved name as a warning, not a fatal error;
-		// bring this one in line instead of throwing.
-		DEBUG_CRASH(("Science name %s not known! (Did you define it in Science.ini?)",scienceName));
-		fprintf(stderr, "WARNING: Science '%s' not recognized -- defaulting to SCIENCE_INVALID\n", scienceName);
-		fflush(stderr);
-		return SCIENCE_INVALID;
+		ScienceType baseScience = friend_getScienceType(scienceName, AsciiString::TheEmptyString);
+		if (isValidScience(baseScience))
+			return baseScience;
 	}
-	return st;
+
+	DEBUG_CRASH(("Science name %s from source %s not known! (Did you define it in Science.ini?)",scienceName,sourceId.str()));
+	throw INI_INVALID_DATA;
 }
 
 //-----------------------------------------------------------------------------

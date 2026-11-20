@@ -73,7 +73,7 @@ public:
 	void addUnitPrereq( const std::vector<AsciiString>& units );
 
 	/// called after all ThingTemplates have been loaded.
-	void resolveNames();
+	void resolveNames(const AsciiString& sourceId = AsciiString::TheEmptyString);
 
 	/// returns an asciistring which is a list of all the prerequisites
 	/// not satisfied yet

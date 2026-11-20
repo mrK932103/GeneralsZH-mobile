@@ -35,6 +35,7 @@
 #include "Common/Snapshot.h"
 #include "GameLogic/Damage.h"
 #include "GameLogic/LocomotorSet.h"
+#include <vector>
 
 // FORWARD REFERENCES /////////////////////////////////////////////////////////////////////////////
 class Locomotor;
@@ -137,6 +138,11 @@ public:
 
 	void validate();
 
+	// Fusion source identity keeps same-named locomotors from different mods separate.
+	void setFusionSourceId(const AsciiString& sourceId) { m_fusionSourceId = sourceId; }
+	const AsciiString& getFusionSourceId() const { return m_fusionSourceId; }
+	const AsciiString& getName() const { return m_name; }
+
 protected:
 
 
@@ -149,6 +155,7 @@ private:
 		-- Forces:				(mass*dist)/(frame*frame)
 	*/
 	AsciiString								m_name;
+	AsciiString								m_fusionSourceId;
 	LocomotorSurfaceTypeMask	m_surfaces;							///< flags indicating the kinds of surfaces we can use
 	Real											m_maxSpeed;							///< max speed
 	Real											m_maxSpeedDamaged;			///< max speed when "damaged"
@@ -249,6 +256,7 @@ public:
 	LocomotorSurfaceTypeMask getLegalSurfaces() const { return m_template->m_surfaces; }
 
 	AsciiString getTemplateName() const { return m_template->m_name;}
+	const AsciiString& getTemplateSourceId() const { return m_template->getFusionSourceId(); }
 	Real getMinSpeed() const { return m_template->m_minSpeed;}
 	Real getAccelPitchLimit() const { return m_template->m_accelPitchLimit;}	///< Maximum amount we will pitch up or down under acceleration (including recoil.)
 	Real getBounceKick() const { return m_template->m_bounceKick;}						///< How much simulating rough terrain "bounces" a wheel up.
@@ -468,6 +476,8 @@ public:
 	*/
 	const LocomotorTemplate* findLocomotorTemplate(NameKeyType namekey) const;
 	LocomotorTemplate* findLocomotorTemplate(NameKeyType namekey);
+	// Resolve a mod-owned locomotor without consulting another selected mod.
+	const LocomotorTemplate* findLocomotorTemplate(const AsciiString& name, const AsciiString& sourceId) const;
 
 	Locomotor* newLocomotor(const LocomotorTemplate *tmpl) const
 	{
@@ -487,6 +497,7 @@ private:
 	typedef std::map< NameKeyType, LocomotorTemplate*, std::less<NameKeyType>/**/> LocomotorTemplateMap;
 
 	LocomotorTemplateMap m_locomotorTemplates;
+	std::vector<LocomotorTemplate*> m_fusionLocomotorTemplates;
 
 };
 

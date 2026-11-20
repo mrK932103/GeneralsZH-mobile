@@ -535,6 +535,8 @@ public:
 	// the m_override pointer, it deals only with templates at the "top" level
 	//
 	void friend_setTemplateName( const AsciiString& name ) { m_nameString = name; }
+	void friend_setSourceId( const AsciiString& sourceId ) { m_sourceId = sourceId; }
+	const AsciiString& getSourceId() const { return m_sourceId; }
 	ThingTemplate *friend_getNextTemplate() const { return m_nextThingTemplate; }
 	void friend_setNextTemplate(ThingTemplate *tmplate) { m_nextThingTemplate = tmplate; }
 	void friend_setTemplateID(UnsignedShort id) { m_templateID = id; }
@@ -652,6 +654,7 @@ private:
 	// ---- Strings
 	UnicodeString			m_displayName;			///< UI display for onscreen display
 	AsciiString				m_nameString;					///< name of this thing template
+	AsciiString				m_sourceId;					///< Fusion source identity; empty for legacy templates
 	AsciiString				m_defaultOwningSide;	///< default owning side (owning player is inferred)
 	AsciiString				m_commandSetString;
 	AsciiString				m_selectedPortraitImageName;

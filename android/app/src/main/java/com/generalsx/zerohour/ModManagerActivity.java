@@ -273,6 +273,10 @@ public class ModManagerActivity extends Activity {
             UiKit.supporting(intro, getString(R.string.mods_online_note));
         }
 
+        UiKit.button(intro, UiKit.BTN_TONAL, R.drawable.ic_gzh_sliders,
+            "Generals Mod Fusion — анализ объединения",
+            () -> startActivity(new Intent(this, FusionActivity.class)));
+
         if (mods.size() > 1) {
             UiKit.segmented(intro, new CharSequence[] {
                     getString(R.string.mods_filter_all), getString(R.string.mods_filter_on) },

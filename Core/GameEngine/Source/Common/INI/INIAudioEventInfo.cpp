@@ -49,7 +49,7 @@ void INI::parseMusicTrackDefinition( INI* ini )
 	const char* c = ini->getNextToken();
 	name.set( c );
 
-	track = TheAudio->newAudioEventInfo( name );
+	track = TheAudio->newAudioEventInfo( name, ini->getSourceId() );
 	if (!track) {
 		return;
 	}
@@ -57,11 +57,14 @@ void INI::parseMusicTrackDefinition( INI* ini )
 	AudioEventInfo *defaultInfo = TheAudio->findAudioEventInfo("DefaultMusicTrack");
 	if (defaultInfo) {
 		(*track) = (*defaultInfo);
-		TheAudio->addTrackName( name );
+		// Fusion music tracks are source-local; do not mix them into the base playlist.
+		if (ini->getSourceId().isEmpty())
+			TheAudio->addTrackName( name );
 	}
 
 	track->m_audioName = name;
 	track->m_soundType = AT_Music;
+	track->m_fusionSourceId = ini->getSourceId();
 
 	// parse the ini definition
 	ini->initFromINI( track, track->getFieldParse() );
@@ -77,7 +80,7 @@ void INI::parseAudioEventDefinition( INI* ini )
 	const char* c = ini->getNextToken();
 	name.set( c );
 
-	track = TheAudio->newAudioEventInfo( name );
+	track = TheAudio->newAudioEventInfo( name, ini->getSourceId() );
 	if (!track) {
 		return;
 	}
@@ -89,6 +92,7 @@ void INI::parseAudioEventDefinition( INI* ini )
 
 	track->m_audioName = name;
 	track->m_soundType = AT_SoundEffect;
+	track->m_fusionSourceId = ini->getSourceId();
 
 	// parse the ini definition
 	ini->initFromINI( track, track->getFieldParse() );
@@ -104,7 +108,7 @@ void INI::parseDialogDefinition( INI* ini )
 	const char* c = ini->getNextToken();
 	name.set( c );
 
-	track = TheAudio->newAudioEventInfo( name );
+	track = TheAudio->newAudioEventInfo( name, ini->getSourceId() );
 	if (!track) {
 		return;
 	}
@@ -116,6 +120,7 @@ void INI::parseDialogDefinition( INI* ini )
 
 	track->m_audioName = name;
 	track->m_soundType = AT_Streaming;
+	track->m_fusionSourceId = ini->getSourceId();
 
 	// parse the ini definition
 	ini->initFromINI( track, track->getFieldParse() );

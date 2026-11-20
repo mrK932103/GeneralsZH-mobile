@@ -195,9 +195,9 @@ void ControlBar::populatePurchaseScience( Player* player )
 			player->getPlayerTemplate()->getPurchaseScienceCommandSetRank3().isEmpty() ||
 			player->getPlayerTemplate()->getPurchaseScienceCommandSetRank8().isEmpty())
 		return;
-	commandSet1 = findCommandSet(player->getPlayerTemplate()->getPurchaseScienceCommandSetRank1()); // TEMP WILL CHANGE TO PROPER WAY ONCE WORKING
-	commandSet3 = findCommandSet(player->getPlayerTemplate()->getPurchaseScienceCommandSetRank3()); // TEMP WILL CHANGE TO PROPER WAY ONCE WORKING
-	commandSet8 = findCommandSet(player->getPlayerTemplate()->getPurchaseScienceCommandSetRank8()); // TEMP WILL CHANGE TO PROPER WAY ONCE WORKING
+	commandSet1 = findCommandSet(player->getPlayerTemplate()->getPurchaseScienceCommandSetRank1(), player->getPlayerTemplate()->getFusionSourceId()); // TEMP WILL CHANGE TO PROPER WAY ONCE WORKING
+	commandSet3 = findCommandSet(player->getPlayerTemplate()->getPurchaseScienceCommandSetRank3(), player->getPlayerTemplate()->getFusionSourceId()); // TEMP WILL CHANGE TO PROPER WAY ONCE WORKING
+	commandSet8 = findCommandSet(player->getPlayerTemplate()->getPurchaseScienceCommandSetRank8(), player->getPlayerTemplate()->getFusionSourceId()); // TEMP WILL CHANGE TO PROPER WAY ONCE WORKING
 
 	for( i = 0; i < MAX_PURCHASE_SCIENCE_RANK_1; i++ )
 		if (m_sciencePurchaseWindowsRank1[i] != nullptr)
@@ -825,7 +825,9 @@ void CommandSet::parseCommandButton( INI* ini, void *instance, void *store, cons
 	const char *token = ini->getNextToken();
 
 	// get find the command button from this name
-	const CommandButton *commandButton = TheControlBar->findCommandButton( AsciiString( token ) );
+	const CommandSet *owningSet = static_cast<const CommandSet*>(instance);
+	const AsciiString sourceId = owningSet ? owningSet->getFusionSourceId() : AsciiString::TheEmptyString;
+	const CommandButton *commandButton = TheControlBar->findCommandButton( AsciiString( token ), sourceId );
 	if( commandButton == nullptr )
 	{
 
@@ -2285,11 +2287,28 @@ void ControlBar::evaluateContextUI()
 //-------------------------------------------------------------------------------------------------
 /** Find a command button of the given name if present */
 //-------------------------------------------------------------------------------------------------
+CommandButton *ControlBar::findNonConstCommandButton( const AsciiString& name, const AsciiString& sourceId )
+{
+	if (sourceId.isEmpty())
+		return findNonConstCommandButton(name);
+	CommandButton *baseGameButton = nullptr;
+	for (const CommandButton *command = m_commandButtons; command; command = command->getNext())
+	{
+		if (command->getName() != name) continue;
+		if (command->getFusionSourceId().compareNoCase(sourceId) == 0)
+			return const_cast<CommandButton*>((const CommandButton*)command->getFinalOverride());
+		if (command->getFusionSourceId().isEmpty()) baseGameButton = const_cast<CommandButton*>(command);
+	}
+	return baseGameButton ? const_cast<CommandButton*>((const CommandButton*)baseGameButton->getFinalOverride()) : nullptr;
+}
+
+//-------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 CommandButton *ControlBar::findNonConstCommandButton( const AsciiString& name )
 {
 
 	for( const CommandButton *command = m_commandButtons; command; command = command->getNext() )
-		if( command->getName() == name )
+		if( command->getName() == name && command->getFusionSourceId().isEmpty() )
 			return const_cast<CommandButton*>((const CommandButton*)command->getFinalOverride());
 
 	return nullptr;  // not found
@@ -2351,12 +2370,14 @@ CommandButton *ControlBar::newCommandButtonOverride( CommandButton *buttonToOver
 	name.set( c );
 
 	// find existing item if present
-	commandSet = TheControlBar->findNonConstCommandSet( name );
+	const AsciiString sourceId = ini->getSourceId();
+	commandSet = TheControlBar->findNonConstCommandSet( name, sourceId );
 	if( commandSet == nullptr )
 	{
 
 		// allocate a new item
 		commandSet = TheControlBar->newCommandSet( name );
+		commandSet->setFusionSourceId(sourceId);
 		if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES) {
 			commandSet->markAsOverride();
 		}
@@ -2388,12 +2409,28 @@ CommandButton *ControlBar::newCommandButtonOverride( CommandButton *buttonToOver
 //-------------------------------------------------------------------------------------------------
 /** Find existing command set by name */
 //-------------------------------------------------------------------------------------------------
+CommandSet* ControlBar::findNonConstCommandSet( const AsciiString& name, const AsciiString& sourceId )
+{
+	if (sourceId.isEmpty())
+		return findNonConstCommandSet(name);
+	CommandSet *baseGameSet = nullptr;
+	for (CommandSet *set = m_commandSets; set != nullptr; set = set->friend_getNext())
+	{
+		if (set->getName() != name) continue;
+		if (set->getFusionSourceId().compareNoCase(sourceId) == 0) return set;
+		if (set->getFusionSourceId().isEmpty()) baseGameSet = set;
+	}
+	return baseGameSet;
+}
+
+//-------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 CommandSet* ControlBar::findNonConstCommandSet( const AsciiString& name )
 {
 	CommandSet* set;
 
 	for( set = m_commandSets; set != nullptr; set = set->friend_getNext() )
-		if( set->getName() == name )
+		if( set->getName() == name && set->getFusionSourceId().isEmpty() )
 			return const_cast<CommandSet*>((const CommandSet *) set);
 
 	return nullptr;  // set not found
@@ -2401,6 +2438,14 @@ CommandSet* ControlBar::findNonConstCommandSet( const AsciiString& name )
 }
 //-------------------------------------------------------------------------------------------------
 /** find existing command button if present	*/
+//-------------------------------------------------------------------------------------------------
+const CommandButton *ControlBar::findCommandButton( const AsciiString& name, const AsciiString& sourceId )
+{
+	CommandButton *btn = findNonConstCommandButton(name, sourceId);
+	return btn ? (const CommandButton*)btn->getFinalOverride() : nullptr;
+}
+
+//-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 const CommandButton *ControlBar::findCommandButton( const AsciiString& name )
 {
@@ -2414,6 +2459,15 @@ const CommandButton *ControlBar::findCommandButton( const AsciiString& name )
 
 //-------------------------------------------------------------------------------------------------
 /** Find existing command set by name */
+//-------------------------------------------------------------------------------------------------
+const CommandSet *ControlBar::findCommandSet( const AsciiString& name, const AsciiString& sourceId )
+{
+	CommandSet *set = findNonConstCommandSet(name, sourceId);
+	if (set) set = (CommandSet*)set->getFinalOverride();
+	return set;
+}
+
+//-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 const CommandSet *ControlBar::findCommandSet( const AsciiString& name )
 {
@@ -3794,7 +3848,7 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 	// get command set
 	if(player->getPlayerTemplate()->getSpecialPowerShortcutCommandSet().isEmpty() )
 		return;
-	commandSet = findCommandSet(player->getPlayerTemplate()->getSpecialPowerShortcutCommandSet()); // TEMP WILL CHANGE TO PROPER WAY ONCE WORKING
+	commandSet = findCommandSet(player->getPlayerTemplate()->getSpecialPowerShortcutCommandSet(), player->getPlayerTemplate()->getFusionSourceId()); // TEMP WILL CHANGE TO PROPER WAY ONCE WORKING
 	if(!commandSet)
 		return;
 	// populate the button with commands defined
@@ -3898,9 +3952,9 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 							{
 								continue;
 							}
-							commandSet1 = findCommandSet( player->getPlayerTemplate()->getPurchaseScienceCommandSetRank1() );
-							commandSet3 = findCommandSet( player->getPlayerTemplate()->getPurchaseScienceCommandSetRank3() );
-							commandSet8 = findCommandSet( player->getPlayerTemplate()->getPurchaseScienceCommandSetRank8() );
+							commandSet1 = findCommandSet( player->getPlayerTemplate()->getPurchaseScienceCommandSetRank1(), player->getPlayerTemplate()->getFusionSourceId() );
+							commandSet3 = findCommandSet( player->getPlayerTemplate()->getPurchaseScienceCommandSetRank3(), player->getPlayerTemplate()->getFusionSourceId() );
+							commandSet8 = findCommandSet( player->getPlayerTemplate()->getPurchaseScienceCommandSetRank8(), player->getPlayerTemplate()->getFusionSourceId() );
 
 							if( !commandSet1 || !commandSet3 || !commandSet8 )
 							{
@@ -4138,7 +4192,7 @@ void ControlBar::updateSpecialPowerShortcut()
 				{
 					//Ugh... hacky.
 					//Look for a command button for a special power and if so, then get the command availability for it.
-					const CommandSet *commandSet = findCommandSet( obj->getCommandSetString() );
+					const CommandSet *commandSet = findCommandSet( obj->getCommandSetString(), obj->getTemplate()->getSourceId() );
 					if( commandSet )
 					{
 						for( Int commandIndex = 0; commandIndex < MAX_COMMANDS_PER_SET; commandIndex++ )

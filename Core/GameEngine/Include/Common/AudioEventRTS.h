@@ -74,6 +74,8 @@ public:
 
 	void setEventName( AsciiString name );
 	const AsciiString& getEventName() const { return m_eventName; }
+	void setFusionSourceId(const AsciiString& sourceId) { m_fusionSourceId = sourceId; m_eventInfo = nullptr; }
+	const AsciiString& getFusionSourceId() const { return m_fusionSourceId; }
 
 	// generateFilename is separate from generatePlayInfo because generatePlayInfo should only be called once
 	// per triggered event. generateFilename will be called once per loop, or once to get each filename if 'all' is
@@ -167,6 +169,7 @@ protected:
 																	///< This is one of those instances.
 
 	AsciiString m_eventName;				///< This should correspond with an entry in Dialog.ini, Speech.ini, or Audio.ini
+	AsciiString m_fusionSourceId;	///< Source namespace for Fusion-owned audio events
 	AsciiString m_attackName;				///< This is the filename that should be used during the attack.
 	AsciiString m_decayName;				///< This is the filename that should be used during the decay.
 
