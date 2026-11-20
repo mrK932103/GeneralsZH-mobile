@@ -41,6 +41,7 @@
 #include "Lib/BaseType.h"
 #include "GXTrace.h"
 #include <chrono>
+#include <string>
 #include "OpenALAudioDevice/OpenALAudioManager.h"
 #include "OpenALAudioDevice/OpenALAudioStream.h"
 #include "OpenALAudioCache.h"
@@ -875,7 +876,27 @@ void OpenALAudioManager::playAudioEvent(AudioEventRTS* event)
 			}
 		}
 
-		File* file = TheFileSystem->openFile(fileToPlay.str());
+		File* file = nullptr;
+		const AsciiString sourceId = event->getFusionSourceId();
+		if (sourceId.isNotEmpty()) {
+			const std::string source(sourceId.str());
+			const std::string::size_type separator = source.find('!');
+			FileInstance sourceInstance = 0;
+			if (separator == std::string::npos || separator == 0) {
+				DEBUG_LOG(("Invalid Fusion streaming-audio source identity: %s\\n", sourceId.str()));
+				releasePlayingAudio(audio);
+				return;
+			}
+			const AsciiString modFolder(source.substr(0, separator).c_str());
+			if (!TheFileSystem->getFileInstanceForMod(fileToPlay, modFolder, &sourceInstance)) {
+				DEBUG_LOG(("Fusion audio source '%s' does not contain stream '%s'\\n", modFolder.str(), fileToPlay.str()));
+				releasePlayingAudio(audio);
+				return;
+			}
+			file = TheFileSystem->openFile(fileToPlay.str(), File::READ, File::BUFFERSIZE, sourceInstance);
+		} else {
+			file = TheFileSystem->openFile(fileToPlay.str());
+		}
 		if (!file) {
 			DEBUG_LOG(("Failed to open file: %s\n", fileToPlay.str()));
 			releasePlayingAudio(audio);
